@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 7 | General Navigation</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 15px 50px; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 20px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-badge { background: var(--accent); border: 1px solid #444; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; color: var(--text-main); }
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 15px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        .options-grid { display: flex; flex-direction: column; gap: 8px; } 
+        .option-btn { background-color: var(--accent); color: var(--text-main); border: 2px solid transparent; border-radius: 8px; padding: 12px 20px; font-size: 1rem; cursor: pointer; text-align: left; transition: all 0.2s ease; }
+        .option-btn:hover:not(:disabled) { background-color: var(--accent-hover); }
+        .option-btn:disabled { cursor: default; }
+        .correct-ans { background-color: var(--correct-bg) !important; border-color: var(--correct-border) !important; color: white; }
+        .wrong-ans { background-color: var(--wrong-bg) !important; border-color: var(--wrong-border) !important; color: white; }
+        .feedback-box { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: left; font-weight: 600; display: none; font-size: 1rem; }
+        .feedback-correct { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 15px; font-size: 1.15rem; }
+        .feedback-wrong { display: block; background-color: rgba(244, 67, 54, 0.15); color: var(--wrong-border); border: 1px solid var(--wrong-bg); padding: 15px; font-size: 1.15rem; }
+        .sol-box { display: block; background-color: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border); font-family: 'Courier New', monospace; padding: 20px; margin-top: 15px; font-weight: normal; line-height: 1.6; }
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        #finish-screen { text-align: center; padding-top: 40px; }
+        #finish-screen h1 { font-size: 2.5rem; margin-bottom: 10px; color: var(--text-main);}
+        #finish-screen p { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 30px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION PAGE -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 7: General Navigation</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="initPdfQuiz()">
+                    <h3>PDF Questions</h3>
+                    <p id="pdf-label">Loading...</p>
+                </div>
+                <div class="module-card" onclick="startNumericals()">
+                    <h3>Numericals</h3>
+                    <p id="num-label">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PDF QUESTIONS VIEW (Behaves like MCQ) -->
+        <div id="pdf-quiz-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">Question 1 of X</h2>
+                <div class="score-badge">Score: <span id="pdf-score-display">0</span></div>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            <div class="content-area" style="max-height: none; padding: 20px;">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="options-grid" id="pdf-options-container"></div>
+                <div id="pdf-feedback-box" class="feedback-box"></div>
+            </div>
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button class="nav-btn" onclick="switchView('module-page')" style="border-color: var(--border);">Exit Questions</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF QUESTIONS FINISH SCREEN -->
+        <div id="pdf-finish-screen" class="view-section" style="justify-content: center;">
+            <div id="finish-screen" style="display: block;">
+                <h1>Questions Complete!</h1>
+                <p>You scored <span id="pdf-final-score"></span> out of <span id="pdf-total-questions"></span>.</p>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button class="btn" onclick="switchView('module-page')">Back to Modules</button>
+                    <button class="btn" style="background-color: var(--highlight);" onclick="initPdfQuiz()">Restart Questions</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NUMERICALS VIEW -->
+        <div id="numerical-linear-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="num-counter">Numerical 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Numericals</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="num-progress"></div></div>
+            
+            <div class="content-area" style="max-height: none; padding: 20px;">
+                <div class="question-text" id="num-q-text">Loading problem...</div>
+                <div style="margin-top: 25px; display: flex; gap: 15px;">
+                    <button class="btn" style="padding: 10px 20px; font-size: 1rem;" onclick="document.getElementById('num-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" style="padding: 10px 20px; font-size: 1rem; background-color: var(--highlight);" onclick="document.getElementById('num-sol-box').style.display='block'">Reveal Solution</button>
+                </div>
+                <div id="num-ans-box" class="feedback-box feedback-correct" style="display:none;"></div>
+                <div id="num-sol-box" class="feedback-box sol-box" style="display:none;"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="num-prev-btn" class="quiz-nav-btn" onclick="goPrevNum()">Previous</button>
+                <button id="num-next-btn" class="quiz-nav-btn" onclick="goNextNum()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // SPA NAVIGATION
+        // ==========================================
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        function shuffleArray(array) { 
+            for (let i = array.length - 1; i > 0; i--) { 
+                const j = Math.floor(Math.random() * (i + 1)); 
+                [array[i], array[j]] = [array[j], array[i]]; 
+            } 
+        }
+
+        // ==========================================
+        // PDF QUESTIONS DATA & LOGIC
+        // ==========================================
+        const pdfQuizData = [ 
+            // Data will be injected here
+        ];
+
+        let activePdfData = [], pdfUserAnswers = [], currentPdfIndex = 0;
+
+        function initPdfQuiz() { 
+            switchView('pdf-quiz-page');
+            activePdfData = JSON.parse(JSON.stringify(pdfQuizData)); 
+            
+            if (activePdfData.length === 0) {
+                document.getElementById('pdf-q-text').innerHTML = "No questions available yet.";
+                return;
+            }
+
+            shuffleArray(activePdfData); 
+            activePdfData.forEach(q => { 
+                let optionsArr = Object.entries(q.options).map(([key, val]) => ({ key, val })); 
+                shuffleArray(optionsArr); 
+                q.shuffledOptions = optionsArr; 
+            }); 
+            pdfUserAnswers = new Array(activePdfData.length).fill(null); 
+            currentPdfIndex = 0; 
+            renderPdfQuestion(); 
+        }
+
+        function updatePdfScore() { 
+            let currentScore = 0; 
+            pdfUserAnswers.forEach((ans, index) => { 
+                if (ans === activePdfData[index].ans) { currentScore++; } 
+            }); 
+            document.getElementById('pdf-score-display').textContent = currentScore; 
+            return currentScore; 
+        }
+
+        function renderPdfQuestion() { 
+            if(activePdfData.length === 0) return;
+            const qData = activePdfData[currentPdfIndex]; 
+            const selectedAns = pdfUserAnswers[currentPdfIndex]; 
+            
+            document.getElementById('pdf-counter').textContent = `Question ${currentPdfIndex + 1} of ${activePdfData.length}`; 
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / activePdfData.length) * 100}%`; 
+            document.getElementById('pdf-q-text').innerHTML = qData.q; 
+            updatePdfScore(); 
+            
+            const optionsContainer = document.getElementById('pdf-options-container'); 
+            optionsContainer.innerHTML = ''; 
+            qData.shuffledOptions.forEach(opt => { 
+                const btn = document.createElement('button'); 
+                btn.className = 'option-btn'; 
+                btn.innerHTML = opt.val; 
+                if (selectedAns !== null) { 
+                    btn.disabled = true; 
+                    if (opt.key === qData.ans) { btn.classList.add('correct-ans'); } 
+                    else if (opt.key === selectedAns) { btn.classList.add('wrong-ans'); } 
+                } else { 
+                    btn.onclick = () => { pdfUserAnswers[currentPdfIndex] = opt.key; renderPdfQuestion(); }; 
+                } 
+                optionsContainer.appendChild(btn); 
+            }); 
+            
+            const feedbackBox = document.getElementById('pdf-feedback-box'); 
+            feedbackBox.className = 'feedback-box'; 
+            if (selectedAns !== null) { 
+                feedbackBox.style.display = 'block';
+                if (selectedAns === qData.ans) { 
+                    feedbackBox.innerHTML = "<strong>Correct!</strong>"; 
+                    feedbackBox.classList.add('feedback-correct'); 
+                } else { 
+                    feedbackBox.innerHTML = "<strong>Incorrect.</strong> The correct answer is highlighted in green."; 
+                    feedbackBox.classList.add('feedback-wrong'); 
+                } 
+            } else { feedbackBox.style.display = 'none'; }
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0; 
+            const nextBtn = document.getElementById('pdf-next-btn'); 
+            if (selectedAns === null) { nextBtn.disabled = true; nextBtn.textContent = "Next"; } 
+            else { nextBtn.disabled = false; nextBtn.textContent = (currentPdfIndex === activePdfData.length - 1) ? "Finish" : "Next"; } 
+        }
+
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdfQuestion(); } }
+        function goNextPdf() { 
+            if (currentPdfIndex < activePdfData.length - 1) { currentPdfIndex++; renderPdfQuestion(); } 
+            else { 
+                switchView('pdf-finish-screen'); 
+                document.getElementById('pdf-final-score').textContent = updatePdfScore(); 
+                document.getElementById('pdf-total-questions').textContent = activePdfData.length; 
+            } 
+        }
+
+        // ==========================================
+        // NUMERICALS DATA & LOGIC
+        // ==========================================
+        const numericalsData = [
+            // Data will be injected here
+            { 
+                q: "Given:<br>Imperial Gallon = 100<br>Specific Gravity = 0.77<br><br>Convert this to Litres (L), Kilograms (kg), Pounds (lbs), and US Gallons (USG).", 
+                ans: "454 L<br>350 kg<br>770 lbs<br>119.8 USG", 
+                sol: "&bull; <strong>Litres:</strong> 100 L = 22 IG<br>(100 &times; 100) / 22 = 454 L<br><br>&bull; <strong>Kilograms:</strong> L &times; SG = kg<br>454 &times; 0.77 = 350 kg<br><br>&bull; <strong>Pounds:</strong> kg &times; 2.205 = lbs<br>350 &times; 2.205 = 770 lbs<br><br>&bull; <strong>US Gallons:</strong> 100 L = 26.4 USG<br>(26.4 &times; 454) / 100 = 119.8 USG" 
+            },
+            { 
+                q: "Given:<br>Fuel Efficiency = 9.3 kg/NM<br>Specific Gravity (SG) = 0.79<br>TAS = 360 kts<br>Wind component = +45 kts<br><br>Find:<br>a) Fuel consumption in IG/hour<br>b) Fuel consumption in L/min<br>c) Fuel consumption in NM/USG", 
+                ans: "a) 1048.8 IG/hour<br>b) 79.45 L/min<br>c) 0.32 NM/USG", 
+                sol: "<strong>Groundspeed (G/S):</strong> 360 + 45 = 405 kts<br><br><strong>a) IG/hour:</strong><br>FC = 405 &times; 9.3 = 3766 kg/hour<br>3766 kg/hr = 8286 lbs/hour<br>Formula: IG &times; SG &times; 10 = lbs<br>IG &times; 0.79 &times; 10 = 8286<br>IG = 8286 / 7.9 = 1048.8 IG/hour<br><br><strong>b) L/min:</strong><br>Formula: L &times; SG = kg<br>L &times; 0.79 = 3766 kg<br>L = 3766 / 0.79 = 4767 L/hour<br>4767 / 60 = 79.45 L/min<br><br><strong>c) NM/USG:</strong><br>Formula: 100 L = 26.4 USG<br>(26.4 &times; 4767) / 100 = 1258.5 USG/hour<br>Efficiency = 405 NM / 1258.5 USG = 0.32 NM/USG" 
+            },
+            { 
+                q: "Which of the following will give fuel economy or best performance?<br><br>a) TAS 300 kts, FC 800 IG/h<br>b) TAS 340 kts, FC 907 IG/h<br>c) TAS 380 kts, FC 988 IG/h<br>d) TAS 420 kts, FC 1121 IG/h", 
+                ans: "c) 380 kts & 988 IG/h gives best economy", 
+                sol: "Find the lowest Fuel Efficiency in IG/NM (Fuel Consumption &divide; Speed):<br><br>a) 800 / 300 = 2.666 IG/NM<br>b) 907 / 340 = 2.667 IG/NM<br>c) 988 / 380 = 2.600 IG/NM<br>d) 1121 / 420 = 2.669 IG/NM<br><br>Option (c) requires the least amount of fuel per nautical mile." 
+            },
+            { 
+                q: "Find best economy (Specific Gravity = 0.79):<br><br>a) TAS 180 kts, FC 1.25 USG/NM<br>b) TAS 240 kts, FC 4.1 IG/min<br>c) TAS 220 kts, FC 815 kg/hour<br>d) TAS 160 kts, FC 12.7 L/min", 
+                ans: "b) 240 kts & 4.1 IG/min will have best fuel efficiency (4.66 L/NM)", 
+                sol: "Convert all values to a standard metric, Litres per NM (L/NM):<br><br><strong>a)</strong> 1.25 USG/NM &rarr; 100 L = 26.4 USG &rarr; (100 &times; 1.25) / 26.4 = 4.73 L/NM<br><br><strong>b)</strong> 4.1 IG/min &rarr; 246 IG/hour. <br>100 L = 22 IG &rarr; (100 &times; 246) / 22 = 1118.18 L/hour.<br>1118.18 / 240 kts = 4.66 L/NM<br><br><strong>c)</strong> 815 kg/hour &rarr; L &times; 0.79 = 815 &rarr; L = 1031.64 L/hour.<br>1031.64 / 220 kts = 4.68 L/NM<br><br><strong>d)</strong> 12.7 L/min &rarr; 12.7 &times; 60 = 762 L/hour.<br>762 / 160 kts = 4.76 L/NM<br><br>Option (b) is the most efficient." 
+            },
+            { 
+                q: "Which aircraft is economical with SG = 0.8?<br><br>a) 34.5 L/km<br>b) 0.065 NM/L<br>c) 16.85 kg/NM<br>d) 0.2 NM/IG", 
+                ans: "b) 0.065 NM/L will have best fuel efficiency (15.38 L/NM)", 
+                sol: "Convert all values to a standard metric, Litres per NM (L/NM):<br><br><strong>a)</strong> 34.5 L/km &rarr; 34.5 &times; 1.852 = 63.8 L/NM<br><br><strong>b)</strong> 0.065 NM/L &rarr; 1 / 0.065 = 15.38 L/NM<br><br><strong>c)</strong> 16.85 kg/NM &rarr; L &times; SG = kg &rarr; L &times; 0.8 = 16.85 &rarr; L = 21.06 L/NM<br><br><strong>d)</strong> 0.2 NM/IG &rarr; 1 / 0.2 = 5 IG/NM. <br>100 L = 22 IG &rarr; (100 &times; 5) / 22 = 22.7 L/NM<br><br>Option (b) consumes the least Litres per NM." 
+            },
+            { 
+                q: "For a flight of 110 NM. Pilot observes after covering 40 NM, A/C is off track by 8 NM to port. How many degrees of correction pilot should apply?", 
+                ans: "18.8&deg; Starboard", 
+                sol: "<strong>Distance Flown:</strong> 40 NM<br><strong>Distance to Go:</strong> 110 - 40 = 70 NM<br><strong>Off Track:</strong> 8 NM Port<br><br><strong>Correction Angle (CA):</strong><br>CA = (Distance Off &times; 60 / Distance Flown) + (Distance Off &times; 60 / Distance to Go)<br>CA = (8 &times; 60 / 40) + (8 &times; 60 / 70)<br>CA = 12 + 6.85 = 18.85&deg; &approx; 18.8&deg; Starboard (S)" 
+            },
+            { 
+                q: "For a cross country of 130 NM. Flying for 40 mins at GS 110 kts. Pilot found A/C 10 NM to starboard. How many degrees of correction should be applied?", 
+                ans: "19&deg; Port", 
+                sol: "<strong>Distance Flown (D1):</strong><br>Time = 40 mins, GS = 110 kts<br>D1 = Speed &times; Time = 110 &times; (40/60) = 73.3 NM<br><br><strong>Distance to Go (D2):</strong><br>D2 = 130 - 73.3 = 56.7 NM<br><br><strong>Correction Angle (CA):</strong><br>CA = (10 &times; 60 / 73.3) + (10 &times; 60 / 56.7)<br>CA = 8.18 + 10.58 = 18.76&deg; &approx; 19&deg; Port (P)" 
+            },
+            { 
+                q: "For a flight of 135 NM, After 40 mins at G/S 95 kts Pilot drifted 7&deg; starboard. How many degrees of correction should be applied?", 
+                ans: "14&deg; Port", 
+                sol: "<strong>Distance Flown (D1):</strong><br>Time = 40 mins, Speed = 95 kts<br>D1 = 95 &times; (40/60) = 63.3 NM<br><br><strong>Distance to Go (D2):</strong><br>D2 = 135 - 63.3 = 71.7 NM<br><br><strong>Find Off-Track Distance (x):</strong><br>Track Error = (x &times; 60) / D1<br>7 = (x &times; 60) / 63.3 &rarr; x = (7 &times; 63.3) / 60 = 7.38 NM<br><br><strong>Closing Angle (&theta;):</strong><br>&theta; = (7.38 &times; 60) / 71.7 = 6.17&deg;<br><br><strong>Total Correction (CA):</strong><br>CA = 7.38 + 6.17 = 13.55&deg; &approx; 14&deg;" 
+            },
+            { 
+                q: "Flying for 2 hrs at GS 180 kts, A/C pinpoints itself 18 NM right off track. If remaining time to reach destination is 1 hr. Find correction in Hdg required if AC was flying on Hdg 90&deg;.", 
+                ans: "New Heading = 81&deg;", 
+                sol: "<strong>Distance Flown:</strong> 2 hrs @ 180 kts = 360 NM<br><strong>Distance to Go:</strong> 1 hr @ 180 kts = 180 NM<br><br><strong>Correction Angle (CA):</strong><br>CA = (18 &times; 60 / 360) + (18 &times; 60 / 180)<br>CA = 3 + 6 = 9&deg; Port (Left)<br><br><strong>New Heading:</strong><br>Since you are right (Starboard) of track, you must steer left (Port) by 9 degrees.<br>New Hdg = 90&deg; - 9&deg; = 81&deg;" 
+            },
+            { 
+                q: "Glide angle = 3&deg;, G/S = 100 kts. Find ROD.", 
+                ans: "506.5 ft/min", 
+                sol: "Formula: ROD = (Glide Angle &times; G/S / 60) &times; 101.3<br><br>ROD = (3 &times; 100 / 60) &times; 101.3<br>ROD = 506.5 ft/min" 
+            },
+            { 
+                q: "Descend slope = 12%, GS = 540 kts. Find ROD.", 
+                ans: "6564.24 ft/min", 
+                sol: "Formula: Gradient (%) = (ROD in NM/hr / GS) &times; 100<br><br>12 = (x / 540) &times; 100<br>x = (12 &times; 540) / 100 = 64.8 NM/hr<br><br>Convert NM/hr to ft/min by multiplying by 101.3:<br>64.8 &times; 101.3 = 6564.24 ft/min" 
+            },
+            { 
+                q: "Descend gradient = 5.2%. Distance = 7 NM from runway. Find height.", 
+                ans: "2213 ft", 
+                sol: "Formula: Gradient (%) = (Height in NM / Distance in NM) &times; 100<br><br>5.2 = (x / 7) &times; 100<br>x = (5.2 &times; 7) / 100 = 0.364 NM<br><br>Convert NM to feet (1 NM = 6080 ft):<br>0.364 &times; 6080 = 2213 ft" 
+            },
+            { 
+                q: "Assuming zero wind, what distance is covered by an aircraft descending 15000 ft with TAS of 320 kts maintaining ROD of 3000 ft/min?", 
+                ans: "26.6 NM", 
+                sol: "<strong>Time to descend:</strong><br>Time = Height / ROD = 15000 / 3000 = 5 mins<br><br><strong>Distance covered:</strong><br>Distance = Speed &times; Time<br>Distance = 320 &times; (5 / 60) = 26.6 NM" 
+            },
+            { 
+                q: "A/C height 2500 ft, Glide Path (&angle;GS) = 3&deg;. At what distance from runway can the A/C capture the glide path?", 
+                ans: "8.22 NM", 
+                sol: "Formula: &angle;GS = (Height &times; 60) / (Distance in ft)<br><br>3 = (2500 &times; 60) / x<br>x = (2500 &times; 60) / 3 = 50,000 ft<br><br>Convert feet to NM:<br>50,000 / 6080 = 8.22 NM" 
+            },
+            { 
+                q: "At what approx distance from threshold would an A/C intercept glide path if h = 2500 ft, &angle;GS = 8&deg;?", 
+                ans: "3.1 NM", 
+                sol: "Formula: &angle;GS = (Height &times; 60) / (Distance in ft)<br><br>8 = (2500 &times; 60) / x<br>x = (2500 &times; 60) / 8 = 18,750 ft<br><br>Convert feet to NM:<br>18,750 / 6080 &approx; 3.1 NM" 
+            },
+            { 
+                q: "When 65 NM from station, we commence descend from FL 330 (33,000 ft) with intention of arriving at station at FL 100 (10,000 ft). If GS = 240 kts, what ROD is required?", 
+                ans: "1437 ft/min", 
+                sol: "<strong>Height to descend:</strong><br>33000 - 10000 = 23000 ft<br><br><strong>Time required:</strong><br>Time = Distance / Speed = (65 / 240) &times; 60 = 16.25 mins (rounded to 16 mins)<br><br><strong>Rate of Descent (ROD):</strong><br>ROD = Height / Time = 23000 / 16 = 1437 ft/min" 
+            },
+            { 
+                q: "What will be the ROD when flying down &angle;GS 10&deg; at G/S 400 kts?", 
+                ans: "6753 ft/min", 
+                sol: "Formula: ROD (NM/hr) = (&angle;GS &times; G/S) / 60<br><br>ROD = (10 &times; 400) / 60 = 66.6 NM/hr<br><br>Convert to ft/min by multiplying by 101.3:<br>66.6 &times; 101.3 &approx; 6753 ft/min" 
+            },
+            { 
+                q: "AC flying at FL 350 required to commence descend when 85 NM from station & to cross the station at FL 80. G/S = 340 kts. Find ROD.", 
+                ans: "1800 ft/min", 
+                sol: "<strong>Height to descend:</strong><br>35000 - 8000 = 27000 ft<br><br><strong>Time required:</strong><br>Time = Distance / Speed = (85 / 340) &times; 60 = 15 mins<br><br><strong>Rate of Descent (ROD):</strong><br>ROD = Height / Time = 27000 / 15 = 1800 ft/min" 
+            },
+            { 
+                q: "If there is a 20 kts increase in Headwind (H.W.), by how much should ROD change to maintain a 3&deg; Glide Slope (&angle;GS)?", 
+                ans: "100 ft/min (decrease)", 
+                sol: "<strong>Method 1 (Formula):</strong><br>Speed change in ft/min = 20 &times; 101.3 = 2026 ft/min<br>3&deg; = (ROD &times; 60) / 2026 &rarr; ROD = (2026 &times; 3) / 60 = 101.3 ft/min<br><br><strong>Method 2 (Rule of Thumb):</strong><br>Change in ROD = Change in HW/TW &times; 5 (for a 3&deg; glide slope)<br>Change = 20 &times; 5 = 100 ft/min.<br><br>Since it's a headwind increase, Groundspeed decreases, so ROD must <strong>decrease</strong> to stay on the same glide path." 
+            },
+            { 
+                q: "Track = 50&deg;, AC FL 340 (34000 ft) descend to FL 60 (6000 ft), ROD = 1750 ft/min, TAS = 340 kts, wind component = 40 kts (Headwind), FC = 500 kg/hr, Var = 7&deg;E, Dev = 4&deg;W.<br><br>Find Distance, Time, Fuel used, Hdg(c) & gradient during descend.", 
+                ans: "Time = 16 mins<br>Dist = 80 NM<br>Fuel = 133.3 kg<br>Hdg(c) = 47&deg;<br>Gradient = 5.7%", 
+                sol: "&bull; <strong>Time:</strong> Height / ROD = (34000 - 6000) / 1750 = 28000 / 1750 = 16 mins<br><br>&bull; <strong>Distance:</strong> Speed &times; Time. (GS = TAS - Headwind = 340 - 40 = 300 kts).<br>Dist = 300 &times; (16 / 60) = 80 NM<br><br>&bull; <strong>Fuel used:</strong> 500 kg/hr &times; (16 / 60) = 133.3 kg<br><br>&bull; <strong>Hdg(c):</strong> Track is 50&deg; (assume 0 drift, so TH = 50&deg;).<br>Mag Hdg = 50&deg; - 7&deg;E = 43&deg;(M).<br>Compass Hdg = 43&deg; + 4&deg;W = 47&deg;(C).<br><br>&bull; <strong>Gradient:</strong> (Height / Distance in ft) &times; 100<br>Distance in ft = 80 NM &times; 6080 = 486400 ft.<br>Gradient = (28000 / 486400) &times; 100 = 5.7%" 
+            },
+            { 
+                q: "At 0422 hr, AC on FL 370 (37,000 ft), G/S 320 kts is on direct track to station at 185 NM distance. A/C is required to cross station at FL 80. ROD = 1800 ft/min. GS = 232 kts during descend.<br><br>Find time of descend commence and time of arrival.", 
+                ans: "Commence Descent = 0445 hrs<br>Time of Arrival = 0501 hrs", 
+                sol: "<strong>1. Time & Distance of Descent:</strong><br>Height to lose = 37000 - 8000 = 29000 ft.<br>Time of descent = 29000 / 1800 &approx; 16 minutes.<br>Distance of descent = 232 kts &times; (16 / 60) &approx; 62 NM.<br><br><strong>2. Cruising Phase:</strong><br>Cruising Distance = Total Dist - Descent Dist = 185 - 62 = 123 NM.<br>Time in cruise = Distance / Speed = (123 / 320) &times; 60 &approx; 23 minutes.<br><br><strong>3. Timings:</strong><br>Time of descend commence = 0422 + 23 mins = 0445 hrs.<br>Time of Arrival = 0445 + 16 mins = 0501 hrs." 
+            },
+            { 
+                q: "An aircraft departs from point E, intending to fly the direct track to point F, 160nm away. Having flown for 85nm, a fix is obtained which puts the aircraft 11nm to the port of the intended track. Determine the alteration of heading required, if the aircraft is to track directly from the fix to point F.", 
+                ans: "16.6&deg; to starboard", 
+                sol: "<strong>Track Error Angle (TEA):</strong><br>TEA = (Distance Off &times; 60) / Distance Flown<br>TEA = (11 &times; 60) / 85 = 7.8&deg;<br><br><strong>Closing Angle (CA):</strong><br>CA = (Distance Off &times; 60) / Distance to Go<br>CA = (11 &times; 60) / 75 = 8.8&deg;<br><br><strong>Total Alteration:</strong> TEA + CA = 7.8&deg; + 8.8&deg; = 16.6&deg; to Starboard (since aircraft is to the port/left of track)." 
+            },
+            { 
+                q: "Distance along track is 600 nm. Distance to go 300 nm, distance off track 20 nm. Find TEA, CA and total correction.", 
+                ans: "TEA = 2&deg;, CA = 4&deg;, Total Correction = 6&deg;", 
+                sol: "<strong>TEA</strong> = (20 &times; 60) / 600 = 2&deg;<br><strong>CA</strong> = (20 &times; 60) / 300 = 4&deg;<br><strong>Correction</strong> = 2&deg; + 4&deg; = 6&deg;" 
+            },
+            { 
+                q: "After flying for 2 hr 40 minutes at G/S of 360 kts, an A/C is 30 nm starboard of track. If the remaining time to go to destination at a G/S of 240 kts is 45 min, what should be the heading to reach destination if the A/C was originally flying on Hdg 358&deg;.", 
+                ans: "346&deg;", 
+                sol: "<strong>Distance Flown:</strong> 360 kts &times; 2.66 hrs = 960 nm<br><strong>Distance to Go:</strong> 240 kts &times; 0.75 hrs = 180 nm<br><br>TEA = (30 &times; 60) / 960 = 2&deg;<br>CA = (30 &times; 60) / 180 = 10&deg;<br>Total Correction: 12&deg; Port (Steer left, since A/C is starboard of track).<br>New Heading: 358&deg; - 12&deg; = 346&deg;" 
+            },
+            { 
+                q: "After flying for 1 hr 30 min at G/S 150 Kts an a/c is 15 nm off track. If the remaining time to go to destination is 45 min at a G/S of 180 kts. Find closing angle.", 
+                ans: "7&deg;", 
+                sol: "<strong>Distance to Go:</strong> 180 kts &times; 0.75 hrs = 135 nm.<br><strong>CA</strong> = (15 &times; 60) / 135 = 6.66&deg; &approx; 7&deg;" 
+            },
+            { 
+                q: "After flying for 2 hrs 30 min at G/S of 240 kts a/c is 20 nm right of track, if remaining time to go to destination is 1 hr. what is the new hdg to reach the destination, if a/c was originally flying on hdg 270&deg;.", 
+                ans: "263&deg;", 
+                sol: "Distance Flown = 240 &times; 2.5 = 600 nm<br>Distance to Go = 240 &times; 1 = 240 nm<br>TEA = (20 &times; 60) / 600 = 2&deg;<br>CA = (20 &times; 60) / 240 = 5&deg;<br>Total Correction: 7&deg; Port (Left).<br>New Hdg = 270&deg; - 7&deg; = 263&deg;" 
+            },
+            { 
+                q: "An aircraft is tracking outbound from a VOR. The intention is to maintain the centerline of an airway which is defined by the 300&deg; radial from the VOR. A back-bearing from the VOR shows the aircraft to be on the 295&deg; radial, and at the same time the DME gives a range of 85 nm from the VOR. Determine the aircraft's displacement from the airway centerline.", 
+                ans: "7 nm", 
+                sol: "<strong>Track Error Angle (TEA):</strong> 300&deg; - 295&deg; = 5&deg;<br><strong>Distance Flown:</strong> 85 nm<br>Distance Off = (TEA &times; Distance Flown) / 60 = (5 &times; 85) / 60 = 7.08 nm &approx; 7 nm" 
+            },
+            { 
+                q: "With a TAS of 115 Kts the relative bearing on an ADF change from 090&deg; to 095&deg; in 1 &frac12; min. The distance to beacon is:", 
+                ans: "34.5 nm", 
+                sol: "Distance Flown = (115 / 60) &times; 1.5 = 2.875 nm<br>Distance to Beacon = (Distance Flown &times; 60) / Bearing Change<br>Distance = (2.875 &times; 60) / 5 = 34.5 nm" 
+            },
+            { 
+                q: "The ADF indicates a wing tip bearing change of 5&deg; in 5 min. TAS is 115 Kts. The distance to beacon is:", 
+                ans: "115 nm", 
+                sol: "Time to Beacon = (Time Flown &times; 60) / Bearing Change<br>Time = (5 &times; 60) / 5 = 60 mins.<br>Distance = TAS &times; Time (hrs) = 115 kts &times; 1 hr = 115 nm." 
+            },
+            { 
+                q: "The ADF indicates a wing tip bearing change of 5&deg; in 1.5 min. The time to beacon is:", 
+                ans: "18 min", 
+                sol: "Time to Beacon = (Time Flown &times; 60) / Bearing Change<br>Time = (1.5 &times; 60) / 5 = 18 mins" 
+            },
+            { 
+                q: "With a TAS of 90 K the relative bearing on an ADF changes from 090&deg; to 100&deg; in 2 &frac12; min. The distance & time to beacon is:", 
+                ans: "22.5 nm, 15 min", 
+                sol: "Bearing Change = 10&deg;<br>Time to Beacon = (2.5 &times; 60) / 10 = 15 mins<br>Distance to Beacon = (90 / 60) &times; 15 = 22.5 nm" 
+            },
+            { 
+                q: "The ADF indicates a wing tip bearing change of 15&deg; in 7.5 min. The fuel consumption is 9.6 GPH. TAS is 85 K. The distance to beacon is:", 
+                ans: "30 min, 42.5 nm, 4.8 Gal", 
+                sol: "Time to Beacon = (7.5 &times; 60) / 15 = 30 mins<br>Distance to Beacon = (85 / 60) &times; 30 = 42.5 nm<br>Fuel Consumed = (9.6 / 60) &times; 30 = 4.8 Gal" 
+            },
+            { 
+                q: "Maintaining a constant heading the ADF reading changes from 045 to 090 in 5 min. TAS is 120. Fuel consumption is 5 GPH. The distance to beacon is:", 
+                ans: "5 min, 10 nm, 0.4 Gal", 
+                sol: "Doubling the Angle on the Bow rule:<br>Time to station = Time flown = 5 mins.<br>Distance = (120 / 60) &times; 5 = 10 nm.<br>Fuel = (5 / 60) &times; 5 = 0.4 Gal." 
+            },
+            { 
+                q: "Maintaining a constant heading the ADF reading changes from 315 to 270 in 7 min. TAS is 120. Fuel consumption is 18 GPH. The distance to beacon is:", 
+                ans: "7 min, 14 nm, 2.1 Gal", 
+                sol: "Doubling the Angle on the Bow rule (relative to nose: 45&deg; to 90&deg;).<br>Time Flown = 7 mins.<br>Distance = (120 / 60) &times; 7 = 14 nm.<br>Fuel = (18 / 60) &times; 7 = 2.1 Gal." 
+            },
+            { 
+                q: "At 60 NMs from station you travel approximately ________ NMs for each degree of radial crossed.", 
+                ans: "1 nm", 
+                sol: "By the 1-in-60 Rule: At 60 NM, 1 degree equals exactly 1 NM." 
+            },
+            { 
+                q: "Set course at point 'A' at 1,000' Climb to PA = 27,000' ROC = 500 FPM. Trk = 045&deg; TAS = 280 kts. W/V = 070&deg;/35 kts. Fuel consumption = 800 kg/hr. Variation + 3&deg;, Deviation + 7&deg;. Find:<br>(i) Dist, Time and fuel used during climb<br>(ii) Hdg (M), Hdg (C)", 
+                ans: "(i) Dist=215 nm, Time=52 min, Fuel=693 kg.<br>(ii) Hdg (M) = 045&deg;, Hdg (C) = 038&deg;", 
+                sol: "Time = 26000 / 500 = 52 min.<br>G/S = 248 kts.<br>Dist = 248 &times; (52/60) = 215 nm.<br>Fuel = 800 &times; (52/60) = 693 kg." 
+            },
+            { 
+                q: "Route 600 nm. A/C climbs at G/S of 160 kts for 0:30 min. During cruise G/S is 250 kts. Descends for 0:20 min, G/S 180 kts. Total flying time on cruise and route?", 
+                ans: "Cruise Time = 1h 50 min. Total Route Time = 2h 40 min", 
+                sol: "Climb Dist = 160 &times; 0.5 = 80 nm.<br>Descend Dist = 180 &times; 0.33 = 60 nm.<br>Cruise Dist = 600 - (80+60) = 460 nm.<br>Cruise Time = 460 / 250 = 1.83 hrs (1h 50m)." 
+            },
+            { 
+                q: "During climb from 1,000 PA to 9,000 PA, 50 air nautical miles are covered in 20 min. Trk 090&deg; W/V = 270 / 30 kts. Find rate of climb and distance covered.", 
+                ans: "400 feet per minute / 60 nm", 
+                sol: "Vertical Dist = 8000'. Time = 20 mins.<br>ROC = 8000 / 20 = 400 FPM.<br>TAS = 50 NM / (20/60) = 150 kts. Tailwind = 30 kts.<br>GS = 180 kts. Dist covered = 180 &times; (20/60) = 60 nm." 
+            },
+            { 
+                q: "A/C sets course from 4000' PA and climbs to 16000' PA. Rate of climb 500 FPM. Mean winds 200/20 kts. Maintains a constant RAS = 130 kts, at 4000' ISA - 5&deg;C, at 16,000' ISA - 5&deg;C, at mean sea level PA ISA+15. Time and dist in nil winds will be:", 
+                ans: "24 mins / 60 nm", 
+                sol: "Time = (16000 - 4000) / 500 = 24 mins.<br>Distance in nil wind = TAS &times; Time. Using average TAS &approx; 150 kts:<br>Dist = 150 &times; (24/60) = 60 nm." 
+            },
+            { 
+                q: "Table Data Extract:<br>TRK: 160&deg;, ISA Dev: +15, FL: 310, M.No: 0.75, OAT: -32, TAS: 454, Winds: 270/30.<br>Verify Dist, Time, F/C, Fuel Used.", 
+                ans: "Dist = 424, Time = 0:55, F/C = 0.14 nm/kg, Fuel Used = 900 IG", 
+                sol: "Derived from standard navigational en-route log calculations." 
+            },
+            { 
+                q: "Table Data Extract:<br>TRK: 033&deg;, ISA Dev: -2, FL: 290, M.No: 0.54, OAT: -45, TAS: 320, Winds: 330/25.<br>Verify Dist, Time, F/C, Fuel Used.", 
+                ans: "Dist = 700, Time = 2:16, F/C = 11 kg/nm, Ltrs = 10,405", 
+                sol: "Derived from standard navigational en-route log calculations." 
+            },
+            { 
+                q: "Table Data Extract:<br>TRK: 043&deg;, ISA Dev: -5, FL: 300, M.No: 0.76, OAT: -50, TAS: 442.6, Winds: 240/22.<br>Verify Dist, Time, F/C, Fuel Used.", 
+                ans: "Dist = 503, Time = 1:05, F/C = 35 USG/Hr, Kg = [Blank]", 
+                sol: "Derived from standard navigational en-route log calculations." 
+            },
+            { 
+                q: "Assuming a 40 kt headwind at all levels.<br><br><table style='width:100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px;'><tr><th style='border: 1px solid #333; padding: 5px; background: #2a2a2a;'>Pressure Altitude (ft)</th><th style='border: 1px solid #333; padding: 5px; background: #2a2a2a;'>RAS kt</th><th style='border: 1px solid #333; padding: 5px; background: #2a2a2a;'>Temp Devn</th><th style='border: 1px solid #333; padding: 5px; background: #2a2a2a;'>Fuel Flow kg/hr</th><th style='border: 1px solid #333; padding: 5px; background: #2a2a2a;'>SG</th></tr><tr><td style='border: 1px solid #333; padding: 5px; text-align: center;'>16000</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>210</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>ISA+7&deg;C</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>2600</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>0.80</td></tr><tr><td style='border: 1px solid #333; padding: 5px; text-align: center;'>20000</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>200</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>ISA+5&deg;C</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>2600</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>0.80</td></tr><tr><td style='border: 1px solid #333; padding: 5px; text-align: center;'>22000</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>210</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>ISA+4&deg;C</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>2600</td><td style='border: 1px solid #333; padding: 5px; text-align: center;'>0.80</td></tr></table><br>a) Determine the ground nautical miles flown per 100 kg of fuel for the three tabulated pressure altitudes.<br>b) State which tabulated pressure altitude will give the best fuel economy for range.<br>c) Calculate the minimum fuel required in Imperial gallons for a flight of 2000 nm.", 
+                ans: "a) 8.84, 8.96, 9.80<br>b) FL 220<br>c) 561 Imperial Gallons", 
+                sol: "Perform calculations checking specific fuel consumption against groundspeed (factoring in the 40 kt headwind) for each flight level." 
+            },
+            { 
+                q: "What is the ETA at C?<br>ATA 'A' is 1010 UTC. Distance A-B is 30 nm. ETA 'B' is 1030 UTC. ATA 'B' is 1027. Distance B-C is 20 nm.", 
+                ans: "1038 UTC", 
+                sol: "A to B took 17 mins for 30 nm.<br>B to C is 20 nm, so time = (20/30) &times; 17 = 11.3 mins.<br>1027 + 11 mins = 1038 UTC." 
+            },
+            { 
+                q: "What is the ETA at Z?<br>ATA 'X' is 1420 UTC. Distance X-Y is 30 nm. ETA 'Y' is 1447 UTC. ATA 'Y' is 1450 UTC. Distance Y-Z is 20 nm.", 
+                ans: "1510 UTC", 
+                sol: "X to Y took 30 mins for 30 nm.<br>Y to Z is 20 nm &rarr; takes 20 mins.<br>1450 + 20 mins = 1510 UTC." 
+            },
+            { 
+                q: "According to the chart the minimum obstruction clearance altitude (MOCA) is 8500ft. The meteorological data gives an outside air temperature of -20&deg;C at FL 85. The QNH, given by a met. station at an elevation of 4000ft, is 1003hPa. What is the minimum pressure altitude which should be flown according to the given MOCA?", 
+                ans: "8800ft", 
+                sol: "Adjusted for cold temperature and QNH variations below standard." 
+            },
+            { 
+                q: "An aircraft is flying at MACH 0.84 at FL 330. The static air temperature is -48&deg;C and the headwind component 52kt. At 1338UTC the controller requests the pilot to cross the meridian of 030W at 1500UTC. Given the distance to go is 570NM, the reduced MACH No. should be:", 
+                ans: "0.80", 
+                sol: "Time available = 1500 - 1338 = 82 mins (1.36 hrs).<br>Required GS = 570 / 1.36 = 419 kts.<br>Required TAS = GS + Headwind = 419 + 52 = 471 kts.<br>Calculate LSS at -48&deg;C, then convert required TAS to Mach." 
+            },
+            { 
+                q: "Flight Planning chart for an aero plane states, that the time to reach the cruising level at a given gross mass is 36 minutes and the distance traveled is 157NM (zero-wind). What will be the distance traveled with an average tailwind component of 60kt?", 
+                ans: "193NM", 
+                sol: "Tailwind effect = 60 kts &times; (36/60) hrs = 36 nm.<br>Total distance = 157 + 36 = 193 NM." 
+            },
+            { 
+                q: "An aero plane flies at an airspeed of 380kt. It flies from A to B and back to A. Distance AB=480NM. When going from A to B, it experiences a headwind component=60kt. The wind remains constant. The duration of the flight will be:", 
+                ans: "2h 35min", 
+                sol: "Outbound GS = 380 - 60 = 320 kts. Time = 480 / 320 = 1.5 hrs (90 mins).<br>Inbound GS = 380 + 60 = 440 kts. Time = 480 / 440 = 1.09 hrs (65 mins).<br>Total Time = 90 + 65 = 155 mins = 2 hrs 35 mins." 
+            },
+            { 
+                q: "A sector distance is 450NM long. The TAS is 460kt. The wind component is 50kt tailwind. What is the still air distance?", 
+                ans: "406 Nautical Air Miles (NAM)", 
+                sol: "GS = 460 + 50 = 510 kts.<br>NAM = NGM &times; (TAS / GS)<br>NAM = 450 &times; (460 / 510) = 405.8 &approx; 406 NAM." 
+            },
+            { 
+                q: "A descent is planned from 7500ft MSL so as to arrive at 1000ft MSL 6NM from a VORTAC. With a GS of 156 kts and a rate of descent of 800ft/min. The distance from the VORTAC when descent is started is:", 
+                ans: "27.1NM", 
+                sol: "Height to lose = 6500 ft.<br>Time = 6500 / 800 = 8.125 mins.<br>Descent Distance = 156 &times; (8.125 / 60) = 21.125 NM.<br>Total distance from VORTAC = 21.125 + 6 = 27.1 NM." 
+            },
+            { 
+                q: "An aircraft at FL370 is required to commence descent when 100 NM from a DME facility and to cross the station at FL120. If the mean GS during the descent is 396 kt, the minimum rate of descent required is approximately?", 
+                ans: "1650 FT/MIN", 
+                sol: "Height to lose = 25000 ft.<br>Time = (100 / 396) &times; 60 = 15.15 mins.<br>ROD = 25000 / 15.15 &approx; 1650 FT/MIN." 
+            },
+            { 
+                q: "At 0422 an aircraft at FL370, GS 320kt, is on the direct track to VOR 'X' 185 NM distant. The aircraft is required to cross VOR 'X' at FL80. For a mean rate of descent of 1800 FT/MIN at a mean GS of 232 kt, the latest time at which to commence descent is?", 
+                ans: "0445", 
+                sol: "Descent Height = 29000 ft. Descent Time = 29000 / 1800 = 16 mins.<br>Descent Dist = 232 &times; (16/60) = 61.8 NM.<br>Cruise Dist = 185 - 61.8 = 123.2 NM.<br>Cruise Time = (123.2 / 320) &times; 60 = 23 mins.<br>Start Descent Time = 0422 + 23 mins = 0445." 
+            },
+            { 
+                q: "Assuming zero wind, what distance is covered by an aircraft descending 15000 FT with a TAS of 320 kt and maintaining a rate of descent of 3000 FT/MIN?", 
+                ans: "26.7 NM", 
+                sol: "Time = 15000 / 3000 = 5 mins.<br>Distance = 320 &times; (5 / 60) = 26.66 NM &approx; 26.7 NM." 
+            },
+            { 
+                q: "What will be the rate of descent when flying down a 7% glide slope, at a groundspeed of 250 knots?", 
+                ans: "1773 ft/min", 
+                sol: "ROD = (Gradient% / 100) &times; GS &times; 101.3<br>ROD = 0.07 &times; 250 &times; 101.3 = 1772.75 &approx; 1773 ft/min." 
+            },
+            { 
+                q: "Aircraft height 2500 FT, ILS GP angle 3&deg;. At what approximate distance from THR can you expect to capture the GP?", 
+                ans: "8.3 NM", 
+                sol: "Distance in NM = Height in feet / (Angle &times; 100)<br>Distance = 2500 / 300 = 8.33 NM." 
+            },
+            { 
+                q: "Wing tip bearing change is 10 deg. Elapsed time between bearings is 8 minutes. Rate of fuel consumption is 11.8 GPH. Calculate fuel required to reach the station in Gallons.", 
+                ans: "9.4 Gallons", 
+                sol: "Time to Station = (Time Flown &times; 60) / Bearing Change = (8 &times; 60) / 10 = 48 mins.<br>Fuel Required = 11.8 &times; (48 / 60) = 9.44 Gal." 
+            },
+            { 
+                q: "Convert 40 USG to Kgs and liters. SG 0.72.", 
+                ans: "151 liters / 109 kg", 
+                sol: "1 USG = 3.785 Liters. 40 USG &times; 3.785 = 151.4 Liters.<br>Mass = Volume &times; SG. 151.4 &times; 0.72 = 109 kg." 
+            }
+        ];
+
+        let currentNumIndex = 0;
+        
+        function startNumericals() { 
+            switchView('numerical-linear-page'); 
+            currentNumIndex = 0; 
+            renderNumerical(); 
+        }
+
+        function renderNumerical() { 
+            if (numericalsData.length === 0) {
+                document.getElementById('num-q-text').innerHTML = "No numericals available yet.";
+                return;
+            } 
+            const qData = numericalsData[currentNumIndex]; 
+            document.getElementById('num-counter').innerText = `Problem ${currentNumIndex + 1} of ${numericalsData.length}`; 
+            document.getElementById('num-progress').style.width = `${((currentNumIndex + 1) / numericalsData.length) * 100}%`; 
+            document.getElementById('num-q-text').innerHTML = qData.q; 
+            
+            const ansBox = document.getElementById('num-ans-box'); 
+            ansBox.innerHTML = `<strong>Answer:</strong><br>${qData.ans}`; 
+            ansBox.style.display = 'none'; 
+            
+            const solBox = document.getElementById('num-sol-box'); 
+            solBox.innerHTML = `<strong>Step-by-Step Solution:</strong><br><br>${qData.sol}`; 
+            solBox.style.display = 'none'; 
+            
+            document.getElementById('num-prev-btn').disabled = currentNumIndex === 0; 
+            document.getElementById('num-next-btn').disabled = currentNumIndex === numericalsData.length - 1; 
+        }
+
+        function goPrevNum() { if (currentNumIndex > 0) { currentNumIndex--; renderNumerical(); } }
+        function goNextNum() { if (currentNumIndex < numericalsData.length - 1) { currentNumIndex++; renderNumerical(); } }
+
+        // ==========================================
+        // AUTO-UPDATE MODULE LABELS
+        // ==========================================
+        window.onload = () => {
+            const pdfLabel = document.getElementById('pdf-label');
+            const numLabel = document.getElementById('num-label');
+            if (pdfLabel) pdfLabel.innerText = `${pdfQuizData.length} Questions`;
+            if (numLabel) numLabel.innerText = `${numericalsData.length} Problems`;
+        };
+    </script>
+</body>
+</html>
