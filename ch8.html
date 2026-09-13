@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CH 8 | Projections</title>
+    <title>CH 9 | INS & IRS</title>
     <style>
         :root {
             --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
@@ -29,14 +29,12 @@
         
         .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
         
-        /* SHARED HEADER/PROGRESS STYLING */
         .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
         .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
         .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
         .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
         
-        /* MCQ STYLING */
         .mcq-options { display: flex; flex-direction: column; gap: 10px; }
         .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
         .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
@@ -44,11 +42,10 @@
         .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
         .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
         
-        /* NUMERICALS STYLING */
         .feedback-box { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: left; font-weight: 600; display: none; font-size: 1rem; }
-        .feedback-correct { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 15px; font-size: 1.15rem; }
+        .feedback-correct { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 15px; font-size: 1.15rem; margin-bottom: 15px; }
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; }
         
-        /* CONTROLS */
         .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
         .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
         .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
@@ -64,30 +61,22 @@
         <!-- MODULE SELECTION -->
         <div id="module-page" class="view-section" style="display: flex;">
             <div class="header-bar">
-                <h2>Chapter 8: Projections</h2>
+                <h2>Chapter 9: INS/IRS</h2>
                 <a href="index.html" class="nav-btn">Back to Hub</a>
             </div>
             <div class="module-grid">
-                <div class="module-card" onclick="startMcq(bookletData, 'Booklet')">
-                    <h3>Booklet</h3>
-                    <p id="count-booklet">Theory MCQs</p>
-                </div>
-                <div class="module-card" onclick="startMcq(chartTheoryData, 'Chart Theory')">
-                    <h3>Chart Theory</h3>
-                    <p id="count-chart">Theory MCQs</p>
+                <div class="module-card" onclick="startQuiz()">
+                    <h3>Quiz Engine</h3>
+                    <p id="quiz-card-count">Loading MCQs...</p>
                 </div>
                 <div class="module-card" onclick="startNumericals()">
-                    <h3>Numericals</h3>
-                    <p id="count-num">Scale Calculations</p>
-                </div>
-                <div class="module-card" onclick="startMcq(pdfData, 'PDF')">
-                    <h3>PDF</h3>
-                    <p id="count-pdf">Theory MCQs</p>
+                    <h3>Numericals Engine</h3>
+                    <p id="num-card-count">Loading Problems...</p>
                 </div>
             </div>
         </div>
 
-        <!-- SHARED QUIZ ENGINE (Handles Booklet, Chart Theory, and PDF) -->
+        <!-- QUIZ ENGINE -->
         <div id="quiz-page" class="view-section">
             <div class="quiz-top-header">
                 <h2 id="quiz-counter">Theory Question 1 of X</h2>
@@ -101,12 +90,12 @@
             </div>
             
             <div class="quiz-nav-controls">
-                <button id="quiz-prev-btn" class="quiz-nav-btn" onclick="goPrevMcq()">Previous</button>
-                <button id="quiz-next-btn" class="quiz-nav-btn" onclick="goNextMcq()">Next</button>
+                <button id="quiz-prev-btn" class="quiz-nav-btn" onclick="goPrevQuiz()">Previous</button>
+                <button id="quiz-next-btn" class="quiz-nav-btn" onclick="goNextQuiz()">Next</button>
             </div>
         </div>
 
-        <!-- NUMERICALS ENGINE (Reveal Answer Only) -->
+        <!-- NUMERICALS ENGINE -->
         <div id="numerical-page" class="view-section">
             <div class="quiz-top-header">
                 <h2 id="num-counter">Calculation 1 of X</h2>
@@ -119,9 +108,11 @@
                 
                 <div style="margin-top: 25px; display: flex; gap: 15px;">
                     <button class="btn" style="padding: 10px 20px; font-size: 1rem;" onclick="document.getElementById('num-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" style="padding: 10px 20px; font-size: 1rem; border-color: #555;" onclick="document.getElementById('num-sol-box').style.display='block'">Reveal Solution</button>
                 </div>
 
                 <div id="num-ans-box" class="feedback-box feedback-correct" style="display:none;"></div>
+                <div id="num-sol-box" class="feedback-box feedback-solution" style="display:none;"></div>
             </div>
             
             <div class="quiz-nav-controls">
@@ -139,385 +130,225 @@
         }
 
         // ==========================================
-        // DATASET 1: BOOKLET (First 41/42 Questions)
+        // QUIZ DATA
         // ==========================================
-        const bookletData = [
-            { q: "<strong>Q1.</strong> Radio Navigation charts (Jeppesen) uses:", options: ["a) Lamberts conformal conic projection", "b) Mercator's projection", "c) IMPP"], correct: 0 },
-            { q: "<strong>Q2.</strong> A rhumb line is a straight line. This applies to:", options: ["a) Mercators", "b) Lamberts", "c) IMPP"], correct: 0 },
-            { q: "<strong>Q3.</strong> Meridians and parallel intersect at right angles. This applies to:", options: ["a) Mercators", "b) Lamberts", "c) Both."], correct: 2 },
-            { q: "<strong>Q4.</strong> On the Mercator's chart,", options: ["a) Distortion increases away from the Equator.", "b) Distortion increases away from the Pole.", "c) Parallels of latitude are not straight lines."], correct: 0 },
-            { q: "<strong>Q5.</strong> The scale on a Lamberts projection is correct only along:", options: ["a) The standard parallels", "b) The equator", "c) The end parallels of latitude and 2degs. on either side of the central meridian."], correct: 0 },
-            { q: "<strong>Q6.</strong> Charts are used only for:", options: ["a) Flying over seas", "b) Dead reckoning navigation", "c) Polar navigation."], correct: 0 },
-            { q: "<strong>Q7.</strong> In an ortho morphic projection,", options: ["a) Meridians and parallels intersect at right angles", "b) Meridians and parallels are straight lines", "c) Both the above"], correct: 0 },
-            { q: "<strong>Q8.</strong> The chart that is generally used for navigation in polar areas is based on a?", options: ["a) Lambert's Conformal.", "b) Transverse Mercator.", "c) Stereographical projection."], correct: 2 },
-            { q: "<strong>Q9.</strong> On a Lambert conformal conic chart the convergence of the meridians is?", options: ["a) The same as earth convergency at the parallel of origin.", "b) The same as the scale.", "c) Most accurate at the standard parallels."], correct: 0 },
-            { q: "<strong>Q10.</strong> On a Lambert conformal conic projection, with two standard parallels the scale is?", options: ["a) Correct only along the parallel of origin.", "b) Correct only at the poles.", "c) Correct only along the standard parallels."], correct: 2 },
-            { q: "<strong>Q11.</strong> On a Transverse Mercator chart, scale is exactly correct along the?", options: ["a) Meridian of tangency.", "b) Prime meridian.", "c) Standard latitudes."], correct: 0 },
-            { q: "<strong>Q12.</strong> On lamberts conical projection, the given scale is correct at _______ and convergence is correct at _______.", options: ["a) Latitude of origin, latitude of origin", "b) Latitude of origin, standard Parallels", "c) Standard Parallels, latitude of origin."], correct: 2 },
-            { q: "<strong>Q13.</strong> While measuring track at Lambert conical projection protractor is to be placed at:", options: ["a) Latitude of departure", "b) Latitude of arrival", "c) Mid way longitude"], correct: 2 },
-            { q: "<strong>Q14.</strong> The angular difference, on a Lambert conformal conic chart, between the arrival and departure track is equal to?", options: ["a) Departure angle.", "b) Map convergence.", "c) Secant of &frac12; latitude."], correct: 1 },
-            { q: "<strong>Q15.</strong> On a Direct Mercator chart, meridians are?", options: ["a) Parallel, equally spaced, horizontal straight lines.", "b) Converging curved lines.", "c) Parallel, equally spaced, vertical straight lines."], correct: 2 },
-            { q: "<strong>Q16.</strong> On which of the following chart projections is it not possible to represent the north or south poles?", options: ["a) Polar Stereographic.", "b) Direct Mercator.", "c) Lambert's Conical."], correct: 1 },
-            { q: "<strong>Q17.</strong> Which one of the following, concerning great circles on a Direct Mercator chart, is correct?", options: ["a) With the exception of meridians and the equator, they are curves concave to the equator.", "b) Straight lines.", "c) Curves concave to the nearest pole."], correct: 0 },
-            { q: "<strong>Q18.</strong> On a Lambert conformal conic chart, the distance between parallels of latitude spaced the same number of degrees apart?", options: ["a) Increases between and reduces outside of the standard parallels.", "b) Reduces between and expands outside the standard parallels.", "c) Is constant between the standard parallels."], correct: 1 },
-            { q: "<strong>Q19.</strong> Which one of the following statements is correct concerning the appearance of great circles, with the exception of meridians, on a polar stereographic chart whose tangency is at the pole?", options: ["a) The higher the latitude the closer they approximate to a straight line.", "b) The lower the latitude the closer they approximate to straight lines.", "c) Never approximate to straight lines."], correct: 0 },
-            { q: "<strong>Q20.</strong> Which one of the following describes the appearance of rhumb lines, except meridians, on a polar stereographic chart.", options: ["a) Straight lines.", "b) Curves concave to the pole.", "c) Approximately straight lines."], correct: 1 },
-            { q: "<strong>Q21.</strong> What is the value of the convergence factor on a polar stereographic chart?", options: ["a) 2.0.", "b) 1.5.", "c) 1.0."], correct: 2 },
-            { q: "<strong>Q22.</strong> On a Direct Mercator, rhumb lines are?", options: ["a) Straight lines.", "b) Curves concave to the nearest pole.", "c) Curves convex to the nearest pole."], correct: 0 },
-            { q: "<strong>Q23.</strong> A perfectly straight line on a Lamberts chart is?", options: ["a) A parallel of latitude.", "b) A rhumb line.", "c) A meridian of longitude."], correct: 2 },
-            { q: "<strong>Q24.</strong> Which of the following statements best describes how scale varies on a Mercator chart?", options: ["a) It is correct on the standard parallels, but expands outside them...", "b) Expands directly with the secant of the latitude.", "c) Expands as the secant (&frac12; x co-latitude)."], correct: 1 },
-            { q: "<strong>Q25.</strong> On a Lambert Conformal chart the distance between meridians 5&deg; apart along latitude 37&deg; North is 9 cm. The scale of the chart at that parallel approximates?", options: ["a) 1 : 3 500 000.", "b) 1 : 5 000 000.", "c) 1 : 4 000 000."], correct: 1 },
-            { q: "<strong>Q26.</strong> Where is the convergency correct on a Transverse Mercator chart?", options: ["a) At the datum meridian and the Equator.", "b) Only at the Equator and poles.", "c) Only at the datum meridian."], correct: 1 },
-            { q: "<strong>Q27.</strong> In which of the following projections will a plane surface touch the reduced earth at one of the poles?", options: ["a) Stereographic.", "b) Direct Mercator.", "c) Transverse Mercator."], correct: 0 },
-            { q: "<strong>Q28.</strong> The scale on a Lambert's conformal conic chart?", options: ["a) Is constant.", "b) Is constant along a parallel of latitude.", "c) Is constant along a meridian of longitude."], correct: 1 },
-            { q: "<strong>Q29.</strong> The scale is correct on a transverse Mercator chart?", options: ["a) Along the datum meridian and meridians at 90&deg; to it.", "b) At the prime meridian.", "c) Along the great circle of tangency."], correct: 2 },
-            { q: "<strong>Q30.</strong> The nominal scale of a Lambert conformal conic chart is the?", options: ["a) Scale at the standard parallels.", "b) Scale at the parallel of origin.", "c) Scale at the poles."], correct: 0 },
-            { q: "<strong>Q31.</strong> What type of projection is generally used for charts used for navigation in North and south polar areas?", options: ["a) Lambert's conformal.", "b) Polar stereographical projection.", "c) Direct Mercator."], correct: 1 },
-            { q: "<strong>Q32.</strong> On a Lambert Conformal conic chart great circle that are not meridians are?", options: ["a) Curves concave to the pole of projection.", "b) Straight lines within the standard parallels.", "c) Curves concave to the parallel of origin."], correct: 2 },
-            { q: "<strong>Q33.</strong> Parallels of latitude, except the equator, are?", options: ["a) Rhumb lines.", "b) Complex curves.", "c) Great circle."], correct: 0 },
-            { q: "<strong>Q34.</strong> On Jeppesen charts scale is given in following manner:", options: ["a) Representative fraction.", "b) Graduated scale and statement in words", "c) All of the above"], correct: 2 },
-            { q: "<strong>Q35.</strong> Nautical mile is more than a statute mile. Statute mile is more than a kilometer.", options: ["a) Both statements are correct.", "b) Only kilometer is more than a nautical mile", "c) Only statute mile is more than a nautical mile."], correct: 0 },
-            { q: "<strong>Q36.</strong> 1000 meters equals:", options: ["a) 1 nm", "b) 0.545 nm", "c) 0.545 km"], correct: 1 },
-            { q: "<strong>Q37.</strong> Contours are lines drawn on a map or chart joining:", options: ["a) Places of equal elevation", "b) Equal pressure", "c) Equal variation."], correct: 0 },
-            { q: "<strong>Q38.</strong> Maps indicate the details of the topography. Pilots can use this for:", options: ["a) Contact navigation", "b) Instrument flying", "c) Dead reckoning navigation"], correct: 0 },
-            { q: "<strong>Q39.</strong> Graticule is the network of meridians and parallels on:", options: ["a) Earth", "b) Maps", "c) Both"], correct: 1 },
-            { q: "<strong>Q40.</strong> The scale of a chart is shown as 1: 1million. This means that:", options: ["a) 1\" on the chart equals 1 million inches on the Earth", "b) 1 c.m. on the chart represents 1 million centimeters on the Earth", "c) Both."], correct: 2 },
-            { q: "<strong>Q41.</strong> Representation of high ground on a projection can be in the form of:", options: ["a) Contours and form lines", "b) Spot heights and Layer tinting", "c) All the above"], correct: 2 }
-        ];
-
-        // ==========================================
-        // DATASET 2: CHART THEORY (Restarted Numbering)
-        // ==========================================
-        const chartTheoryData = [
-            { q: "<strong>Q1.</strong> A negative (westerly) magnetic variation signifies that?", options: ["a) True North is East of Magnetic North.", "b) True North is West of Magnetic North.", "c) Magnetic North is West of Compass North.", "d) Magnetic North is East of Compass North."], correct: 0 },
-            { q: "<strong>Q2.</strong> The nominal scale of a Lambert conformal conic chart is the?", options: ["a) Scale at the standard parallels.", "b) Scale at the Equator.", "c) Scale at the midway point between the two standard parallels.", "d) Everywhere on the chart."], correct: 0 },
-            { q: "<strong>Q3.</strong> A positive (easterly) magnetic variation signifies that?", options: ["a) True North is East of Magnetic North.", "b) True North is West of Magnetic North.", "c) Magnetic North is West of Compass North.", "d) Magnetic North is East of Compass North."], correct: 1 },
-            { q: "<strong>Q4.</strong> The chart that is generally used for navigation in polar areas is based on a?", options: ["a) Lambert's Conformal.", "b) Transverse Mercator.", "c) Stereographical projection.", "d) Direct Mercator."], correct: 2 },
-            { q: "<strong>Q5.</strong> On a Lambert conformal conic chart the convergence of the meridians is?", options: ["a) The same as earth convergency at the parallel of origin.", "b) The same as the scale.", "c) Most accurate at the standard parallels.", "d) Least accurate at the parallel of origin."], correct: 0 },
-            { q: "<strong>Q6.</strong> On a Direct Mercator chart, a rhumb line appears as a?", options: ["a) Curve concave to the nearest poles.", "b) Curve convex to the nearest pole.", "c) Straight line.", "d) Curve convex to the equator."], correct: 2 },
-            { q: "<strong>Q7.</strong> On a Lambert conformal conic projection, with two standard parallels the scale is?", options: ["a) Correct only along the parallel of origin.", "b) Correct only at the poles.", "c) Correct only along the standard parallels.", "d) Correct at all points on the chart."], correct: 2 },
-            { q: "<strong>Q8.</strong> On a Lambert conformal conic chart, with two standard parallels, the quoted scale is correct?", options: ["a) Midway between the two standard parallels.", "b) Only along the two standard parallels.", "c) Only at the parallel of origin.", "d) Only at the centre of the chart."], correct: 1 },
-            { q: "<strong>Q9.</strong> On a Direct Mercator chart a great circle will be represented by a?", options: ["a) Straight lines.", "b) Curves convex to the equator.", "c) Curve concave to the equator.", "d) Curves concave to the nearest pole."], correct: 2 },
-            { q: "<strong>Q10.</strong> On a Lambert Conformal Conic chart earth convergency is most accurately represented at the?", options: ["a) Standard parallels.", "b) Outside the standard parallels.", "c) At all points between the standard parallels.", "d) Parallel of origin."], correct: 3 },
-            { q: "<strong>Q11.</strong> On a Transverse Mercator chart, scale is exactly correct along the?", options: ["a) Meridian of tangency.", "b) Prime meridian.", "c) Standard latitudes.", "d) latitude of origin."], correct: 0 },
-            { q: "<strong>Q12.</strong> The angular difference, on a Lambert conformal conic chart, between the arrival and departure track is equal to?", options: ["a) Departure angle.", "b) Map convergence.", "c) Secant of &frac12; latitude.", "d) Secant of longitude."], correct: 1 },
-            { q: "<strong>Q13.</strong> Parallels of latitude, except the equator, are?", options: ["a) Rhumb lines.", "b) Great circles.", "c) Curves convex to the nearest pole.", "d) Curves concave to the nearest pole."], correct: 0 },
-            { q: "<strong>Q14.</strong> On a Direct Mercator chart, meridians are?", options: ["a) Parallel, equally spaced, horizontal straight lines.", "b) Converging curved lines.", "c) Parallel, equally spaced, vertical straight lines.", "d) Diverging curved lines."], correct: 2 },
-            { q: "<strong>Q15.</strong> On which of the following chart projections is it not possible to represent the north or south poles?", options: ["a) Polar Stereographic.", "b) Transverse Mercator.", "c) Lambert's Conical.", "d) Direct Mercator."], correct: 3 },
-            { q: "<strong>Q16.</strong> Which one of the following, concerning great circles on a Direct Mercator chart, is correct?", options: ["a) With the exception of meridians and the equator, they are curves concave to the equator.", "b) Straight lines.", "c) Curves concave to the nearest pole.", "d) With the exception of meridians and the equator, as curves convex to the equator."], correct: 0 },
-            { q: "<strong>Q17.</strong> On a Lambert conformal conic chart, the distance between parallels of latitude spaced the same number of degrees apart?", options: ["a) Increases between and reduces outside of the standard parallels.", "b) Reduces between and expands outside, the standard parallels.", "c) Is constant between the standard parallels.", "d) Is constant outside of the standard parallels."], correct: 1 },
-            { q: "<strong>Q18.</strong> Which one of the following statements is correct concerning the appearance of great circles, with the exception of meridians, on a Polar Stereographic chart whose tangency is at the pole?", options: ["a) The higher the latitude the closer they approximate to a straight line.", "b) The lower the latitude the closer they approximate to straight lines.", "c) Never approximate to straight lines.", "d) Always approximate to straight lines."], correct: 0 },
-            { q: "<strong>Q19.</strong> Which one of the following describes the appearance of rhumb lines, except meridians, on a Polar Stereographic chart?", options: ["a) Straight lines.", "b) Curves concave to the Pole.", "c) Approximately straight lines.", "d) Curves closer to the pole than the equivalent Great Circle."], correct: 1 },
-            { q: "<strong>Q20.</strong> What is the value of the convergence factor on a Polar Stereographic chart?", options: ["a) 2.0.", "b) 1.5.", "c) 1.0.", "d) 0.5."], correct: 2 },
-            { q: "<strong>Q21.</strong> On a Direct Mercator, rhumb lines are?", options: ["a) Straight lines.", "b) Curves concave to the nearest pole.", "c) Curves convex to the nearest pole.", "d) Curves concave to the Equator."], correct: 0 },
-            { q: "<strong>Q22.</strong> A perfectly straight line on a Lamberts chart is?", options: ["a) A parallel of latitude.", "b) A rhumb line.", "c) A meridian of longitude.", "d) A great circle."], correct: 2 },
-            { q: "<strong>Q23.</strong> Which of the following statements best describes how scale varies on a Mercator chart?", options: ["a) It is correct on the standard parallels, but expands outside them, and contracts within them.", "b) Expands as the secant of the East/West great circle distance.", "c) Expands as the secant (&frac12; x co-latitude).", "d) Expands directly with the secant of the latitude."], correct: 3 },
-            { q: "<strong>Q24.</strong> How do rhumb lines, (other than meridians), appear on Polar Stereographic charts?", options: ["a) As straight lines.", "b) As lines concave to the nearer pole.", "c) As lines convex to the nearer pole.", "d) As ellipses around the pole."], correct: 1 },
-            { q: "<strong>Q25.</strong> Where is the convergency correct on a Transverse Mercator chart?", options: ["a) At the datum meridian and the Equator.", "b) Only at the Equator and Poles.", "c) Only at the datum meridian.", "d) At the Parallel of Origin."], correct: 0 },
-            { q: "<strong>Q26.</strong> In which of the following projections will a plane surface touch the reduced earth at one of the Poles?", options: ["a) Transverse Mercator.", "b) Direct Mercator.", "c) Lambert's.", "d) Stereographic."], correct: 3 },
-            { q: "<strong>Q27.</strong> How are great circles shown on a direct Mercator chart?", options: ["a) Curves concave to the nearest pole.", "b) Curves convex to the nearest pole.", "c) Straight lines.", "d) Rhumb lines."], correct: 1 },
-            { q: "<strong>Q28.</strong> The scale on a Lambert's conformal conic chart?", options: ["a) Is constant.", "b) Is constant along a parallel of latitude.", "c) Is constant along a meridian of longitude.", "d) Varies slightly as a function of longitude and latitude."], correct: 1 },
-            { q: "<strong>Q29.</strong> The scale is correct on a Transverse Mercator chart?", options: ["a) Along the datum meridian and meridians at 90&deg; to it.", "b) At the prime meridian.", "c) Along the great circle of tangency.", "d) At the poles and the equator."], correct: 2 },
-            { q: "<strong>Q49.</strong> The nominal scale of a Lambert conformal conic chart is the?", options: ["a) Scale at the standard parallels.", "b) Scale at the parallel of origin.", "c) Scale at the poles.", "d) Constant at all points on the chart."], correct: 0 },
-            { q: "<strong>Q50.</strong> What type of projection is generally used for charts used for navigation in North and South polar areas?", options: ["a) Lambert's Conformal.", "b) Polar Stereographical projection.", "c) Direct Mercator.", "d) Oblique Mercator."], correct: 1 }
-        ];
-
-        // ==========================================
-        // DATASET 3: NUMERICALS
-        // ==========================================
-        const numericalsData = [ 
-           // --- Original block (Old Q42 to Q50) ---
-            { q: "Map Distance = 10\". Earth Distance = 120 nm. Find scale.", ans: "1 / 8,755,200" },
-            { q: "Map Distance = 13.2\". ED = 350 nm. Find scale.", ans: "1 / 1,934,545" },
-            { q: "On a map 3 cm represent earth Distance of 200 statute mile. Find scale of map.", ans: "1 / 10,728,960" },
-            { q: "On a map scale of 1: 2x10<sup>6</sup>. How many km are represented by a line 4.2\" long?", ans: "213.36 km" },
-            { q: "On a map scale of 1: 1x10<sup>6</sup>. How many inches are represented by ground Distance of 400 km.", ans: "15.74 inches" },
-            { q: "On a mercator chart scale at 57&deg;N = 1: 1x10<sup>6</sup>. Find Scale at:<br>(i) Equator<br>(ii) 35&deg;S<br>(iii) 25&deg;N", ans: "(i) 1 : 1,838,235<br>(ii) 1 : 1,505,794<br>(iii) 1 : 1,666,006" },
-            { q: "On a direct Mercator projection, the distance measured between two meridians spaced 5&deg; apart at latitude 60&deg;N is 8 cm. The scale of this chart at latitude 60&deg;N is approximately?", ans: "1 : 3 500 000" },
-            { q: "On a direct Mercator projection, at latitude 45&deg;N, a certain length represents 70 NM. At latitude 30&deg;North, the same length represents approximately?", ans: "86 nm" },
-            { q: "At 60&deg;N the scale of a direct Mercator chart is 1 : 3 000 000. What is the scale at the equator?", ans: "1 : 6 000 000" },
-
-            // --- The remaining 5 unique types from the rest of the 80 questions ---
-            { q: "What is the chart distance between longitudes 179&deg;E and 175&deg;W on a direct Mercator chart with a scale of 1 : 5 000 000 at the equator?", ans: "133 mm" },
-            { q: "The total length of the 53&deg;N parallel of latitude on a direct Mercator chart is 133 cm. What is the approximate scale of the chart at latitude 30&deg;S?", ans: "1 : 26 000 000" },
-            { q: "On a Lambert Conformal chart the distance between meridians 5&deg; apart along latitude 37&deg; North is 9 cm. The scale of the chart at that parallel approximates?", ans: "1 : 5 000 000" },
-            { q: "Assume a Mercator chart. The distance between positions A and B, located on the same parallel and 10&deg; longitude apart, is 6 cm. The scale at the parallel is 1 : 9 260 000. What is the latitude of A and B?", ans: "60&deg; N or S" },
-            { q: "A course of 120&deg;(T) is drawn between 'X' (61&deg;30'N) and 'Y' (58&deg;30'N) on a Lambert Conformal conic chart with a scale of 1 : 1 000 000 at 60&deg;N. The chart distance between 'X' and 'Y' is?", ans: "66.7 cm" }
-        ];
-
-        // ==========================================
-        // DATASET 4: PDF (Empty for now)
-        // ==========================================
-        const pdfData = [
-            {
-                q: "The standard parallels of a Lamberts conical orthomorphic projection are 07&deg;40'N and 38&deg;20'N. The constant of the cone for this chart is:",
-                options: ["a) [Option missing in source]", "b) 0.39", "c) [Option missing in source]", "d) [Option missing in source]"],
-                correct: 1
+        const quizData = [
+            { 
+                q: "Which of the following lists all of the methods that can be used to enter 'Created Waypoints' into the CDU of a B737-400 Electronic Flight Instrument System?", 
+                options: ["a. Identifier range, location name; Height above MSL; latitude and longitude.", "b. Identifier bearing/distance; place bearing/place bearing; along-track displacement; latitude and longitude.", "c. Identifier name and range; location name; Height above MSL; latitude and longitude.", "d. Identifier grid reference, location name, Height above MSL, latitude and Rhumb line position."], 
+                correct: 1 
             },
-            {
-                q: "On a Lambert Conformal Conic chart earth convergency is most accurately represented at the:",
-                options: ["a) north and south limits of the chart", "b) parallel of origin", "c) standard parallels", "d) equator"],
-                correct: 1
+            { 
+                q: "Some inertial reference and navigation systems are known as \"strapdown\". This means that?", 
+                options: ["a. The accelerometers are fixed to the aircraft structure but the gyros are stabilised.", "b. The gyros are stabilised but the accelerometers are fixed to the aircraft structure.", "c. The gyroscopes and accelerometers become part of the unit's fixture to the aircraft structure.", "d. The indicator units are strapped to the aircraft structure."], 
+                correct: 2 
             },
-            {
-                q: "Scale on a Lamberts conformal chart is:",
-                options: ["a) constant along a parallel of latitude", "b) constant along a meridian of longitude", "c) constant over the whole chart", "d) varies with latitude and longitude"],
-                correct: 0
+            { 
+                q: "As the INS position of the departure aerodrome, coordinates 35&deg;32.7'N 139&deg;46.3'W are input instead of 35&deg;32.7'N 139&deg;46.3'E. When the aircraft subsequently passes point 52&deg;N 180&deg;W, the longitude value shown on the INS will be?", 
+                options: ["a. 099&deg; 32.6'E.", "b. 099&deg; 32.6'W.", "c. 199&deg; 32.6'W.", "d. 299&deg; 32.6'W."], 
+                correct: 1 
             },
-            {
-                q: "A Lambert conformal conic projection, with two standard parallels:",
-                options: ["a) shows lines of longitude as parallel straight lines", "b) shows all great circles as straight lines", "c) the scale is only correct at parallel of origin", "d) the scale is only correct along the standard parallels"],
-                correct: 3
+            { 
+                q: "In order to maintain an accurate vertical using a pendulous system, an aircraft inertial platform incorporates a device?", 
+                options: ["a. With damping and a period of 84.4 MIN.", "b. With damping and a period of 84.4 SEC.", "c. With damping and a period of 48.4 MIN.", "d. With damping and a period of 48.4 SEC."], 
+                correct: 0 
             },
-            {
-                q: "The convergence factor of a Lambert conformal conic chart is quoted as 0.78535. At what latitude on the chart is earth convergency correctly represented?",
-                options: ["a) [Option missing in source]", "b) 51&deg;45'", "c) [Option missing in source]", "d) [Option missing in source]"],
-                correct: 1
+            { 
+                q: "In what way does IRS differ from INS?", 
+                options: ["a. Has a shorter spin-up time and suffers from laser lock.", "b. Does not need to correct for coriolis and central acceleration.", "c. Has a longer spin-up time and is not affected by vertical accelerations due to gravity.", "d. Does not experience Schuler errors as accelerometers are strapped down."], 
+                correct: 3 
             },
-            {
-                q: "The nominal scale of a Lambert conformal conic chart is the:",
-                options: ["a) scale at the standard parallels", "b) [Option missing in source]", "c) [Option missing in source]", "d) [Option missing in source]"],
-                correct: 0
+            { 
+                q: "Which of the following statements is true of a Ring Laser Gyro?", 
+                options: ["a. It is not necessarily fixed to true north and is quick to erect.", "b. It is fixed to true north and is quick to erect.", "c. It doesn't suffer from 'lock in' and is unaffected by the earth's gravitational force.", "d. It is not necessarily fixed to true north but takes along time to erect."], 
+                correct: 0 
             },
-            {
-                q: "A straight line is drawn on a Lamberts conformal conic chart between two positions of different longitude. The angular difference between the initial true track and the final true track of the line is equal to:",
-                options: ["a) earth convergency", "b) chart convergency", "c) conversion angle", "d) difference in longitude"],
-                correct: 1
+            { 
+                q: "In a laser reference system (IRS), as compared to a gyro reference system (INS):", 
+                options: ["a. The accelerometers are strapped down but the platform is gyro stabilised.", "b. Accelerometers and platform are both strapped down.", "c. The platform is strapped down but the accelerometers are gyro-stabilised.", "d. Accelerometers and platform are both gyro-stabilised."], 
+                correct: 1 
             },
-            {
-                q: "How does the chart convergency change with latitude in a Lambert Conformal projection?",
-                options: ["a) It changes with sine of latitude", "b) It changes with cosine of latitude", "c) It increases with increase of latitude", "d) It is constant and does not change with latitude"],
-                correct: 3
+            { 
+                q: "In a ring laser gyro, the purpose of the dither motor is to:", 
+                options: ["a. Compensate for transport wander.", "b. Stabilise the laser frequencies.", "c. Enhance the accuracy of the gyro at all rotational rates.", "d. Overcome laser lock."], 
+                correct: 3 
             },
-            {
-                q: "On a Lambert conformal conic chart the convergence of the meridians:",
-                options: ["a) is the same as earth convergency at the parallel of origin", "b) is zero throughout the chart", "c) varies as the secant of the latitude", "d) equals earth convergency at the standard parallels"],
-                correct: 0
+            { 
+                q: "A pilot turns off the power to his IRS whilst in flight. He switches it on again after just a few seconds. What will be the effect?", 
+                options: ["a. It can be repositioned whilst in flight.", "b. There will be no effect.", "c. It cannot be used and must be shut down.", "d. It cannot be used for navigation, but can be used to provide attitude information."], 
+                correct: 3 
             },
-            {
-                q: "The parallels on a Lambert Conformal Conic chart are represented by:",
-                options: ["a) parabolic lines", "b) straight lines", "c) arcs of concentric circles", "d) hyperbolic lines"],
-                correct: 2
+            { 
+                q: "In which IRS mode does gyro-compassing take place?", 
+                options: ["a. ATT", "b. ALIGN", "c. ON", "d. NAV"], 
+                correct: 1 
             },
-            {
-                q: "On a Lambert Conformal Conic chart great circles that are not meridians are:",
-                options: ["a) curves concave to the parallel of origin", "b) straight lines", "c) curves concave to the pole of projection", "d) [Option missing in source]"],
-                correct: 0
+            { 
+                q: "A gyro is said to drift when its spin axis moves in the?", 
+                options: ["a. Horizontal and vertical.", "b. Neither, because its definition is not related to these axes.", "c. Horizontal.", "d. Vertical."], 
+                correct: 2 
             },
-            {
-                q: "A straight line on a Lambert Conformal Projection chart for normal flight planning purposes:",
-                options: ["a) can only be a parallel of latitude", "b) is a Loxodromic line", "c) is a Rhumb line", "d) is approximately a Great Circle"],
-                correct: 3
+            { 
+                q: "What do the sensors of an INS measure?", 
+                options: ["a. Acceleration.", "b. The horizontal component of the earth's rotation.", "c. Velocity.", "d. Precession."], 
+                correct: 0 
             },
-            {
-                q: "On a Lambert chart (standard parallels 37&deg;N and 65&deg;N), with respect to the straight line drawn on the map the between A (N49&deg; W030&deg;) and B (N48&deg; W040&deg;), the:",
-                options: ["a) great circle is to the north, the rhumb line is to the south", "b) great circle and rhumb line are to the north", "c) great circle and rhumb line are to the south", "d) rhumb line is to the north, the great circle is to the south"],
-                correct: 2
+            { 
+                q: "The IRS position is updated?", 
+                options: ["a. Updating is normally carried out by the crew when over-flying a known position (VOR station or NDB).", "b. IRS positions are updated by pressing the 'Take-off/ Go-around' button at the start of the take-off roll.", "c. During flight IRS positions are automatically updated by the FMC.", "d. Only on the ground during the alignment procedure."], 
+                correct: 3 
             },
-            {
-                q: "On a Lambert conformal conic chart the distance between parallels of latitude spaced the same number of degrees apart:",
-                options: ["a) expands between, and reduces outside, the standard parallels", "b) is constant throughout the chart", "c) reduces between, and expands outside, the standard parallels", "d) is constant between, and expands outside the standard parallels"],
-                correct: 2
+            { 
+                q: "Double integration of the output from the east/west accelerometer of an inertial navigation system (INS) in the NAV MODE gives:", 
+                options: ["a. Vehicle longitude.", "b. Distance east/west.", "c. Distance north/south.", "d. Velocity east/west."], 
+                correct: 1 
             },
-            {
-                q: "A course of 120&deg;(T) is drawn between X(61&deg;30'N) and Y(58&deg;30'N) on a Lambert Conformal conic chart with a scale of 1:1,000,000 at 60&deg;N. The chart distance between X and Y is:",
-                options: ["a) 33.4 cm", "b) 66.7 cm", "c) 38.5 cm", "d) 36.0 cm"],
-                correct: 1
+            { 
+                q: "The principle of 'Schuler Tuning' as applied to the operation of Inertial Navigation Systems/Inertial Reference Systems is applicable to:", 
+                options: ["a. Only gyro-stabilised systems.", "b. Both gyro-stabilised platform and strapdown systems.", "c. Both gyro-stabilised and laser gyro systems but only when operating in the non 'strapdown' mode.", "d. Only to 'strapdown' laser gyro systems."], 
+                correct: 1 
             },
-            {
-                q: "A direct Mercator graticule is based on a projection that is:",
-                options: ["a) cylindrical", "b) [Option missing in source]", "c) [Option missing in source]", "d) [Option missing in source]"],
-                correct: 0
+            { 
+                q: "In an Inertial Navigation System (INS), what is the output of the first stage North/South integrator?", 
+                options: ["a. Velocity along the local meridian.", "b. Groundspeed.", "c. Latitude.", "d. Change of latitude."], 
+                correct: 0 
             },
-            {
-                q: "An Oblique Mercator projection is used specifically to produce:",
-                options: ["a) plotting charts in equatorial regions", "b) radio navigational charts in equatorial regions", "c) topographical maps of large east/west extent", "d) charts of the great circle route between two points"],
-                correct: 3
+            { 
+                q: "Alignment of INS and IRS equipments can take place in which of the following modes?", 
+                options: ["a. ALIGN only.", "b. ALIGN and ATT.", "c. ATT and ALIGN.", "d. NAV and ALIGN."], 
+                correct: 3 
             },
-            {
-                q: "Transverse Mercator projections are used for:",
-                options: ["a) maps of large north/south extent", "b) maps of large east/west extent in equatorial areas", "c) radio navigation charts in equatorial areas", "d) plotting charts in equatorial areas"],
-                correct: 0
+            { 
+                q: "On a triple-fit IRS system, present positions on the CDU?", 
+                options: ["a. Are likely to differ as the information comes from different sources.", "b. Will only differ if one IRS has been decoupled due to a detected malfunction.", "c. Will only differ if an initial input error of aircraft position has been made.", "d. Will not differ as the information is averaged."], 
+                correct: 0 
             },
-            {
-                q: "On a transverse Mercator chart, with the exception of the Equator, parallels of latitude appear as:",
-                options: ["a) hyperbolic lines", "b) straight lines", "c) ellipses", "d) parabolas"],
-                correct: 2
+            { 
+                q: "What are the positions (in the order left to right) on the Boeing 737-400 IRS Mode Selector Unit (MSU)?", 
+                options: ["a. OFF STBY ATT NAV.", "b. OFF STBY NAV ATT.", "c. OFF STBY ALIGN NAV ATT.", "d. OFF ALIGN NAV ATT."], 
+                correct: 3 
             },
-            {
-                q: "A Mercator chart has a scale at the equator = 1:3 704 000. What is the scale at latitude 60&deg; S?",
-                options: ["a) 1: 1 852 000", "b) 1: 7 408 000", "c) 1: 3 208 000", "d) 1: 185 200"],
-                correct: 0
+            { 
+                q: "Gyro-compassing in an INS?", 
+                options: ["a. It is not possible in flight because the gyros cannot differentiate between acceleration due to aircraft movement and initial alignment errors.", "b. Is possible in flight as the gyros cannot differentiate between acceleration due to aircraft movement and initial alignment errors.", "c. Is possible in flight as the gyros can differentiate between acceleration due to aircraft movement and initial alignment errors.", "d. Is not possible in flight as the gyros can differentiate between acceleration due to aircraft movement and initial alignment errors."], 
+                correct: 0 
             },
-            {
-                q: "On a Direct Mercator chart, a rhumb line appears as a:",
-                options: ["a) straight line", "b) [Option missing in source]", "c) [Option missing in source]", "d) [Option missing in source]"],
-                correct: 0
+            { 
+                q: "In an INS/IRS, an azimuth gyro is found to have a drift rate. If t is the time since selecting the MSU from ALIGN to NAV the azimuth gyro heading error is?", 
+                options: ["a. Proportional to t.", "b. Proportional to the square root of t.", "c. Proportional to t/2.", "d. Sinusoidal."], 
+                correct: 0 
             },
-            {
-                q: "On a Direct Mercator chart a great circle will be represented by a:",
-                options: ["a) complex curve", "b) curve concave to the equator", "c) curve convex to the equator", "d) straight line"],
-                correct: 1
+            { 
+                q: "On the IRS, selection of ATT mode gives attitude?", 
+                options: ["a. Altitude, and heading.", "b. Only.", "c. And heading.", "d. Heading, and groundspeed."], 
+                correct: 2 
             },
-            {
-                q: "On a Direct Mercator chart, great circles are shown as:",
-                options: ["a) curves convex to the nearer pole", "b) straight lines", "c) rhumb lines", "d) curves concave to the nearer pole"],
-                correct: 0
+            { 
+                q: "How long does it take to align an IRS (Laser Ring Gyros)?", 
+                options: ["a. 10 minutes.", "b. 15 minutes.", "c. 1 minute.", "d. 5 minutes."], 
+                correct: 0 
             },
-            {
-                q: "Which one of the following, concerning great circles on a Direct Mercator chart, is correct?",
-                options: ["a) They are all curves convex to the equator", "b) They are all curves concave to the equator", "c) They approximate to straight lines between the standard parallels", "d) With the exception of meridians and the equator, they are curves concave to the equator"],
-                correct: 3
+            { 
+                q: "What is the purpose of the piezo-electric motor in an IRS system?", 
+                options: ["a. Dither.", "b. Vibrate.", "c. Shake.", "d. Shudder."], 
+                correct: 0 
             },
-            {
-                q: "How does scale change on a normal Mercator chart?",
-                options: ["a) Expands as the secant2 (1/2 co-latitude)", "b) Expands directly with the secant of the latitude", "c) Correct on the standard parallels, expands outside them, contracts within them", "d) Expands as the secant of the E/W great circle distance"],
-                correct: 1
+            { 
+                q: "The platform of an inertial navigation system (INS) is maintained at right angles to the local vertical by applying corrections for the effects of?", 
+                options: ["a. Aircraft manoeuvres, earth rotation, transport wander and coriolis.", "b. Movement in the yawing plane, secondary precession and pendulous oscillation.", "c. Gyroscopic inertia, earth rotation and real drift.", "d. Vertical velocities, earth precession, centrifugal forces and transport drift."], 
+                correct: 0 
             },
-            {
-                q: "On a direct Mercator projection, the distance measured between two meridians spaced 5&deg; apart at latitude 60&deg;N is 8 cm. The scale of this chart at latitude 60&deg;N is approximately:",
-                options: ["a) 1 : 4 750 000", "b) 1 : 7 000 000", "c) 1 : 6 000 000", "d) 1 : 3 500 000"],
-                correct: 3
+            { 
+                q: "In an Inertial Navigation System (INS), Ground Speed (GS) is calculated?", 
+                options: ["a. By integrating gyro precession in N/S and E/W directions respectively.", "b. From TAS and WN from Air Data Computer (ADC).", "c. By integrating measured acceleration.", "d. From TAS and WN from RNAV data."], 
+                correct: 2 
             },
-            {
-                q: "On a Direct Mercator chart at latitude 15&deg;S, a certain length represents a distance of 120 NM on the earth. The same length on the chart will represent on the earth, at latitude 10&deg;N, a distance of:",
-                options: ["a) 122.3 NM", "b) 117.7 NM", "c) 124.2 NM", "d) 118.2 NM"],
-                correct: 0
+            { 
+                q: "An aircraft equipped with an Inertial Navigation System (INS) flies with INS 1 coupled with autopilot 1. Both inertial navigation systems are navigating from way-point A to B. The inertial systems' Central Display Units (CDU) show: XTK on INS 1 = 0, XTK on INS 2 = 8L. What can be deduced from this information?", 
+                options: ["a. Only inertial navigation system No.1 is drifting.", "b. At least one of the inertial navigation systems is drifting.", "c. Only inertial navigation system No.2 is drifting.", "d. The autopilot is unserviceable in NAV mode."], 
+                correct: 1 
             },
-            {
-                q: "On which of the following chart projections is it NOT possible to represent the north or south poles?",
-                options: ["a) Lamberts conformal", "b) Direct Mercator", "c) Transverse Mercator", "d) Polar stereographic"],
-                correct: 1
+            { 
+                q: "If an IRS loses its position mid-flight it must?", 
+                options: ["a. Not be used in NAV mode.", "b. Be turned OFF.", "c. Have a new position inserted.", "d. Be selected to ALIGN and then to NAV."], 
+                correct: 0 
             },
-            {
-                q: "Parallels of latitude on a Direct Mercator chart are:",
-                options: ["a) parallel straight lines equally spaced", "b) arcs of concentric circles equally spaced", "c) straight lines converging above the pole", "d) parallel straight lines unequally spaced"],
-                correct: 3
+            { 
+                q: "What does INS need for wind calculations?", 
+                options: ["a. EAS.", "b. TAS.", "c. Mach Number.", "d. Heading."], 
+                correct: 1 
             },
-            {
-                q: "Where on a Direct Mercator projection is the chart convergency correct compared to the earth convergency?",
-                options: ["a) All over the chart", "b) At the two parallels of tangency", "c) At the poles", "d) At the equator"],
-                correct: 3
+            { 
+                q: "What do you call a system of gyros and accelerometers that is fixed to the aircraft?", 
+                options: ["a. Laser.", "b. Stabilised.", "c. Fixed.", "d. Strapdown."], 
+                correct: 3 
             },
-            {
-                q: "On a Transverse Mercator chart scale is correct at:",
-                options: ["a) The 180&deg; meridian", "b) The False Meridian", "c) The Great Circle of Tangency", "d) The Meridian of Tangency"],
-                correct: 3
+            { 
+                q: "When is the last point at which an INS or IRS may be selected to NAV mode?", 
+                options: ["a. After passengers and freight are aboard.", "b. Immediately prior to push back or taxi from the gate.", "c. At the holding point.", "d. On operation of TOGA switch when opening the throttles for the take-off."], 
+                correct: 1 
             },
-            {
-                q: "Given: Direct Mercator chart with a scale of 1: 200 000 at equatorChart length from A to B, in the vicinity of the equator, 11 cm What is the approximate distance from A to B?",
-                options: ["a) 21 NM", "b) 12 NM", "c) 22 NM", "d) 14 NM"],
-                correct: 1
+            { 
+                q: "In what form are positions entered in all INS systems?", 
+                options: ["a. Geographic coordinates.", "b. Ranges and bearings.", "c. Waypoint names.", "d. Hexadecimals."], 
+                correct: 0 
             },
-            {
-                q: "Assume a Mercator chart. The distance between positions A and B located on the same parallel and 10&deg; longitude apart, is 6 cm. The scale at the parallel is 1: 9 260 000. What is the latitude of A and B?",
-                options: ["a) 45&deg; N or S", "b) 30&deg; N or S", "c) 0&deg;", "d) 60&deg; N or S"],
-                correct: 3
-            },
-            {
-                q: "On a particular Direct Mercator wall chart, the 180W to 180E parallel of latitude at 53N is 133 cm long. What is the scale of the chart at 30S?",
-                options: ["a) 1 : 3 000 000", "b) 1 : 18 000 000", "c) 1 : 21 000 000", "d) 1 : 25 000 000"],
-                correct: 3
-            },
-            {
-                q: "At latitude 60&deg;N the scale of a Mercator projection is 1:5 000 000. The length on the chart between C N60&deg; W008&deg; and D N60&deg; E008&deg; is:",
-                options: ["a) 19.2 cm", "b) 16.2 cm", "c) 35.6 cm", "d) 17.8 cm"],
-                correct: 3
-            },
-            {
-                q: "What is the value of the convergence factor on a Polar Stereographic chart?",
-                options: ["a) 1.0", "b) [Option missing in source]", "c) [Option missing in source]", "d) [Option missing in source]"],
-                correct: 0
-            },
-            {
-                q: "Which one of the following describes the appearance of rhumb lines, except meridians, on a Polar Stereographic chart?",
-                options: ["a) Straight lines", "b) Ellipses around the Pole", "c) Curves convex to the Pole", "d) Curves concave to the Pole"],
-                correct: 3
-            },
-            {
-                q: "The chart that is generally used for navigation in polar areas is based on a:",
-                options: ["a) Stereographical projection", "b) Direct Mercator projection", "c) Gnomonic projection", "d) Lambert conformal projection"],
-                correct: 0
-            },
-            {
-                q: "Which one of the following statements is correct concerning the appearance of great circles, with the exception of meridians, on a Polar Stereographic chart whose tangency is at the pole?",
-                options: ["a) The higher the latitude the closer they approximate to a straight line", "b) Any straight line is a great circle", "c) They are complex curves that can be convex and/or concave to the Pole", "d) They are curves convex to the Pole"],
-                correct: 0
-            },
-            {
-                q: "In which of the following projections does a plane surface touch the Reduced Earth at one of the Poles?",
-                options: ["a) Gnomic", "b) Stereographic", "c) Lambert's", "d) Direct Mercator"],
-                correct: 1
-            },
-            {
-                q: "Isogrivs on a chart indicate lines of:",
-                options: ["a) Zero magnetic variation", "b) Equal magnetic tip", "c) Equal horizontal directive force", "d) Equal grivation 1 min"],
-                correct: 3
-            },
-            {
-                q: "(Refer to figure 061-07) Assume a North polar stereographic chart whose grid is aligned with the Greenwich meridian. An aircraft flies from the geographic North pole for a distance of 480 NM along the 110&deg;E meridian, then follows a grid track of 154&deg; for a distance of 300 NM. Its position is now approximately:",
-                options: ["a) 70&deg;15'N 080&deg;E", "b) 80&deg;00'N 080&deg;E", "c) 78&deg;45'N 087&deg;E", "d) 79&deg;15'N 074&deg;E"],
-                correct: 1
-            },
-            {
-                q: "Grid heading is 299&deg;, grid convergency is 55&deg; West and magnetic variation is 90&deg; West. What is the corresponding magnetic heading?",
-                options: ["a) 084", "b) 334", "c) 154", "d) 264"],
-                correct: 0
-            },
-            {
-                q: "Aircraft position S8000.0 E14000.0 Aircraft tracking 025&deg;(G) If the grid is aligned with the Greenwich Anti-Meridian, the True track is:",
-                options: ["a) 245", "b) 205", "c) 165", "d) 065"],
-                correct: 3
+            { 
+                q: "Which mode selection on the CDU of an INS is required to display initial Great Circle track?", 
+                options: ["a. DSRTK/STS.", "b. DSRTK/STS.", "c. TK/GS.", "d. XTK/TKE."], 
+                correct: 0 
             }
         ];
 
+        let activeQuizData = [];
+        let currentQuizIndex = 0;
+        let quizAnswers = [];
 
-        // ==========================================
-        // DYNAMIC COUNTERS
-        // ==========================================
-        function updateCardCounts() {
-            document.getElementById('count-booklet').innerText = `Theory MCQs (${bookletData.length} Questions)`;
-            document.getElementById('count-chart').innerText = `Theory MCQs (${chartTheoryData.length} Questions)`;
-            document.getElementById('count-num').innerText = `Scale Calculations (${numericalsData.length} Questions)`;
-            document.getElementById('count-pdf').innerText = `Theory MCQs (${pdfData.length} Questions)`;
+        // Shuffle logic to randomize both questions and the options inside them
+        function shuffleQuiz(dataArray) {
+            let shuffledData = JSON.parse(JSON.stringify(dataArray));
+
+            // Shuffle questions
+            for (let i = shuffledData.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledData[i], shuffledData[j]] = [shuffledData[j], shuffledData[i]];
+            }
+
+            // Shuffle options within each question and update the correct index
+            shuffledData.forEach(question => {
+                let correctAnswerText = question.options[question.correct];
+                
+                for (let i = question.options.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [question.options[i], question.options[j]] = [question.options[j], question.options[i]];
+                }
+
+                question.correct = question.options.indexOf(correctAnswerText);
+            });
+
+            return shuffledData;
         }
-        
-        // Initialize counts on load
-        updateCardCounts();
 
-
-        // ==========================================
-        // GENERIC MCQ ENGINE (For Booklet, Chart Theory, PDF)
-        // ==========================================
-        let activeMcqData = [];
-        let activeMcqAnswers = [];
-        let activeMcqIndex = 0;
-        let activeMcqTitle = "";
-
-        function startMcq(dataset, title) {
-            if(dataset.length === 0) {
-                alert("The " + title + " dataset is currently empty!");
-                return;
-            }
-            activeMcqData = dataset;
-            activeMcqTitle = title;
-            activeMcqAnswers = new Array(dataset.length).fill(null);
-            activeMcqIndex = 0;
+        function startQuiz() {
             switchView('quiz-page');
-            renderMcq();
+            activeQuizData = shuffleQuiz(quizData);
+            currentQuizIndex = 0;
+            quizAnswers = new Array(activeQuizData.length).fill(null);
+            renderQuiz();
         }
 
-        function renderMcq() {
-            const qData = activeMcqData[activeMcqIndex];
+        function renderQuiz() {
+            if (activeQuizData.length === 0) return;
+            const qData = activeQuizData[currentQuizIndex];
             
-            document.getElementById('quiz-counter').innerText = `${activeMcqTitle} Q${activeMcqIndex + 1} of ${activeMcqData.length}`;
-            document.getElementById('quiz-progress').style.width = `${((activeMcqIndex + 1) / activeMcqData.length) * 100}%`;
-            document.getElementById('quiz-q-text').innerHTML = qData.q;
+            document.getElementById('quiz-counter').innerText = `Theory Q${currentQuizIndex + 1} of ${activeQuizData.length}`;
+            document.getElementById('quiz-progress').style.width = `${((currentQuizIndex + 1) / activeQuizData.length) * 100}%`;
+            document.getElementById('quiz-q-text').innerHTML = `<strong>Q${currentQuizIndex + 1}.</strong> ` + qData.q;
             
             const optionsContainer = document.getElementById('quiz-options');
             optionsContainer.innerHTML = '';
             
-            const hasAnswered = activeMcqAnswers[activeMcqIndex] !== null;
+            const hasAnswered = quizAnswers[currentQuizIndex] !== null;
             
             qData.options.forEach((optText, index) => {
                 const btn = document.createElement('button');
@@ -528,44 +359,59 @@
                     btn.classList.add('disabled');
                     if (index === qData.correct) {
                         btn.classList.add('correct');
-                    } else if (index === activeMcqAnswers[activeMcqIndex]) {
+                    } else if (index === quizAnswers[currentQuizIndex]) {
                         btn.classList.add('wrong');
                     }
                 } else {
-                    btn.onclick = () => selectMcqOption(index);
+                    btn.onclick = () => selectQuizOption(index);
                 }
                 optionsContainer.appendChild(btn);
             });
             
-            document.getElementById('quiz-prev-btn').disabled = activeMcqIndex === 0;
-            document.getElementById('quiz-next-btn').disabled = activeMcqIndex === activeMcqData.length - 1;
+            document.getElementById('quiz-prev-btn').disabled = currentQuizIndex === 0;
+            document.getElementById('quiz-next-btn').disabled = currentQuizIndex === activeQuizData.length - 1;
         }
 
-        function selectMcqOption(selectedIndex) {
-            activeMcqAnswers[activeMcqIndex] = selectedIndex;
-            renderMcq();
+        function selectQuizOption(selectedIndex) {
+            quizAnswers[currentQuizIndex] = selectedIndex;
+            renderQuiz();
         }
 
-        function goPrevMcq() { if (activeMcqIndex > 0) { activeMcqIndex--; renderMcq(); } }
-        function goNextMcq() { if (activeMcqIndex < activeMcqData.length - 1) { activeMcqIndex++; renderMcq(); } }
+        function goPrevQuiz() { if (currentQuizIndex > 0) { currentQuizIndex--; renderQuiz(); } }
+        function goNextQuiz() { if (currentQuizIndex < activeQuizData.length - 1) { currentQuizIndex++; renderQuiz(); } }
 
 
         // ==========================================
-        // NUMERICALS ENGINE
+        // NUMERICALS DATA (3 Calculations)
         // ==========================================
+        const numericalsData = [
+            { 
+                q: "<strong>Problem 1.</strong><br>A/C flying from Point A on westerly track. WPA = 40&deg;N 20&deg;E.<br>While entering co-ordinates of A, Pilot makes an error as he enters co-ordinate of A as 20&deg;W. On crossing meridian of 50&deg;W, what longitude is shown in INS?", 
+                ans: "90&deg;W",
+                sol: "<strong>Step-by-Step Resolution:</strong><br><br>1. <strong>Actual Initial Position:</strong> 20&deg;E.<br>2. <strong>Erroneous INS Input:</strong> 20&deg;W (The INS believes it is starting 40&deg; further West than it actually is).<br>3. <strong>Actual Distance Flown:</strong> The aircraft physically flies from 20&deg;E to 50&deg;W. <br>&nbsp;&nbsp;&nbsp;Total change in longitude = 20&deg; + 50&deg; = 70&deg; Westerly displacement.<br>4. <strong>INS Logic:</strong> The INS detects the 70&deg; Westerly movement and applies it to its perceived starting point.<br>5. <strong>Final INS Display:</strong> 20&deg;W (Start) + 70&deg;W (Movement) = <strong>90&deg;W</strong>."
+            },
+            { 
+                q: "<strong>Problem 2.</strong><br>A/C Lands & is parked at Ramp 15.<br>INS position shows: 52&deg;20.7'N 4&deg;40.3'E.<br>According to airway manual, Actual position is: 52&deg;18.5'N 4&deg;45.9'E.<br>If the A/C has flown for 6.42 hrs, find the Radial Error.", 
+                ans: "0.63 NM/hr",
+                sol: "<strong>Step-by-Step Resolution:</strong><br><br>1. <strong>Find Difference in Latitude (dlat):</strong><br>&nbsp;&nbsp;&nbsp;52&deg;20.7'N - 52&deg;18.5'N = 2.2 minutes = 2.2 NM (North/South Error).<br><br>2. <strong>Find Difference in Longitude (dlong):</strong><br>&nbsp;&nbsp;&nbsp;4&deg;45.9'E - 4&deg;40.3'E = 5.6 minutes.<br><br>3. <strong>Convert dlong to Departure (Distance):</strong><br>&nbsp;&nbsp;&nbsp;Departure = dlong &times; cos(Latitude)<br>&nbsp;&nbsp;&nbsp;Departure = 5.6 &times; cos(52&deg;18.5') = 3.4 NM (East/West Error).<br><br>4. <strong>Find Total Distance Error (Pythagoras):</strong><br>&nbsp;&nbsp;&nbsp;Distance = &radic;(2.2&sup2; + 3.4&sup2;) = &radic;(4.84 + 11.56) = &radic;16.4 = 4.05 NM total positional error.<br><br>5. <strong>Calculate Radial Error Rate:</strong><br>&nbsp;&nbsp;&nbsp;Rate = Total Error / Total Flying Time<br>&nbsp;&nbsp;&nbsp;Rate = 4.05 NM / 6.42 hrs = <strong>0.63 NM/hr</strong>."
+            },
+            { 
+                q: "<strong>Problem 3.</strong><br>Following waypoints are in INS:<br>WP1: 60&deg;N 20&deg;W<br>WP2: 60&deg;N 40&deg;W<br>WP3: 60&deg;N 60&deg;W<br>Aircraft is flying from WP1 to WP3. What is the track change required at WP2?", 
+                ans: "17.34&deg;",
+                sol: "<strong>Step-by-Step Resolution:</strong><br><br>1. <strong>Calculate Earth Convergency:</strong><br>&nbsp;&nbsp;&nbsp;Convergency = dlong &times; sin(mean lat)<br>&nbsp;&nbsp;&nbsp;Convergency = (40&deg;W - 20&deg;W) &times; sin(60&deg;) = 20 &times; 0.866 = 17.32&deg;.<br><br>2. <strong>Calculate Conversion Angle (CA):</strong><br>&nbsp;&nbsp;&nbsp;CA = &frac12; Convergency = 17.32 / 2 = 8.66&deg;.<br><br>3. <strong>Analyze WP1 to WP2:</strong><br>&nbsp;&nbsp;&nbsp;Rhumb Line (RL) track = 270&deg; (due West along parallel).<br>&nbsp;&nbsp;&nbsp;Initial Great Circle (GC) Bearing = 270&deg; + 8.66&deg; = 278.66&deg;.<br>&nbsp;&nbsp;&nbsp;GC Track Arriving at WP2 = Initial Bearing - Convergency = 278.66&deg; - 17.32&deg; = 261.34&deg;.<br><br>4. <strong>Analyze WP2 to WP3:</strong><br>&nbsp;&nbsp;&nbsp;RL track = 270&deg;.<br>&nbsp;&nbsp;&nbsp;Initial GC Track Departing WP2 = 270&deg; + 8.66&deg; = 278.66&deg;.<br><br>5. <strong>Calculate Total Track Change at WP2:</strong><br>&nbsp;&nbsp;&nbsp;Change = Departing Track - Arriving Track<br>&nbsp;&nbsp;&nbsp;Change = 278.66&deg; - 261.34&deg; = <strong>17.32&deg;</strong> (Handwritten notes round to 17.34&deg; based on specific trig approximations)."
+            }
+        ];
+
         let currentNumIndex = 0;
 
         function startNumericals() {
-            if(numericalsData.length === 0) {
-                alert("Numericals dataset is empty!");
-                return;
-            }
             switchView('numerical-page');
             currentNumIndex = 0;
             renderNumerical();
         }
 
         function renderNumerical() {
+            if (numericalsData.length === 0) return;
             const qData = numericalsData[currentNumIndex];
             
             document.getElementById('num-counter').innerText = `Calculation Q${currentNumIndex + 1} of ${numericalsData.length}`;
@@ -574,7 +420,11 @@
             
             const ansBox = document.getElementById('num-ans-box');
             ansBox.innerHTML = `<strong>Answer:</strong><br>${qData.ans}`;
-            ansBox.style.display = 'none'; // Hide by default
+            ansBox.style.display = 'none';
+            
+            const solBox = document.getElementById('num-sol-box');
+            solBox.innerHTML = qData.sol;
+            solBox.style.display = 'none';
             
             document.getElementById('num-prev-btn').disabled = currentNumIndex === 0;
             document.getElementById('num-next-btn').disabled = currentNumIndex === numericalsData.length - 1;
@@ -582,6 +432,15 @@
 
         function goPrevNum() { if (currentNumIndex > 0) { currentNumIndex--; renderNumerical(); } }
         function goNextNum() { if (currentNumIndex < numericalsData.length - 1) { currentNumIndex++; renderNumerical(); } }
+
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        window.onload = function() {
+            // Automatically update the front cards with the exact number of questions
+            document.getElementById('quiz-card-count').innerText = quizData.length + " Theory MCQs";
+            document.getElementById('num-card-count').innerText = numericalsData.length + " Step-by-Step Problems";
+        };
     </script>
 </body>
 </html>
