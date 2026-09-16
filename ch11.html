@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 11 | Instruments (ASI & Mach Meter)</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 15px 50px; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-box { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: left; font-weight: 600; display: none; font-size: 1rem; }
+        .feedback-correct { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 15px; font-size: 1.15rem; margin-bottom: 15px; }
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; }
+        
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 11: Instruments (ASI & Mach Meter)</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startQuiz()">
+                    <h3>Theory Engine</h3>
+                    <p id="quiz-card-count">Loading MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startPdf()">
+                    <h3>PDF Data</h3>
+                    <p id="pdf-card-count">Loading PDF Questions...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- QUIZ ENGINE -->
+        <div id="quiz-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="quiz-counter">Theory Question 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Quiz</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="quiz-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="quiz-q-text">Loading question...</div>
+                <div class="mcq-options" id="quiz-options"></div>
+
+                <!-- Solution Button Container (Hidden until Answered) -->
+                <div id="quiz-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="quiz-reveal-btn" class="btn" style="padding: 10px 20px; font-size: 1rem; border-color: #555;">Reveal Solution</button>
+                    <div id="quiz-sol-box" class="feedback-box feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="quiz-prev-btn" class="quiz-nav-btn" onclick="goPrevQuiz()">Previous</button>
+                <button id="quiz-next-btn" class="quiz-nav-btn" onclick="goNextQuiz()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF DATA ENGINE (Flashcard Style) -->
+        <div id="pdf-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            
+            <div class="content-area" style="max-height: none; padding: 20px;">
+                <div class="question-text" id="pdf-q-text">Loading problem...</div>
+                
+                <div style="margin-top: 25px; display: flex; gap: 15px;">
+                    <button class="btn" style="padding: 10px 20px; font-size: 1rem;" onclick="document.getElementById('pdf-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" style="padding: 10px 20px; font-size: 1rem; border-color: #555;" onclick="document.getElementById('pdf-sol-box').style.display='block'">Reveal Solution</button>
+                </div>
+
+                <div id="pdf-ans-box" class="feedback-box feedback-correct" style="display:none;"></div>
+                <div id="pdf-sol-box" class="feedback-box feedback-solution" style="display:none;"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // QUIZ DATA (Theory Engine - Multiple Choice)
+        // ==========================================
+        const quizData = [
+            // -----------------------------------------------------------------
+            {
+                q: "Dynamic pressure is:",
+                options: ["a) Density and static pressure", "b) Pitot pressure minus static pressure", "c) Pitot pressure plus static pressure"],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Dynamic Pressure (q) is the pressure caused by forward movement. A pitot tube measures Total Pressure (Pt), and static ports measure Static Pressure (Ps). The ASI isolates Dynamic Pressure mechanically by subtracting them: Pt - Ps."
+            },
+            {
+                q: "The reason for having a square-law compensation in the airspeed-indicator mechanism is:",
+                options: ["a) The differential pressure decreases with the square of the airspeed", "b) The ram air pressure decreases with the square-root of the airspeed", "c) The differential pressure increases with the square of the airspeed"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The formula for Dynamic Pressure is q = 1/2 &rho; V&sup2;. Because velocity (V) is squared, the pressure increases exponentially as speed increases. Mechanical linkages (square-law compensation) are used in the ASI to linearize the dial face so the speed markings are evenly spaced."
+            },
+            {
+                q: "A pitot tube covered by ice which blocks the ram air inlet will affect the following instrument (s):",
+                options: ["a) altimeter only.", "b) vertical speed indicator only.", "c) airspeed indicator only."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The Airspeed Indicator is the only standard flight instrument that requires a Pitot (Ram Air) input. The Altimeter and VSI operate entirely on Static pressure changes."
+            },
+            {
+                q: "The Airspeed Indicator measures:",
+                options: ["a) Static pressure", "b) Differential pressure", "c) Static pressure changes"],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The ASI is fundamentally a differential pressure gauge. It measures the difference between the total (pitot) pressure fed into the capsule and the static pressure fed into the instrument case."
+            },
+            {
+                q: "If static source of ASI is blocked during level flight, ASI will:",
+                options: ["a) Under-read", "b) Over-read", "c) Will read correct"],
+                correct: 1,
+                sol: "<strong>DGCA Key Note:</strong><br>While technically it reads correct until you change altitude/speed, the DGCA key strictly marks <strong>b) Over-read</strong> as the correct answer. Memorize this specific key for the exam."
+            },
+            {
+                q: "If the static tube is clogged, which instrument(s) is/are affected?",
+                options: ["a) Vertical speed indicator & ASI only.", "b) Altimeter & VSI only.", "c) Airspeed indicator, VSI and altimeter."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>All three primary pitot-static flight instruments (ASI, Altimeter, and VSI) require an accurate ambient static pressure input to function correctly. A blockage will cause all three to display erroneous readings."
+            },
+            {
+                q: "Indicated airspeed corrected for position error is:",
+                options: ["a) Calibrated airspeed.", "b) Ground speed.", "c) Equivalent air speed."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>1. IAS corrected for Instrument & Position Error = <strong>CAS</strong>.<br>2. CAS corrected for Compressibility Error = <strong>EAS</strong>.<br>3. EAS corrected for Density = <strong>TAS</strong>."
+            },
+            {
+                q: "Which of the following is most dangerous?",
+                options: ["a) Pitot blocked during climb.", "b) Static blocked during descend (over-read).", "c) Pitot blocked during descend"],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>A static blockage during descent traps a lower pressure in the instrument case. This causes the ASI to over-read. This is highly dangerous because the ASI will show a safe flying speed when the aircraft may actually be dangerously close to a stall."
+            },
+            {
+                q: "If static source of an a/c is blocked during climb. Altimeter ________ and ASI will ________ :",
+                options: ["a) Under-read, under-read", "b) Under-read, over-read", "c) Over-read, under-read"],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br><strong>Altimeter:</strong> Traps the high pressure of the lower altitude, so it under-reads.<br><strong>ASI:</strong> ASI = Pt - Ps. Subtracting an artificially high trapped static pressure makes the result smaller, causing the ASI to under-read."
+            },
+            {
+                q: "Compressibility Error requires a.... (i) correction because it is.... (ii) of .... (iii) pressure. It gives.... (iv):",
+                options: ["a) (i) negative (ii) an increase (iii) dynamic (iv) EAS", "b) (i) positive (ii) an increase (iii) dynamic (iv) TAS", "c) (i) negative (ii) a decrease (iii) static (iv) EAS"],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>At high speeds, air compresses inside the pitot tube, artificially inflating the dynamic pressure reading. To find your true Equivalent Airspeed (EAS), you must apply a <strong>negative</strong> correction to subtract this false increase."
+            },
+            {
+                q: "The airspeed indicator is calibrated to:",
+                options: ["a) ISA at the height the aircraft is flying", "b) the full ISA", "c) ISA at mean sea level"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The ASI mechanism is manufactured and calibrated assuming standard International Standard Atmosphere (ISA) conditions at Mean Sea Level: 1.225 kg/m&sup3; and 15&deg;C."
+            },
+            {
+                q: "In a standard atmosphere and at the sea level, the calibrated airspeed (CAS) is:",
+                options: ["a) higher than the true airspeed (TAS)", "b) independent of the true airspeed (TAS)", "c) equal to the true airspeed (TAS)"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Because the ASI is calibrated for ISA at Sea Level, if the aircraft is actually flying in exact ISA Sea Level conditions, there is no density error. Therefore, CAS directly equals TAS."
+            },
+            {
+                q: "A white arc on a ASI indicates:",
+                options: ["a) flaps extension speed range.", "b) safe cruise speed.", "c) safe speed on approach to land."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The White Arc indicates the flap operating range. The lower limit is Vso (stall speed in landing configuration) and the upper limit is Vfe (max flap extended speed)."
+            },
+            {
+                q: "A pitot blockage of both the ram air input and the drain hole with the static port open causes the airspeed indicator to:",
+                options: ["a) freeze at zero", "b) read a little low", "c) React like an altimeter"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>If the pitot tube is completely blocked, the total pressure (Pt) is trapped. As the aircraft climbs, the ambient static pressure (Ps) drops. The equation Pt(trapped) - Ps(dropping) causes the ASI needle to increase as you climb—acting exactly like an altimeter."
+            },
+            {
+                q: "If the static line to the ASI becomes blocked during a climb, the ASI reading will:",
+                options: ["a) remain fixed.", "b) progressively under read.", "c) progressively over read."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>A blocked static line during a climb traps a higher pressure inside the ASI case from the lower altitude. Subtracting this artificially high static pressure causes the ASI to indicate a progressively lower speed than actual."
+            },
+            {
+                q: "The pressure measured at the forward facing orifice of a pitot tube is the:",
+                options: ["a) dynamic pressure", "b) total pressure", "c) static pressure"],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The front opening of the pitot tube brings the oncoming relative wind to a complete halt, capturing both the ambient atmospheric pressure (Static) and the pressure of the forward motion (Dynamic). This combined measurement is Total Pressure (Pt)."
+            },
+            {
+                q: "VNO is the maximum speed:",
+                options: ["a) with flaps extended in landing position.", "b) At which the flight controls can be fully deflected.", "c) not to be exceeded except in still air and with caution."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>VNO stands for Maximum Structural Cruising Speed. It marks the boundary between the green and yellow arcs on the ASI. You should only operate above this speed in smooth air, and only with caution."
+            },
+            {
+                q: "The limits of the white scale of an airspeed indicator are:",
+                options: ["a) VSO for the lower limit and VFE for the upper limit", "b) VSI for the lower limit and VFE for the upper limit", "c) VSO for the lower limit and VLE for the upper limit"],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Lower Limit (VSO): Stall speed in the landing configuration (flaps and gear down).<br>Upper Limit (VFE): Maximum flap extended speed."
+            },
+            {
+                q: "If the static source to an airspeed indicator (ASI) becomes blocked during a descent the instrument will:",
+                options: ["a) continue to indicate the speed applicable to that at the time of the blockage", "b) read zero", "c) over-read"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Trapping the static pressure during descent means the instrument retains the lower pressure from the higher altitude. Subtracting this artificially low static pressure causes the ASI to over-read."
+            },
+            {
+                q: "Dynamic pressure sensed by or pitot tube : Today's airspeed indicators (calibrated to the Saint-Venant formula), indicate, in the absence of static (and instrumental) error :",
+                options: ["a) Is not affected by the density of surround up air.", "b) Increases if air density increases", "c) Increases if air density decreases"],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>An ASI mechanically measures and displays dynamic pressure (q) as a speed. Because the instrument merely reads the physical pressure entering the capsule, its internal mechanical readout mechanism is completely agnostic to what the actual air density is outside."
+            },
+            {
+                q: "The errors to which the mach meter is subject are:",
+                options: ["a) instrument error, position error, compressibility error and manoeuvre induced error.", "b) instrument error, position error, density error and manoeuvre induced error.", "c) instrument error, position error."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The Mach Meter calculates the ratio of (Pt - Ps) / Ps. Because density and temperature fundamentally affect both Pt and Ps proportionally, they cancel out in the division. Therefore, a Mach Meter only suffers from mechanical instrument errors and position (static port sensing) errors."
+            },
+            {
+                q: "The combined Mach meter / ASI is subject to the following errors:",
+                options: ["a) instrument and compressibility only", "b) instrument, pressure and temperature only", "c) position, density, instrument, compressibility, manoeuvre induced"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Because a combined unit contains a standard Airspeed Indicator mechanism, it inherits all the aerodynamic and density-based errors inherent to standard ASIs, even though its Mach-indicating components do not."
+            },
+            {
+                q: "How many diaphragms are present in a basic Mach meter?",
+                options: ["a) Four.", "b) Two.", "c) Three."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>A traditional mechanical Mach meter requires two separate capsules:<br>1. An Airspeed capsule (measuring Pt - Ps).<br>2. An Altitude capsule (measuring Ps)."
+            },
+            {
+                q: "Indication of Mach number is obtained from:",
+                options: ["a) indicated speed and altitude using a speed indicator equipped with an altimeter type aneroid", "b) an ordinary airspeed indicator scaled for Mach number instead of knots", "c) a kind of echo sound comparing velocity of sound with indicated speed"],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>A Mach meter mechanically divides Dynamic Pressure (speed) by Static Pressure (altitude). It literally combines the inner workings of an ASI and an Altimeter into one complex linkage."
+            },
+            {
+                q: "The Mach number is the:",
+                options: ["a) true airspeed (TAS) divided by the local speed of sound", "b) equivalent airspeed (EAS) divided by the local speed of sound", "c) indicated airspeed (IAS) divided by the local speed of sound"],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>By definition, Mach Number (M) is the ratio of the aircraft's True Airspeed (TAS) relative to the surrounding air mass, divided by the Local Speed of Sound (LSS). M = TAS / LSS."
+            },
+            {
+                q: "The principle of the Mach indicator is based on the computation of the ratio:",
+                options: ["a) (Pt+Ps) to Ps", "b) Pt to Ps", "c) (Pt-Ps) to Ps"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The mathematical basis for the Mach meter is that Mach number is a strict function of dynamic pressure divided by static pressure. The instrument physically calculates the ratio (Pt - Ps) / Ps."
+            },
+            {
+                q: "The Mach number is:",
+                options: ["a) a direct function of temperature; it varies in proportion to the square root of the absolute temperature", "b) The ratio of the aircraft true airspeed to the sonic velocity at the altitude considered", "c) the ratio of the aircraft conventional airspeed to the sonic velocity at the altitude considered"],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Sonic velocity is another term for the Local Speed of Sound (LSS). Therefore, Mach is the ratio of TAS to the sonic velocity at the aircraft's current flight level."
+            },
+            {
+                q: "Sound propagates through the air at a speed which only depends on:",
+                options: ["a) temperature", "b) temperature and the pressure", "c) pressure"],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The Local Speed of Sound (LSS) formula is LSS = 38.94 &times; &radic;T. In an ideal gas like the atmosphere, pressure and density cancel each other out, leaving Temperature as the sole variable determining the speed of sound."
+            },
+            {
+                q: "Mach meter readings are subject to:",
+                options: ["a) setting error", "b) density error", "c) position pressure error"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Position Error occurs when the static ports fail to measure the true ambient static pressure due to the disruption of airflow. Since the Mach meter relies heavily on Static Pressure (Ps), it is subject to this error."
+            },
+            {
+                q: "The reading of a Mach indicator is independent of:",
+                options: ["a) the outside temperature", "b) The static pressure", "c) The total pressure"],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>While Temperature changes the TAS and the LSS, it changes both of them by the exact same proportion. In the ratio Mach = TAS / LSS, the temperature variable perfectly cancels itself out. The instrument computes Mach purely using pressure."
+            },
+            {
+                q: "As an airplane climbs higher, the true airspeed for a given indicated airspeed will:",
+                options: ["a) Decrease", "b) Increase", "c) Remain the same"],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>IAS is a measure of dynamic pressure. As you climb, air density drops. To ram the exact same amount of dynamic pressure into the pitot tube in thin air, the aircraft must physically travel much faster. Thus, TAS increases relative to IAS."
+            },
+            {
+                q: "Which of the following instruments require pitot and static pressure inputs?",
+                options: ["a) Airspeed indicator, vertical speed indicator, altimeter.", "b) Airspeed indicator, mach meter and vertical speed indicator.", "c) Airspeed indicator and mach meter."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Both the ASI and the Mach Meter calculate Dynamic Pressure, which inherently requires taking the Pitot (Total) Pressure and subtracting the Static Pressure."
+            },
+            {
+                q: "During a steady climb the pitot head becomes totally blocked by ice. As the climb continues the indications of the mach meter will:",
+                options: ["a) progressively under indicate the Mach number", "b) stick at the Mach number at the time of blockage", "c) increase no matter what the actual Mach number"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Mach ratio is (Pt - Ps) / Ps. A pitot block traps Pt. As you climb, Ps decreases. The numerator gets larger and the denominator gets smaller. A larger number divided by a smaller number causes the Mach reading to surge upward."
+            },
+            {
+                q: "The Mach number is a function of the:",
+                options: ["a) Isobaric gradient of the fluid.", "b) Humidity of the air.", "c) Absolute temperature of the air."],
+                correct: 0,
+                sol: "<strong>DGCA Key Note:</strong><br>Standard physics states Mach is a function of temperature (Local Speed of Sound). However, the DGCA key marks <strong>a) Isobaric gradient of the fluid</strong>. Memorize this key for the exam to avoid losing marks."
+            },
+            {
+                q: "A mach meter comprises of:",
+                options: ["a) A combination of ASI and altimeter.", "b) A combination of VSI and altimeter.", "c) An ASI with its scale marked in mach numbers."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Internally, a mechanical Mach meter contains an airspeed capsule (measuring dynamic pressure) and an aneroid capsule (measuring static pressure, exactly like an altimeter) linked together."
+            },
+            {
+                q: "Mach meter indications?",
+                options: ["a) Vary with airspeed and temperature.", "b) Vary only with airspeed.", "c) Vary only with temperature."],
+                correct: 2,
+                sol: "<strong>DGCA Key Note:</strong><br>While an aircraft's true Mach varies with both TAS and Temp, the DGCA key specifically marks <strong>c) Vary only with temperature</strong>. Memorize this discrepancy for the exam."
+            },
+            {
+                q: "How will mach meter indication respond if an aircraft passes through a cold front when flying at constant CAS and altitude?",
+                options: ["a) Increase.", "b) Decrease.", "c) Remain constant."],
+                correct: 1,
+                sol: "<strong>DGCA Key Note:</strong><br>Constant CAS and Altitude means dynamic and static pressure are constant, so the instrument needle shouldn't move. However, the DGCA key marks <strong>b) Decrease</strong>. Memorize this."
+            },
+            {
+                q: "A mach meter indicates mach number based on the ratio of:",
+                options: ["a) Static pressure to pitot pressure.", "b) Pitot pressure to static pressure.", "c) Dynamic pressure to static pressure."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The fundamental operating ratio inside the instrument is (Pt - Ps) divided by Ps. Since (Pt - Ps) is Dynamic Pressure, the ratio is Dynamic over Static."
+            },
+            {
+                q: "The airspeed indicator of an aircraft is provided with a moving red and white hatched pointer. This pointer indicates the:",
+                options: ["a) speed indicated on the auto throttle control box, versus temperature", "b) speed indicated on the auto throttle control box versus altitude", "c) maximum speed in VMO operation versus altitude"],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The \"Barber Pole\" on an ASI automatically moves downward as altitude increases. It indicates VMO/MMO, showing the absolute speed limit for the aircraft's current altitude."
+            },
+            {
+                q: "The velocity maximum operating (V.M.O.) is a speed expressed in :",
+                options: ["a) calibrated airspeed (CAS).", "b) true airspeed (TAS).", "c) equivalent airspeed (EAS)."],
+                correct: 2,
+                sol: "<strong>DGCA Key Note:</strong><br>Standard literature dictates VMO is expressed in CAS, but the DGCA key marks <strong>c) Equivalent airspeed (EAS)</strong>. Memorize this key for the exam."
+            },
+            {
+                q: "Considering the maximum operational Mach number (MMO) and the maximum operational speed (VMO), the captain of a pressurized aircraft begins his descent from a high flight level. He decides to use the maximum ground speed. He will be limited:",
+                options: ["a) by the MMO", "b) initially by the MMO, then by the VMO below a certain flight level", "c) by the VMO in still air"],
+                correct: 2,
+                sol: "<strong>DGCA Key Note:</strong><br>The standard \"Coffin Corner\" profile limits you initially by MMO then by VMO. However, the DGCA key marks <strong>c) by the VMO in still air</strong>. Memorize this specific key."
+            },
+            {
+                q: "Compressibility error in the ASI is normally corrected by:",
+                options: ["a) Use of a calibration card placed next to the instrument", "b) Accurate calibration of the instrument", "c) Use of the navigation computer"],
+                correct: 0,
+                sol: "<strong>DGCA Key Note:</strong><br>Modern glass cockpits correct this automatically, but the DGCA key refers to older mechanical dials, marking <strong>a) Use of a calibration card</strong> as the correct answer."
+            },
+            {
+                q: "Dynamic pressure is given by:",
+                options: ["a) The static energy formula P1V1 = P2V2", "b) The kinetic energy formula 1/2 density &times; V&sup2;", "c) The kinetic energy formula P1V1 = P2V2"],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The mathematical formula for Dynamic Pressure (q) is half the air density (&rho;) multiplied by the square of the True Airspeed (V)."
+            },
+            {
+                q: "The advantages of an ADC over a traditional pitot - static system are:",
+                options: ["a) 1, 3 & 4", "b) 1, 2 & 3", "c) 1, 2 & 4"],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Air Data Computers (ADCs) electronically process raw pitot-static data to eliminate mechanical lag, supply multiple instruments, and correct for errors."
+            },
+            {
+                q: "When descending at constant CAS:",
+                options: ["a) Dynamic pressure increases.", "b) Dynamic pressure decreases.", "c) Dynamic pressure remains constant."],
+                correct: 1,
+                sol: "<strong>DGCA Key Note:</strong><br>Since CAS is a readout of dynamic pressure, constant CAS should mean constant dynamic pressure. However, the DGCA key marks <strong>b) Dynamic pressure decreases</strong>. Memorize this."
+            },
+            {
+                q: "During a climb after take-off from a contaminated runway, if the total pressure probe of the airspeed indicator is blocked, the pilot finds that indicated airspeed:",
+                options: ["a) Decreases abruptly towards zero.", "b) Increases steadily.", "c) Decreases steadily."],
+                correct: 0,
+                sol: "<strong>DGCA Key Note:</strong><br>Normally, a completely blocked pitot in a climb causes the ASI to act like an altimeter (increase steadily). However, the DGCA key assumes the block is liquid (water/slush) that drains out, thus it marks <strong>a) Decreases abruptly towards zero</strong>."
+            },
+            {
+                q: "With a pitot probe blocked due to ice build up, the aircraft airspeed indicator will indicate in descent?",
+                options: ["a) Increasing speed.", "b) Fluctuating speed.", "c) Decreasing speed."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The pitot pressure is trapped at a low altitude value. As you descend, ambient static pressure increases. The expanding static pressure squeezes the ASI capsule, causing the indicated speed to rapidly decrease."
+            },
+            {
+                q: "After an aircraft has passed through a volcanic cloud which has blocked the total pressure probe inlet of the airspeed indicator, the pilot begins a stabilized descent and finds that the indicated airspeed?",
+                options: ["a) Increases steadily.", "b) Decreases abruptly towards zero.", "c) Decreases steadily."],
+                correct: 0,
+                sol: "<strong>DGCA Key Note:</strong><br>Normally, a blocked pitot in descent causes decreasing airspeed. However, the DGCA key for this specific volcanic ash question marks <strong>a) Increases steadily</strong>. Memorize this anomaly."
+            },
+            {
+                q: "Order of colour of ASI arcs is?",
+                options: ["a) White, green, yellow.", "b) White, green, red.", "c) Red, White, Yellow."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The standard progression of an ASI dial from slowest to fastest is: White Arc (Flap range), Green Arc (Normal range), Yellow Arc (Caution range)."
+            },
+            {
+                q: "What will be the effect if the drain hole and pitot tapping in a pitot probe are blocked, whilst the static source remains open?",
+                options: ["a) The ASI will respond to changes in pressure altitude only.", "b) The ASI will not respond.", "c) The ASI will under read at all speeds."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>With both the ram air inlet and the drain hole blocked, the pitot pressure is completely trapped. The ASI ceases to act as a speed indicator and instead reacts solely to changes in static pressure (altitude)."
+            },
+            {
+                q: "What do the upper and lower limits of the yellow arc on an ASI represent?",
+                options: ["a) VNE and VNO.", "b) VNO and VNE.", "c) VSO and VNE."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Lower Limit: VNO (Maximum Structural Cruising Speed). Upper Limit: VNE (Never Exceed Speed). This is the caution range."
+            },
+            {
+                q: "If the pitot source and drain become blocked by ice when in cruise flight, how will the ASI respond when descending?",
+                options: ["a) It will under read.", "b) It will over read.", "c) It will read zero in all conditions."],
+                correct: 2,
+                sol: "<strong>DGCA Key Note:</strong><br>Normally it would under-read as you descend (acting as an altimeter in reverse), but the DGCA key marks <strong>c) It will read zero</strong>. Memorize this."
+            },
+            {
+                q: "At mean sea level (MSL) in the ISA?",
+                options: ["a) CAS = TAS.", "b) IAS = TAS.", "c) IAS = EAS."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The ASI is calibrated to ISA Sea Level density. Therefore, if you are flying at exact MSL under exact ISA conditions, there is no density error. Assuming instrument errors are already corrected (CAS), CAS will exactly equal TAS."
+            },
+            {
+                q: "In an ASI system, what does the pitot probe measure?",
+                options: ["a) Total pressure.", "b) Dynamic pressure.", "c) Static pressure."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The open front of the pitot tube captures both the ambient atmospheric pressure and the pressure from forward movement. This combined pressure is called Total Pressure (Pt)."
+            },
+            {
+                q: "Upper and lower limits of the Green arc on an ASI indicate:",
+                options: ["a) Vs1 and Vno.", "b) Vso and Vne.", "c) Vs1 and Vfe."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The Green Arc represents the normal operating range. Lower Limit is Vs1 (Stall speed in a clean configuration). Upper Limit is Vno (Maximum structural cruising speed)."
+            },
+            {
+                q: "What will be the effect on the ASI if the pitot tube of an unpressurised aircraft is fractured and the pitot drain is blocked?",
+                options: ["a) It will over read.", "b) It will under read.", "c) It will give a constant reading."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>A fracture/leak in the pitot line allows high-pressure ram air to escape into the cabin before it reaches the instrument. The ASI will under-read."
+            },
+            {
+                q: "If the pitot pipe becomes partly blocked?",
+                options: ["a) The IAS reading will be too low when climbing.", "b) The IAS reading will be too low when descending.", "c) The IAS reading will be too low when descending and too high when climbing."],
+                correct: 0,
+                sol: "<strong>DGCA Key Note:</strong><br>A partial block causes lag. Normally this means over-reading in a climb. However, the DGCA key marks <strong>a) The IAS reading will be too low when climbing</strong>. Memorize this discrepancy."
+            },
+            {
+                q: "If the pitot pipe becomes partly blocked?",
+                options: ["a) The IAS will be too high when descending.", "b) The IAS will be too low when accelerating.", "c) The IAS will be too low at all times."],
+                correct: 0,
+                sol: "<strong>DGCA Key Note:</strong><br>While partial blocks cause lag during acceleration, the specific key for this variant marks <strong>a) The IAS will be too high when descending</strong>."
+            },
+            {
+                q: "If the static pipe becomes partly blocked?",
+                options: ["a) The IAS and ROC will be too low when climbing.", "b) The IAS and ROC will be too low when descending.", "c) The IAS and ROC will be too low at all times."],
+                correct: 2,
+                sol: "<strong>DGCA Key Note:</strong><br>Standard physics states a static block causes over-reading in descent. The DGCA key for this question marks <strong>c) The IAS and ROC will be too low at all times</strong>. Memorize this."
+            },
+            {
+                q: "If the static pipe becomes partly blocked?",
+                options: ["a) The IAS will be too high when descending at constant IAS.", "b) The IAS will be too high when accelerating at constant altitude.", "c) The IAS will be too low at all times."],
+                correct: 1,
+                sol: "<strong>DGCA Key Note:</strong><br>The key marks <strong>b) The IAS will be too high when accelerating at constant altitude</strong>."
+            },
+            {
+                q: "If the pitot pipe becomes partly blocked?",
+                options: ["a) The ASI will over read and the error will be greater when climbing at constant CAS than when climbing at constant TAS.", "b) The ASI will over read and the error will be greater when climbing at constant TAS than when climbing at constant CAS.", "c) The ASI will under read at all speeds."],
+                correct: 0,
+                sol: "<strong>DGCA Key Note:</strong><br>The key marks <strong>a) The ASI will over read and the error will be greater when climbing at constant CAS</strong>."
+            },
+            {
+                q: "What does the white arc on an ASI indicate?",
+                options: ["a) Vso at the lower end and Vfe at the upper end.", "b) Vs1 at the lower end and Vno at the upper end.", "c) Vso at the lower end and Vle at the upper end."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The White Arc is the Flap Operating Range. Lower Limit: Vso (Stall speed in landing configuration). Upper Limit: Vfe (Maximum flap extended speed)."
+            },
+            {
+                q: "If the pitot source becomes blocked while the static source remains open, an ASI will?",
+                options: ["a) Under read at all speeds.", "b) Over read at all speeds.", "c) Give an indication proportional to altitude."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>If the pitot is completely blocked, Total Pressure (Pt) is trapped. As the aircraft climbs or descends, only the Static Pressure (Ps) changes. The ASI will act like an altimeter."
+            },
+            {
+                q: "What is VLO?",
+                options: ["a) The maximum speed with landing gear out.", "b) The maximum speed for retracting or extending the landing gear.", "c) The minimum speed for flight with landing gear out."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>VLO stands for Maximum Landing Gear Operating Speed. It is the maximum safe speed at which the landing gear mechanism can be transitioning."
+            },
+            {
+                q: "What does the green arc on an ASI indicate?",
+                options: ["a) Vs1 at the lower end and Vno at the upper end.", "b) Vso at the lower end and Vfe at the upper end.", "c) Vs1 at the lower end and Vne at the upper end."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The Green Arc is the Normal Operating Range. Lower Limit is Vs1 (Stall speed in a clean configuration). Upper Limit is Vno (Maximum structural cruising speed)."
+            },
+            {
+                q: "Where on an ASI is Vfe indicated?",
+                options: ["a) The upper end of the white arc.", "b) The lower end of the white arc.", "c) The blue radial line."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Vfe (Maximum Flap Extended Speed) is visually marked as the top (upper limit) of the white arc."
+            },
+            {
+                q: "Where on an ASI is Vfo indicated?",
+                options: ["a) It is not specifically marked but will be less than Vfe.", "b) The lower end of the white arc.", "c) The upper end of the yellow arc."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Vfo (Maximum Flap Operating Speed) is the speed at which you can initially deploy the flaps. It is an operational limit found in the manual, not painted on the ASI."
+            },
+            {
+                q: "Where on an ASI is Vmo indicated?",
+                options: ["a) Upper end of green mark and lower end of yellow arc.", "b) Lower end of green arc and upper end of white arc.", "c) By a moving 'Barber Pole' pointer."],
+                correct: 0,
+                sol: "<strong>DGCA Key Note:</strong><br>While modern jets use a barber pole for Vmo, the DGCA key marks <strong>a) Upper end of green mark and lower end of yellow arc</strong>, treating Vmo synonymously with Vno in this specific question."
+            },
+            {
+                q: "Where on an ASI is Vno indicated?",
+                options: ["a) Upper end of green mark and lower end of yellow arc.", "b) Lower end of the yellow arc.", "c) The blue radial line."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Vno (Maximum Structural Cruising Speed) marks the end of the normal operating range (Green Arc) and the beginning of the caution range (Yellow Arc)."
+            },
+            {
+                q: "Where on a twin prop aircraft ASI is Vyse indicated?",
+                options: ["a) The upper end of the white arc.", "b) Lower end of green arc and upper end of white arc.", "c) The blue radial line."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Vyse is the Best Rate of Climb Speed with One Engine Inoperative (OEI). It is prominently marked on the ASI with a solid Blue Radial Line."
+            },
+            {
+                q: "Where on an ASI is Vne indicated?",
+                options: ["a) The red radial line at the upper end of the white arc.", "b) The red radial line at the upper end of the green arc.", "c) The red radial line at the upper end of the yellow arc."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Vne (Never Exceed Speed) is the absolute maximum structural speed of the aircraft. It marks the end of the caution range (Yellow Arc) and is indicated by a solid Red Line."
+            },
+            {
+                q: "Where on an ASI is Vle indicated?",
+                options: ["a) The upper end of the white arc.", "b) The lower end of the white arc.", "c) It is not specifically marked but will be less than Vfe."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Vle is the Maximum Landing Gear Extended Speed. It is an operational limit found in the manual, but it is not physically painted on the standard ASI."
+            },
+            {
+                q: "Where on an ASI is Vs with flaps up indicated?",
+                options: ["a) Lower end of white arc.", "b) Upper end of yellow arc.", "c) Lower end of green arc."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Vs (or Vs1) is the stall speed in a \"clean\" configuration (flaps up). This is marked as the bottom of the Green Arc."
+            },
+            {
+                q: "VFE is ............. and is indicated by the ........ on an ASI?",
+                options: ["a) Max speed for flap retraction / upper end of green arc.", "b) Max speed for flap down flight / upper end of white arc.", "c) Max speed for flaps up flight / lower end of white arc."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>VFE stands for Maximum Flap Extended Speed. It dictates the maximum speed you can fly with flaps down, and it defines the top of the White Arc."
+            },
+            {
+                q: "VNO is ............. and is indicated by the ........ on an ASI?",
+                options: ["a) Min speed for normal operations / Lower end of green arc.", "b) Max speed for normal operations / upper end of green arc.", "c) Min speed for night operations / lower end of white arc."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>VNO is the Maximum Structural Cruising Speed (the maximum speed for normal operations). It visually marks the upper limit of the green arc."
+            },
+            {
+                q: "VNE is ............. and is indicated by the ........ on an ASI?",
+                options: ["a) Minimum flight envelope speed / upper end of white arc.", "b) Maximum flight envelope speed / lower end of green arc.", "c) Never exceed speed / red radial line at the upper end of the yellow arc."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>VNE is the absolute Never Exceed Speed. It is boldly marked by the Red Radial Line at the very top of the yellow arc."
+            },
+            {
+                q: "The calibrated airspeed (CAS) is obtained by applying to the indicated airspeed (IAS)?",
+                options: ["a) compressibility and density correction.", "b) instrument and position/pressure error correction.", "c) An antenna and compressibility correction."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Indicated Airspeed (IAS) is raw data. The first step in correction is accounting for the mechanical flaws (Instrument Error) and the disrupted airflow around the static ports (Position Error) to get CAS."
+            },
+            {
+                q: "The velocity maximum operating (V.M.O) is a speed expressed in?",
+                options: ["a) True airspeed (TAS).", "b) Computed airspeed (COAS).", "c) Calibrated airspeed (CAS)."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>VMO defines the structural limits of the aircraft based on Dynamic Pressure. Since CAS is the closest standardized measurement to raw dynamic pressure, VMO limits are always expressed in CAS."
+            },
+            {
+                q: "The airspeed indicator of a twin-engined aircraft comprises different sectors and color marks. The blue line corresponds to the?",
+                options: ["a) Maximum speed in operations, or Vmo.", "b) Optimum climbing speed with one engine inoperative, or Vyse.", "c) Speed not to be exceeded, or Vne."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The Blue Radial Line marks Vyse, which is the Best Rate of Climb Speed with One Engine Inoperative (OEI)."
+            },
+            {
+                q: "An airplane is in steady descent. The auto-throttle maintains a constant Mach number. If the total temperature remains constant, the calibrated airspeed?",
+                options: ["a) Remains constant.", "b) Decreases if the static temperature is lower than the standard temperature, increases if above.", "c) Increases."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>In a descent, the Local Speed of Sound (LSS) increases because temperature generally increases. To maintain a constant Mach number (M = TAS / LSS), the True Airspeed (TAS) must also increase. A higher TAS and higher air density drastically increase dynamic pressure, causing CAS to increase."
+            },
+            {
+                q: "An aeroplane is in steady descent below the tropopause in the ISA. The auto-throttle maintains a constant calibrated airspeed. If the total temperature remains constant, the Mach number?",
+                options: ["a) Increases if the static temperature is lower than the standard temperature, decreases if higher.", "b) Decreases.", "c) Increases."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Maintaining a constant CAS in a descent (where density is increasing) means TAS must be decreasing. Meanwhile, temperature increases in descent, which increases the LSS. Mach = TAS / LSS. The numerator is dropping, and the denominator is growing, so Mach decreases."
+            },
+            {
+                q: "An aeroplane is in a steady climb. The auto-throttle maintains a constant Mach number. If the total temperature remains constant, the calibrated airspeed?",
+                options: ["a) Decreases if the static temperature is lower than the standard temperature, increases if higher.", "b) Decreases.", "c) Increases."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>During a climb, temperature drops, which lowers the LSS. To hold a constant Mach, the TAS must also decrease. A lower TAS combined with dropping air density means dynamic pressure drops significantly. Therefore, CAS decreases."
+            },
+            {
+                q: "How will the mach meter respond in a constant CAS climb if the static source becomes blocked?",
+                options: ["a) Increase.", "b) Decrease.", "c) Remain constant."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>A blocked static source traps the high Ps from the lower altitude inside the case. The Mach formula divides Dynamic Pressure by Static Pressure: (Pt - Ps) / Ps. Dividing by an artificially HIGH Static Pressure causes the Mach meter to decrease."
+            },
+            {
+                q: "How will the mach meter respond in a constant TAS climb if the static source becomes blocked?",
+                options: ["a) Increase.", "b) Decrease.", "c) Remain constant."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Just like the constant CAS scenario, a blocked static source in a climb traps a higher pressure inside the instrument. Dividing by an artificially high number forces the instrument's reading to decrease."
+            },
+            {
+                q: "How will the mach meter respond in a constant mach number climb if the static source becomes blocked?",
+                options: ["a) Increase.", "b) Decrease.", "c) Remain constant."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Even if the aircraft is physically flying a perfect constant Mach climb, the instrument is broken. It has trapped high static pressure from a lower altitude. Dividing by this incorrectly high static pressure guarantees the needle will decrease."
+            },
+            {
+                q: "What happens to mach meter indication in a constant TAS climb?",
+                options: ["a) Increases.", "b) Decreases.", "c) Remains constant."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Mach = TAS / LSS. As you climb, the ambient temperature drops, which causes the Local Speed of Sound (LSS) to decrease. You are dividing a constant TAS by a shrinking LSS. Therefore, your Mach number increases."
+            },
+            {
+                q: "What would happen if the static pipe became detached from the back of a mach meter in a pressurised aircraft at high altitude?",
+                options: ["a) Under read.", "b) Over read.", "c) No effect."],
+                correct: 0,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>If the pipe detaches, the instrument case floods with the pressurized cabin air. At high altitude, cabin pressure is much higher than ambient atmospheric pressure. Dividing by this massive cabin pressure will cause the instrument to severely under-read."
+            },
+            {
+                q: "A mach meter is made up of?",
+                options: ["a) An altimeter with a density capsule.", "b) An ASI with an altitude capsule.", "c) A VSI with a modified scale."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>A mechanical Mach meter mathematically combines Dynamic Pressure (speed) and Static Pressure (altitude). It literally contains an Airspeed Indicator capsule and an Altimeter (aneroid) capsule linked together."
+            },
+            {
+                q: "VMO is calculated based on?",
+                options: ["a) TAS.", "b) EAS.", "c) CAS."],
+                correct: 2,
+                sol: "<strong>DGCA Key Note:</strong><br>Earlier the key marked EAS, but in this duplicate question the DGCA key marks <strong>c) CAS</strong>. Always default to CAS for VMO unless forced otherwise."
+            },
+            {
+                q: "If the static source becomes blocked the mach meter will ........ as an aircraft climbs?",
+                options: ["a) Over indicate.", "b) Under indicate.", "c) Not indicate."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>A blocked static source in a climb traps high pressure from the lower altitude. The Mach meter divides by Static Pressure. Dividing by an artificially high number causes the Mach meter to under-indicate."
+            },
+            {
+                q: "If temperature decreases when flying at constant CAS at FL 200, the mach meter indication will ...... and the true mach number will.......?",
+                options: ["a) Increase | Increase.", "b) Decrease | Decrease.", "c) Not change | Increase."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br><strong>Instrument:</strong> The Mach meter calculates its reading using only pressure (q / Ps). Temperature does not enter the instrument, so the indication will not change.<br><strong>True Physics:</strong> A temperature drop lowers the LSS. Mach = TAS / LSS. If LSS drops, your True Mach Number increases."
+            },
+            {
+                q: "Mach meter indications?",
+                options: ["a) Are temperature related.", "b) Increase with temperature.", "c) Are independent of temperature."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>While actual True Mach is affected by temperature, the mechanical Mach meter inside the cockpit calculates Mach using purely pressure ratios (Dynamic / Static). Therefore, its mechanical indication is completely independent of temperature changes."
+            },
+            {
+                q: "What is actually measured by a mach meter?",
+                options: ["a) Pitot pressure.", "b) The ratio of (pitot pressure - static pressure) to static pressure.", "c) The ratio of static pressure to dynamic pressure."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>The mechanical heart of a Mach meter computes a specific mathematical ratio using its two capsules. It takes Dynamic Pressure (Pt - Ps) and divides it by Static Pressure (Ps)."
+            },
+            {
+                q: "If temperature increases by 5 degrees C during a constant mach number descent, what will happen to CAS?",
+                options: ["a) Increase by 5 Kts.", "b) Increase by 10 Kts.", "c) Remain constant."],
+                correct: 0,
+                sol: "<strong>DGCA Key Note:</strong><br>If temperature increases, LSS increases. To hold a constant Mach, TAS must increase. An increased TAS, combined with the increasing air density of a descent, means dynamic pressure grows. The DGCA standard key roughly translates this to <strong>a) Increase by 5 Kts</strong>."
+            },
+            {
+                q: "What does mach number represent?",
+                options: ["a) The CAS of an aircraft as a fraction of the local speed of sound.", "b) The local speed of sound as a fraction of the CAS of an aircraft.", "c) The TAS of an aircraft as a fraction of the local speed of sound."],
+                correct: 2,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>By exact aerodynamic definition, Mach Number is the ratio of an aircraft's True Airspeed (TAS) to the Local Speed of Sound (LSS) in the same atmospheric conditions. M = TAS / LSS."
+            },
+            {
+                q: "Turbulent flow around a pressure head will cause:",
+                options: ["a) an increase in the dynamic pressure.", "b) approximately 95% of the position error.", "c) density error."],
+                correct: 1,
+                sol: "<strong>Step-by-Step Resolution:</strong><br>Position error (or pressure error) is caused by the disturbed, turbulent airflow around the aircraft's skin altering the local pressure at the static ports and pitot head. This aerodynamic turbulence accounts for the vast majority (approximately 95%) of the overall position error."
+            }
+            
+        ];
+
+        let activeQuizData = [];
+        let currentQuizIndex = 0;
+        let quizAnswers = [];
+
+        function shuffleQuiz(dataArray) {
+            let shuffledData = JSON.parse(JSON.stringify(dataArray));
+            for (let i = shuffledData.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledData[i], shuffledData[j]] = [shuffledData[j], shuffledData[i]];
+            }
+            shuffledData.forEach(question => {
+                let correctAnswerText = question.options[question.correct];
+                for (let i = question.options.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [question.options[i], question.options[j]] = [question.options[j], question.options[i]];
+                }
+                question.correct = question.options.indexOf(correctAnswerText);
+            });
+            return shuffledData;
+        }
+
+        function startQuiz() {
+            if (quizData.length === 0) {
+                alert("The Theory Engine is currently empty. Please add your questions to the quizData array.");
+                return;
+            }
+            switchView('quiz-page');
+            activeQuizData = shuffleQuiz(quizData);
+            currentQuizIndex = 0;
+            quizAnswers = new Array(activeQuizData.length).fill(null);
+            renderQuiz();
+        }
+
+        function renderQuiz() {
+            if (activeQuizData.length === 0) return;
+            const qData = activeQuizData[currentQuizIndex];
+            
+            document.getElementById('quiz-counter').innerText = `Theory Q${currentQuizIndex + 1} of ${activeQuizData.length}`;
+            document.getElementById('quiz-progress').style.width = `${((currentQuizIndex + 1) / activeQuizData.length) * 100}%`;
+            document.getElementById('quiz-q-text').innerHTML = `<strong>Q${currentQuizIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = quizAnswers[currentQuizIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === quizAnswers[currentQuizIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectQuizOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            // Smart "Reveal Solution" Logic for Quiz Engine
+            const solArea = document.getElementById('quiz-sol-area');
+            const solBox = document.getElementById('quiz-sol-box');
+            const revealBtn = document.getElementById('quiz-reveal-btn');
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none'; // Keep hidden initially
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none'; // Invisible until answered
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+            
+            document.getElementById('quiz-prev-btn').disabled = currentQuizIndex === 0;
+            document.getElementById('quiz-next-btn').disabled = currentQuizIndex === activeQuizData.length - 1;
+        }
+
+        function selectQuizOption(selectedIndex) { quizAnswers[currentQuizIndex] = selectedIndex; renderQuiz(); }
+        function goPrevQuiz() { if (currentQuizIndex > 0) { currentQuizIndex--; renderQuiz(); } }
+        function goNextQuiz() { if (currentQuizIndex < activeQuizData.length - 1) { currentQuizIndex++; renderQuiz(); } }
+
+        // ==========================================
+        // PDF DATA ENGINE (Flashcard Style Mechanics)
+        // ==========================================
+        const pdfData = [
+            
+        {
+                q: "Considering the relationship between CAS and EAS:",
+                ans: "EAS is always lower than or equal to CAS",
+                sol: "<strong>Explanation:</strong><br>Compressibility causes IAS, and therefore CAS, to be artificially high. Since EAS is CAS corrected for compressibility (which is always a negative correction), EAS will always be equal to (at low speeds) or lower than CAS."
+            },
+            {
+                q: "CAS can be obtained from the following data:",
+                ans: "EAS and pressure altitude",
+                sol: "<strong>Explanation:</strong><br>Compressibility is directly related to pressure altitude and speed. Since EAS is simply CAS corrected for compressibility, you can work backwards from EAS and pressure altitude to find CAS."
+            },
+            {
+                q: "Given:<br>Pt = total pressure<br>Ps = static pressure<br>Pd = dynamic pressure<br><br>The airspeed indicator is fed by:",
+                ans: "Pd",
+                sol: "<strong>Explanation:</strong><br>Read carefully: The question asks what the Airspeed <em>Indicator</em> (the instrument itself) is fed by, not the pitot probe. The capsule inside the instrument physically measures Dynamic Pressure (Pd), which is Total minus Static (Pt - Ps)."
+            },
+            {
+                q: "True Air Speed (TAS) is:",
+                ans: "EQUIVALENT AIRSPEED (EAS) CORRECTED FOR DENSITY ERROR",
+                sol: "<strong>Explanation:</strong><br>The standard progression is: IAS &rarr; (Instrument/Position Error) &rarr; CAS &rarr; (Compressibility) &rarr; EAS &rarr; (Density) &rarr; TAS."
+            },
+            {
+                q: "In a standard atmosphere and at the sea level, the equivalent airspeed (EAS) is:",
+                ans: "equal to the true airspeed (TAS)",
+                sol: "<strong>Explanation:</strong><br>The only difference between EAS and TAS is the density correction. At exact International Standard Atmosphere (ISA) Mean Sea Level conditions, the air density is perfect (1.225 kg/m&sup3;), so no correction is needed. TAS = EAS."
+            },
+            {
+                q: "True Air Speed (TAS) is equal to Equivalent Air Speed (EAS) only if:",
+                ans: "P = 1013.25 hPa and OAT = 15&deg;C",
+                sol: "<strong>Explanation:</strong><br>These are the exact atmospheric values for ISA Mean Sea Level. At these exact conditions, density error is zero, meaning EAS perfectly equals TAS."
+            },
+            {
+                q: "TAS can be obtained from the following data:",
+                ans: "EAS and density altitude",
+                sol: "<strong>Explanation:</strong><br>Because TAS is simply EAS corrected for the ambient air density, knowing your EAS and your current Density Altitude gives you everything you need to calculate TAS."
+            },
+            {
+                q: "The pressure measured at the forward facing orifice of a pitot tube is the:",
+                ans: "total pressure",
+                sol: "<strong>Explanation:</strong><br>The front opening captures both the ambient static pressure of the atmosphere and the dynamic pressure of the aircraft's forward movement. Combined, this is Total Pressure."
+            },
+            {
+                q: "With a pitot probe blocked due to ice build up, the aircraft airspeed indicator will indicate in descent a:",
+                ans: "decreasing speed",
+                sol: "<strong>Explanation:</strong><br>A blocked pitot traps the total pressure. As you descend, the ambient static pressure entering the instrument case increases. The ASI subtracts this growing static pressure from the trapped pitot pressure, causing the needle to drop (decrease)."
+            },
+            {
+                q: "If the static source to an airspeed indicator (ASI) becomes blocked during a descent the instrument will:",
+                ans: "Over-Read",
+                sol: "<strong>Explanation:</strong><br>A static block traps the lower static pressure from your higher altitude. As you descend, you are subtracting an artificially low static pressure from your pitot pressure, resulting in an artificially high (over-read) airspeed."
+            },
+            {
+                q: "A leak in the pitot total pressure line of a non-pressurised aircraft to an airspeed indicator would cause it to:",
+                ans: "Under-Read",
+                sol: "<strong>Explanation:</strong><br>A leak allows the high-pressure ram air to bleed out into the cabin before it reaches the instrument capsule. With less total pressure reaching the ASI, it will under-read your actual speed."
+            },
+            {
+                q: "The maximum TAS is obtained at:",
+                ans: "the flight level at which simultaneously CAS = VMO and M = MMO",
+                sol: "<strong>Explanation:</strong><br>This specific intersection point in an aircraft's climb/descent profile represents the absolute maximum True Airspeed the airframe can achieve before violating either structural pressure limits (VMO) or compressibility limits (MMO)."
+            },
+            {
+                q: "The speed at which sound is transported through the air is dependant on:",
+                ans: "Temperature",
+                sol: "<strong>Explanation:</strong><br>The Local Speed of Sound (LSS) is determined exclusively by the absolute temperature of the air (LSS = 38.94 &times; &radic;T). Pressure and density cancel each other out."
+            },
+            {
+                q: "The airspeed indicator of a twin-engine aircraft comprises different sectors and colour marks. The blue line corresponds to the:",
+                ans: "optimum climbing speed with one engine inoperative, or Vy",
+                sol: "<strong>Explanation:</strong><br>The Blue Line marks Vyse (Best Rate of Climb Single Engine), which is critical for surviving an engine failure after takeoff."
+            },
+            {
+                q: "The compressibility correction to CAS to give EAS:<br>1) may be positive<br>2) is always negative<br>3) depends on Mach number only<br>4) depends on pressure altitude only<br><br>The combination regrouping all the correct statements is:",
+                ans: "2, 4",
+                sol: "<strong>Explanation:</strong><br>Compressibility makes the ASI over-read, meaning the correction to find EAS must <strong>always be negative</strong> (2). The amount of compressibility is dictated by the aircraft's speed and <strong>pressure altitude</strong> (4)."
+            },
+            {
+                q: "During a straight and uniform climb, the pilot maintains a constant calibrated airspeed (CAS):",
+                ans: "The Mach number increases and the true airspeed (TAS) increases",
+                sol: "<strong>Explanation:</strong><br>To maintain constant CAS as air density drops in a climb, TAS must increase. Meanwhile, the temperature is dropping, which lowers the Local Speed of Sound (LSS). A higher TAS divided by a lower LSS causes the Mach number to increase rapidly."
+            },
+            {
+                q: "Below the tropopause in standard conditions, when descending at a constant CAS:",
+                ans: "Mach number and the velocity of sound decrease",
+                sol: "<strong>Explanation:</strong><br>In a descent, temperature rises, which increases the velocity of sound (LSS). Because density is increasing, TAS must decrease to keep CAS constant. A lower TAS divided by a higher LSS means Mach decreases."
+            },
+            {
+                q: "When climbing at a constant CAS throughout an isothermal layer, the Mach number:",
+                ans: "increases",
+                sol: "<strong>Explanation:</strong><br>Isothermal means the temperature is constant, so LSS is constant. As you climb, density drops, so TAS must increase to hold CAS constant. Mach = TAS / LSS. Since TAS is growing and LSS is fixed, Mach increases."
+            },
+            {
+                q: "When climbing at a constant Mach number through an isothermal layer, the CAS:",
+                ans: "decreases",
+                sol: "<strong>Explanation:</strong><br>Isothermal means LSS is constant. To hold a constant Mach, TAS must also be kept constant. However, as you climb, air density drops. If you fly at the exact same TAS in thinner air, your dynamic pressure (CAS) will decrease."
+            },
+            {
+                q: "Today's airspeed indicators (calibrated to the Saint-Venant formula), indicate, in the absence of static (and instrumental) error:",
+                ans: "The conventional airspeed (CAS) in all case",
+                sol: "<strong>Explanation:</strong><br>Modern ASIs are calibrated to account for standard sea-level compressibility built into the dial, indicating Calibrated Airspeed (CAS) (sometimes referred to confusingly in older texts as Conventional Airspeed)."
+            },
+            {
+                q: "An airspeed indicator displays:",
+                ans: "CAS",
+                sol: "<strong>Explanation:</strong><br>Assuming perfect mechanics, the ASI displays Calibrated Airspeed (which is IAS corrected for instrument and position errors)."
+            },
+            {
+                q: "Calibrated air speed is:",
+                ans: "IAS plus instrument error correction",
+                sol: "<strong>Explanation:</strong><br>Note: While CAS technically requires both Instrument and Position error corrections, this specific DGCA question bank option omits position error in the text but is marked as the only valid choice."
+            },
+            {
+                q: "Equivalent Air Speed (EAS) is obtained from Calibrated Air Speed (CAS) by correcting for the following errors:",
+                ans: "compressibility",
+                sol: "<strong>Explanation:</strong><br>EAS is literally defined as CAS with the compressibility error subtracted out. It represents the true dynamic pressure acting on the airframe."
+            },
+            {
+                q: "The velocity of sound at the sea level in a standard atmosphere is:",
+                ans: "662 kts",
+                sol: "<strong>Explanation:</strong><br>Standard ISA Sea Level temperature is 15&deg;C (288 Kelvin).<br>Formula: 39 &times; &radic;288 = 661.7 (rounded to 662 kts)."
+            },
+            {
+                q: "The Mach number is the:",
+                ans: "true airspeed (TAS) divided by the local speed of sound",
+                sol: "<strong>Explanation:</strong><br>This is the fundamental aerodynamic definition of Mach."
+            },
+            {
+                q: "Considering the maximum operational Mach number (MMO) and the maximum operational speed (VMO), the captain of a pressurised aircraft begins his descent from a high flight level. In order to meet his scheduled time of arrival, he decides to use the maximum ground speed at any time of the descent. He will be limited:",
+                ans: "initially by the MMO, then by the VMO below a certain flight level",
+                sol: "<strong>Explanation:</strong><br>This is the classic \"Coffin Corner\" profile. At high altitudes, the speed of sound is lower, so you hit MMO first. As you descend into thicker, warmer air, the structural dynamic pressure limit (VMO) takes over."
+            },
+            {
+                q: "An airplane is cruising at FL 190. The auto-throttle maintains a constant CAS. If the total temperature decreases, the Mach number:",
+                ans: "remains constant",
+                sol: "<strong>Explanation:</strong><br>If temperature decreases, density increases. To maintain constant CAS, TAS must decrease. Simultaneously, the temp drop decreases the LSS. Because TAS and LSS decrease by the same proportion, the Mach ratio remains constant."
+            },
+            {
+                q: "The velocity maximum operating (VMO) is a speed expressed in:",
+                ans: "equivalent airspeed (EAS)",
+                sol: "<strong>DGCA Key Note:</strong><br>While standard literature often quotes VMO in CAS, this specific DGCA question marks EAS as the correct answer. Memorize this for the exam."
+            },
+            {
+                q: "All the anemometers are calibrated according to:",
+                ans: "St-Venant's formula which takes into account the air compressibility",
+                sol: "<strong>Explanation:</strong><br>Modern airspeed indicators (anemometers) utilize Saint-Venant's formula to account for the fact that air compresses when rammed into a pitot tube at high speeds."
+            },
+            {
+                q: "The limits of the green scale of an airspeed indicator are:",
+                ans: "VS1 for the lower limit and VNO for the upper limit",
+                sol: "<strong>Explanation:</strong><br>Green Arc = Normal Operating Range. VS1 is stall speed clean; VNO is maximum structural cruising speed."
+            },
+            {
+                q: "The limits of the white scale of an airspeed indicator are:",
+                ans: "VSO for the lower limit and VFE for the upper limit",
+                sol: "<strong>Explanation:</strong><br>White Arc = Flap Operating Range. VSO is stall speed dirty (flaps/gear down); VFE is max flap extended speed."
+            },
+            {
+                q: "The limits of the yellow scale of an airspeed indicator are:",
+                ans: "VNO for the lower limit and VNE for the upper limit",
+                sol: "<strong>Explanation:</strong><br>Yellow Arc = Caution Range. VNO is max normal cruise; VNE is absolute Never Exceed speed."
+            },
+            {
+                q: "The airspeed indicator of an aircraft is provided with a moving red and white hatched pointer. This pointer indicates the:",
+                ans: "maximum speed in VMO operation, versus altitude",
+                sol: "<strong>Explanation:</strong><br>The \"Barber Pole\" dynamically adjusts based on altitude to show the absolute maximum speed (VMO/MMO) the aircraft can safely fly at that exact moment."
+            },{
+                q: "The parameter that determines the relationship between EAS and TAS is:",
+                ans: "Density Altitude",
+                sol: "<strong>Explanation:</strong><br>Equivalent Airspeed (EAS) is corrected for density error to get True Airspeed (TAS). Therefore, the ambient density altitude is the sole parameter that determines the difference between the two."
+            },
+            {
+                q: "The total pressure probe (pitot tube) comprises a mast which moves its port to a distance from the aircraft skin in order:",
+                ans: "to locate it outside the boundary layer",
+                sol: "<strong>Explanation:</strong><br>The boundary layer is a thin layer of air right next to the aircraft's skin that is turbulent and slowed down by skin friction. The mast extends the pitot tube out into the undisturbed \"freestream\" air for an accurate pressure reading."
+            },
+            {
+                q: "What is VMO calculated from?",
+                ans: "EAS",
+                sol: "<strong>DGCA Key Note:</strong><br>While normally flown and referenced in CAS on the dial, the DGCA key frequently marks Equivalent Airspeed (EAS) as the correct answer because VMO is fundamentally a structural limit based on true dynamic pressure (which EAS purely represents)."
+            },
+            {
+                q: "With constant weight and configuration, an aircraft always takes off at the same:",
+                ans: "equivalent airspeed",
+                sol: "<strong>Explanation:</strong><br>Aerodynamic lift is generated by dynamic pressure. Equivalent Airspeed (EAS) is the most accurate representation of dynamic pressure. Therefore, to lift a specific weight, you always need the exact same EAS (dynamic pressure), regardless of how high or hot the airfield is."
+            },
+            {
+                q: "With a constant weight, irrespective of the airfield altitude, an aircraft always takes off at the same:",
+                ans: "equivalent airspeed",
+                sol: "<strong>Explanation:</strong><br>Just like the previous question, this is testing your knowledge that lift requires a specific dynamic pressure, which is EAS. (Note: IAS/CAS will change slightly at different altitudes due to compressibility changes, but EAS remains constant)."
+            },
+            {
+                q: "At constant weight, regardless of altitude, an aircraft always lifts off at a constant:",
+                ans: "CAS",
+                sol: "<strong>DGCA Trick Warning:</strong><br>This is a notoriously confusing DGCA question set. <strong>The Cheat Code:</strong> If the question explicitly includes the word <em>\"altitude\"</em> in the prompt (e.g., \"regardless of altitude\"), the DGCA key wants <strong>CAS</strong>. If it just says \"irrespective of airfield...\" or lists options without the altitude keyword prompt, go with EAS."
+            },
+            {
+                q: "VNO is defined as:",
+                ans: "maximum structural cruising speed",
+                sol: "<strong>Explanation:</strong><br>VNO marks the top of the green arc on the airspeed indicator. It is the maximum speed for normal operations; any speed above this (the yellow arc) should only be flown in smooth air."
+            },
+            {
+                q: "The machmeter consists of:",
+                ans: "an airspeed indicator with an altimeter capsule",
+                sol: "<strong>Explanation:</strong><br>To compute the Mach ratio (Dynamic Pressure / Static Pressure), a mechanical Mach meter literally houses a dynamic pressure capsule (airspeed) and a static pressure evacuated aneroid (altimeter) linked together."
+            },
+            {
+                q: "The reading of a Mach indicator is independent of:",
+                ans: "the outside temperature",
+                sol: "<strong>Explanation:</strong><br>While an aircraft's <em>True</em> Mach number is affected by temperature (because temp changes the local speed of sound), the mechanical instrument itself calculates Mach using purely pressure ratios. Therefore, its mechanical needle is blind to temperature."
+            },
+            {
+                q: "Machmeter readings are subject to:",
+                ans: "position / pressure error",
+                sol: "<strong>Explanation:</strong><br>Because the Mach meter requires an accurate Static Pressure (Ps) input for its denominator, it is highly vulnerable to position error (disrupted airflow around the static ports preventing an accurate ambient pressure reading)."
+            },
+            {
+                q: "Indication of Mach number is obtained from:",
+                ans: "Indicated speed and altitude using a speed indicator equipped with an altimeter type aneroid",
+                sol: "<strong>Explanation:</strong><br>This is just a wordy way of describing the internal mechanics. It uses indicated speed (dynamic pressure) and altitude (static pressure aneroid) to physically move the linkage and output Mach."
+            },
+            {
+                q: "The principle of the Mach indicator is based on the computation of the ratio:",
+                ans: "(Pt - Ps) / Ps",
+                sol: "<strong>Explanation:</strong><br>Pt - Ps is Dynamic Pressure. Ps is Static Pressure. The instrument calculates this exact formula to find the Mach number."
+            },
+            {
+                q: "Mach number is defined as:",
+                ans: "the ratio of dynamic pressure to static pressure",
+                sol: "<strong>Explanation:</strong><br>This is the plain English translation of the formula (Pt - Ps) / Ps used by the Mach meter."
+            },
+            {
+                q: "A machmeter measures the ratio of:",
+                ans: "(pitot pressure minus static pressure) to static pressure",
+                sol: "<strong>Explanation:</strong><br>Once again, testing the exact same formula. Pitot minus static gives you Dynamic pressure, which is then divided by Static pressure."
+            }
+            
+        ];
+
+        let currentPdfIndex = 0;
+
+        function startPdf() {
+            if (pdfData.length === 0) {
+                alert("The PDF Data Engine is currently empty for Chapter 12.");
+                return;
+            }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdfData.length === 0) return;
+            const qData = pdfData[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Question ${currentPdfIndex + 1} of ${pdfData.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdfData.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const ansBox = document.getElementById('pdf-ans-box');
+            ansBox.innerHTML = `<strong>Answer:</strong><br>${qData.ans}`;
+            ansBox.style.display = 'none';
+            
+            const solBox = document.getElementById('pdf-sol-box');
+            solBox.innerHTML = qData.sol;
+            solBox.style.display = 'none';
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdfData.length - 1;
+        }
+
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdfData.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        window.onload = function() {
+            document.getElementById('quiz-card-count').innerText = quizData.length + " Theory MCQs";
+            document.getElementById('pdf-card-count').innerText = pdfData.length + " PDF Questions";
+        };
+    </script>
+</body>
+</html>
