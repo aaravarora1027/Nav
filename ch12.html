@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CH 12 | Altimeter</title>
+    <title>CH 13 | VSI</title>
     <style>
         :root {
             --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
@@ -31,6 +32,10 @@
         
         .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
         .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
         .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
         .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
@@ -61,64 +66,69 @@
         <!-- MODULE SELECTION -->
         <div id="module-page" class="view-section" style="display: flex;">
             <div class="header-bar">
-                <h2>Chapter 12: Altimeter</h2>
+                <h2>Chapter 13: Vertical Speed Indicator (VSI)</h2>
                 <a href="index.html" class="nav-btn">Back to Hub</a>
             </div>
             <div class="module-grid">
-                <div class="module-card" onclick="startQuiz()">
+                <div class="module-card" onclick="startTheory()">
                     <h3>Theory Engine</h3>
-                    <p id="quiz-card-count">Loading MCQs...</p>
+                    <p id="theory-card-count">Loading MCQs...</p>
                 </div>
                 <div class="module-card" onclick="startPdf()">
                     <h3>PDF Data</h3>
-                    <p id="pdf-card-count">Loading PDF Questions...</p>
+                    <p id="pdf-card-count">Loading PDF MCQs...</p>
                 </div>
             </div>
         </div>
 
-        <!-- QUIZ ENGINE -->
-        <div id="quiz-page" class="view-section">
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
             <div class="quiz-top-header">
-                <h2 id="quiz-counter">Theory Question 1 of X</h2>
-                <button class="nav-btn" onclick="switchView('module-page')">Exit Quiz</button>
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
             </div>
-            <div class="progress-bar-container"><div class="progress-bar" id="quiz-progress"></div></div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
             
             <div class="content-area">
-                <div class="question-text" id="quiz-q-text">Loading question...</div>
-                <div class="mcq-options" id="quiz-options"></div>
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
 
-                <!-- Solution Button Container -->
-                <div id="quiz-sol-area" style="margin-top: 20px; display: none; text-align: center;">
-                    <button id="quiz-reveal-btn" class="btn" style="padding: 10px 20px; font-size: 1rem; border-color: #555;">Reveal Solution</button>
-                    <div id="quiz-sol-box" class="feedback-box feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="padding: 10px 20px; font-size: 1rem; border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-box feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
                 </div>
             </div>
             
             <div class="quiz-nav-controls">
-                <button id="quiz-prev-btn" class="quiz-nav-btn" onclick="goPrevQuiz()">Previous</button>
-                <button id="quiz-next-btn" class="quiz-nav-btn" onclick="goNextQuiz()">Next</button>
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
             </div>
         </div>
 
-        <!-- PDF DATA ENGINE (Flashcard Style) -->
+        <!-- PDF ENGINE (MCQ) -->
         <div id="pdf-page" class="view-section">
             <div class="quiz-top-header">
                 <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="pdf-right" class="score-right">0</span> | 
+                    Wrong: <span id="pdf-wrong" class="score-wrong">0</span>
+                </div>
                 <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
             </div>
             <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
             
-            <div class="content-area" style="max-height: none; padding: 20px;">
-                <div class="question-text" id="pdf-q-text">Loading problem...</div>
-                
-                <div style="margin-top: 25px; display: flex; gap: 15px;">
-                    <button class="btn" style="padding: 10px 20px; font-size: 1rem;" onclick="document.getElementById('pdf-ans-box').style.display='block'">Reveal Answer</button>
-                    <button class="btn" style="padding: 10px 20px; font-size: 1rem; border-color: #555;" onclick="document.getElementById('pdf-sol-box').style.display='block'">Reveal Solution</button>
-                </div>
+            <div class="content-area">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="mcq-options" id="pdf-options"></div>
 
-                <div id="pdf-ans-box" class="feedback-box feedback-correct" style="display:none;"></div>
-                <div id="pdf-sol-box" class="feedback-box feedback-solution" style="display:none;"></div>
+                <div id="pdf-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="pdf-reveal-btn" class="btn" style="padding: 10px 20px; font-size: 1rem; border-color: #555;">Reveal Solution</button>
+                    <div id="pdf-sol-box" class="feedback-box feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
             </div>
             
             <div class="quiz-nav-controls">
@@ -136,356 +146,302 @@
         }
 
         // ==========================================
-        // QUIZ DATA (Theory Engine - Multiple Choice)
+        // DATA ARRAYS
         // ==========================================
-        const quizData = [
+        const theory_mcqs = [
             {
-                q: "A servo altimeter has a quoted accuracy of 1 hPa at mean sea level. The accuracy in the standard atmosphere is:",
-                options: ["a) +- 50 ft at 10 000 ft and +- 100 ft at 40 000 ft", "b) +- 50 ft at 20 000 ft and +- 90 ft at the tropopause", "c) +- 27 ft at MSL and +- 50 ft at 10 000 ft"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>At Mean Sea Level (MSL), 1 hPa of pressure change equals roughly 27 feet of altitude change. As you climb, air density decreases, meaning you have to climb higher to see the same 1 hPa drop. At 10,000 ft, 1 hPa equates to approximately 50 feet."
-            },
-            {
-                q: "Position error is caused due to",
-                options: ["a) Ground effect", "b) Configuration of A/C", "c) All of the above"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Position error (or pressure error) is caused by disturbances in the static pressure field around the aircraft's skin. This airflow disturbance changes based on the aircraft's configuration (flaps/gear) and its proximity to the ground (ground effect)."
-            },
-            {
-                q: "Pressure error is maximum at:",
-                options: ["a) High speed and high altitude", "b) Low level and high speed", "c) As in and under ground effect"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Pressure (position) error is generally highest when airflow around the static ports is most violently disturbed or compressed, which occurs significantly when flying low in ground effect."
-            },
-            {
-                q: "A servo altimeter is ___________ than a conventional one because of ___________:",
-                options: ["a) More accurate, electrical servos", "b) More accurate, electrical pick off coils.", "c) Less accurate, electrical servos"],
+                q: "IVSI is more useful over normal VSI as its indications are:",
+                options: [
+                    "a) More reliable during steady climb/ descend",
+                    "b) More reliable when a/c initiates climb / descend",
+                    "c) Reliable at all times."
+                ],
                 correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Servo altimeters use an electromagnetic pick-off coil (like an E-and-I bar) rather than direct mechanical gears. This eliminates physical friction and lag, making them highly accurate."
+                sol: "<strong>Explanation:</strong> An Instantaneous VSI (IVSI) uses accelerometers (dashpots) to overcome the inherent time lag of a standard VSI, making it much more accurate and reliable exactly when a climb or descent is initiated."
             },
             {
-                q: "What will happen if an a/c has 2 altimeters, one of which is compensated for position error, whilst the other is not:",
-                options: ["a) One will over read at high air speed", "b) One will under read at high air speed", "c) One will under read close to the ground."],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Position error significantly alters the static pressure field in ground effect, generally causing the static port to sense higher pressure. Higher pressure causes an altimeter to under-read. The uncompensated altimeter will show this error close to the ground."
-            },
-            {
-                q: "The purpose of stand by static source is:",
-                options: ["a) To reduce position error", "b) To be used in emergency", "c) Both a and b"],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>The standby (alternate) static source is strictly an emergency backup to provide ambient pressure to the flight instruments in the event the primary external static ports become blocked by ice or debris."
-            },
-            {
-                q: "If static source of a/c is blocked in un pressurized a/c the correct action for pilot will be:",
-                options: ["a) Break glass of altimeter", "b) Break glass of VSI", "c) Use stand by static source."],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>If equipped, you must always select the standby static source first. Breaking the VSI glass to vent cabin pressure into the static lines is a last-resort emergency method only used if no standby source is available."
-            },
-            {
-                q: "White zebra crossing on altimeter appears when:",
-                options: ["a) a/c is below MSA (minimum safe altitude)", "b) a/c is above, 10,000'", "c) a/c is below 10,000"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>A white striped (zebra) sector is visible on older drum-pointer altimeters to indicate low altitude (typically below 10,000 feet). This visual warning prevents pilots from making critical altitude misreading errors (e.g., confusing 1,000 ft for 11,000 ft)."
-            },
-            {
-                q: "When flying from a sector of warm air into one of colder air, the altimeter will?",
-                options: ["a) Under read.", "b) Over read.", "c) Show the actual height above ground."],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>\"Hot to Cold, Don't be bold.\" In colder air, density is higher and pressure drops faster with height. The altimeter interprets this lower pressure as being higher up. Thus, it over-reads (Indicated > True)."
-            },
-            {
-                q: "Temp. error in altimeter is caused due to:",
-                options: ["a) Non standard MSL temp", "b) Non standard temp lapse rate", "c) Non standard temp at a/c altitude"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Temperature error occurs because the altimeter is mechanically calibrated for ISA standard temperature. Non-standard temperatures in the air mass at the aircraft's altitude alter the air density and the true pressure lapse rate."
-            },
-            {
-                q: "Bimetallic strip in altimeter is provided",
-                options: ["a) To compensate for temp. error", "b) To compensate for thermal expansion of mechanical linkages.", "c) To compensate for adiabatic rise in temperature of temp error."],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>The bimetallic strip inside the instrument casing compensates for the physical expansion and contraction of the instrument's own internal mechanical linkages due to cockpit temperature changes, NOT the aerodynamic temperature error of the outside air."
-            },
-            {
-                q: "Pressure error in an altimeter arises because:",
-                options: ["a) The true external dynamic pressure is not accurately transmitted to the instrument", "b) The true external static pressure is not accurately transmitted to the instrument", "c) The true external kinetic pressure is not accurately transmitted to the instrument"],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Pressure error (position error) is caused by turbulent airflow over the aircraft's skin disrupting the static port, preventing it from sensing the true undisturbed ambient (static) atmospheric pressure."
-            },
-            {
-                q: "In a non-pressurized aircraft, if one or several static pressure ports are damaged, there is an ultimate emergency means for restoring a practically correct pressure intake:",
-                options: ["a) breaking the rate-of-climb indicator glass window", "b) Slightly opening a window to restore the ambient pressure in the cabin", "c) calculating the ambient static pressure, allowing for the altitude and QNH adjusting the instruments"],
+                q: "A/C fitted with IVSI will have",
+                options: [
+                    "a) Climbing indications during turn",
+                    "b) Descend indications during turn",
+                    "c) Will show correct during turns."
+                ],
                 correct: 0,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>In unpressurized aircraft without an alternate static source, breaking the glass of the VSI (Rate of Climb Indicator) vents the static line to the cabin pressure, which is roughly equal to ambient outside static pressure."
+                sol: "<strong>Explanation:</strong> A known drawback of the IVSI is that during turns, centrifugal force pulls the piston out, causing the capsule to contract and falsely show a climbing indication."
             },
             {
-                q: "The pressure altitude is the altitude corresponding:",
-                options: ["a) in ambiant atmosphere, to the reference pressure Ps", "b) in standard atmosphere, to the reference pressure Ps", "c) in standard atmosphere, to the pressure Ps prevailing at this point"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Pressure altitude is defined as the vertical distance (height) in the theoretical International Standard Atmosphere (ISA) that corresponds to the ambient static pressure (Ps) currently being measured by the aircraft."
-            },
-            {
-                q: "The altimeter consists of several aneroid capsules located in a sealed casing. The pressure in the aneroid capsule (i) and casing (ii) are respectively:",
-                options: ["a) (i) static pressure at time t (ii) static pressure at time t-t", "b) (i) vacuum (or a very low pressure) (ii) static pressure", "c) (i) static pressure (ii) total pressure"],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>An altimeter uses an evacuated (vacuum) aneroid capsule to provide a fixed baseline reference. The airtight casing surrounding the capsule is fed with the ambient static pressure, allowing the capsule to crush or expand as altitude changes."
-            },
-            {
-                q: "Altimeter gives height of aircraft with Respect To :",
-                options: ["a) M.S.L.", "b) A.G.L.", "c) Set Datum"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>An altimeter is simply an absolute pressure gauge. It gives your height relative to whatever arbitrary pressure datum (QNH for MSL, QFE for AGL, QNE for Flight Levels) the pilot manually dials into the sub-scale."
-            },
-            {
-                q: "We are maintaining a constant flight level. That means:",
-                options: ["a) the outside air pressure is constant if the temperature remains constant.", "b) the outside air pressure is constant.", "c) the altitude is constant when the sea-level pressure is constant."],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>A \"Flight Level\" is an isobaric surface (a surface of constant atmospheric pressure) based on 1013.25 hPa. Therefore, flying a constant FL means flying at a constant outside air pressure, regardless of what the temperature is doing."
-            },
-            {
-                q: "The altitude indicated on board an aircraft flying in an atmosphere where all atmosphere layers below the aircraft are warm is:",
-                options: ["a) the same as the real altitude", "b) Lower than the real altitude", "c) equal to the standard altitude"],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>\"High to Low, Look out below.\" Warm air is less dense, so pressure drops slower as you climb. Because the pressure is higher than standard for that true altitude, the altimeter thinks it is lower down. Therefore, the indicated altitude is lower than your real, true altitude. <em>(Note: Text adjusted slightly from the blurry image to match the correct DGCA 'b' physics)</em>."
-            },
-            {
-                q: "In case of accidental closing of an aircraft's left static pressure port (rain, birds), the altimeter:",
-                options: ["a) Over reads the altitude in case of a sideslip to the left and displays the correct information during symmetric flight", "b) keeps on providing reliable reading in all situations", "c) Under reads the altitude"],
+                q: "Compared to the VSI what errors are eliminated by the IVSI?",
+                options: [
+                    "a) lag",
+                    "b) temperature",
+                    "c) turning"
+                ],
                 correct: 0,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>In symmetric flight, the open right port provides correct pressure. In a sideslip to the left, the relative wind hits the left side, putting the right port on the leeward (shielded) side. The leeward side experiences lower pressure. Lower pressure causes the altimeter to over-read."
+                sol: "<strong>Explanation:</strong> The primary purpose of the Instantaneous Vertical Speed Indicator (IVSI) is to eliminate the instrument and pressure lag inherent in a standard VSI."
             },
             {
-                q: "The altimeter is fed by:",
-                options: ["a) differential pressure", "b) dynamic pressure", "c) static pressure"],
+                q: "The response time of a vertical speed detector may be increased by adding a:",
+                options: [
+                    "a) second calibrated port",
+                    "b) correction based on an accelometer sensor",
+                    "c) bimetallic strip"
+                ],
+                correct: 1,
+                sol: "<strong>Explanation:</strong> Adding an accelerometer sensor (dashpot assembly) \"increases\" the responsiveness (decreases the lag time), creating an IVSI."
+            },
+            {
+                q: "The vertical speed indicator of an aircraft flying at a true airspeed of 100kt, in a descent with a slope of 3 degrees, indicates:",
+                options: [
+                    "a) -300ft/min",
+                    "b) -250ft/min",
+                    "c) -500ft/min"
+                ],
                 correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Unlike the Airspeed Indicator, the altimeter is connected exclusively to the static system to measure ambient atmospheric pressure."
+                sol: "<strong>Explanation:</strong> Using the 1-in-60 rule of thumb for a 3° glide slope: Rate of Descent (ROD) = Groundspeed × 5. Assuming zero wind, GS is 100kt. 100 × 5 = 500 ft/min. Since it's a descent, it is -500 ft/min."
             },
             {
-                q: "The advantage of sensitive altimeter over service altimeter is.",
-                options: ["a) It does not form lag error.", "b) Instrument error is really eliminated.", "c) It can be used up to higher altitude"],
+                q: "What does a vertical speed indicator actually measure?",
+                options: [
+                    "a) The rate of temperature change.",
+                    "b) The rate of temperature and altitude change.",
+                    "c) The rate of pressure change."
+                ],
                 correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Sensitive altimeters utilize multiple, highly refined aneroid capsules that allow them to accurately measure a much wider range of minute pressure changes, making them suitable for high altitude operations."
+                sol: "<strong>Explanation:</strong> A VSI is fundamentally a rate-of-pressure-change instrument. It measures how quickly the static pressure is changing and calibrates that into a rate of climb or descent."
             },
             {
-                q: "The error in altimeter readings caused by the variation of the static pressure near the source is known as:",
-                options: ["a) position pressure error", "b) barometric error", "c) hysteresis effect"],
+                q: "The vertical speed indicator VSI is fed by:",
+                options: [
+                    "a) differential pressure.",
+                    "b) static pressure.",
+                    "c) dynamic pressure."
+                ],
+                correct: 1,
+                sol: "<strong>Explanation:</strong> The VSI is connected exclusively to the aircraft's static pressure system."
+            },
+            {
+                q: "If the static vent becomes blocked during climb:",
+                options: [
+                    "a) the VSI will indicate an increasing rate of climb.",
+                    "b) the VSI will indicate a decreasing rate of climb.",
+                    "c) the VSI will return to zero.."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> If the static vent blocks, the pressure inside the instrument can no longer change. The pressure trapped in the casing will equalize with the pressure in the capsule via the metering leak, causing the needle to return to zero."
+            },
+            {
+                q: "Entering ground effect is likely to?",
+                options: [
+                    "a) Decrease static pressure but increase pitot pressure.",
+                    "b) Decrease pitot pressure but increase static pressure.",
+                    "c) Increase position errors."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> Ground effect alters the aerodynamic airflow around the airframe, which disrupts the local pressure at the static ports and increases position (pressure) error."
+            },
+            {
+                q: "If metered orifice in VSI becomes partly blocked, VSI indication will be:",
+                options: [
+                    "a) Too high when climbing",
+                    "b) Too low when descending",
+                    "c) Too high when climbing / descending"
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> A partial blockage of the metering leak slows down the equalization of pressure between the casing and the capsule. This creates a larger-than-normal pressure differential, causing the instrument to over-read (indicate too high) in both climbs and descents."
+            },
+            {
+                q: "If the casing of VSI in a pressurized a/c develops a leak, VSI indications will be",
+                options: [
+                    "a) Too low when climbing or descending",
+                    "b) Too high when climbing or descending",
+                    "c) Too high when climbing and too low when descending"
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> In a pressurized aircraft, cabin pressure is higher than external static pressure. A casing leak forces this extra pressure into the static chamber, causing the capsule to contract. This falsely indicates a high rate of climb, and conversely, will make a descent reading too low."
+            },
+            {
+                q: "If casing of VSI in an unpressurized a/c develops a leak.",
+                options: [
+                    "a) It will over read",
+                    "b) It will under read",
+                    "c) It will read zero."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> In an unpressurized aircraft, cabin pressure is essentially equal to external static pressure. If the case leaks, the pressure inside the capsule and case will quickly equalize with cabin pressure, resulting in a zero reading."
+            },
+            {
+                q: "The vertical speed indicator indications may be in error for some seconds after starting or finishing a climb or descent. The error is a result of:",
+                options: [
+                    "a) a combination of time lag and instrument error.",
+                    "b) a combination of time lag and manoeuvre induced errors.",
+                    "c) a combination of position error and manoeuvre induced errors."
+                ],
+                correct: 1,
+                sol: "<strong>Explanation:</strong> The initial error is caused by instrument time lag (waiting for pressure to bleed through the choke) combined with maneuver-induced errors (pitch changes disrupting airflow over the static ports)."
+            },
+            {
+                q: "If the pitot pipe becomes partly blocked?",
+                options: [
+                    "a) The VSI indication will be too low when climbing.",
+                    "b) The VSI will be too low when descending.",
+                    "c) The VSI will not be affected."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> The VSI is connected solely to the static pressure system. Blockages in the pitot tube (dynamic pressure) have no effect on the VSI."
+            },
+            {
+                q: "If the static pipe becomes partly blocked?",
+                options: [
+                    "a) The VSI indication will be too high when descending.",
+                    "b) The VSI indication will be too high when accelerating.",
+                    "c) The VSI indication will be too low when climbing or descending."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> A partial block in the static line restricts the flow of changing atmospheric pressure to the instrument, reducing the pressure differential and causing it to under-read (too low) during any altitude change."
+            },
+            {
+                q: "During taxing, VSI shows - 100'. Pilot should",
+                options: [
+                    "a) Continue with flight if engineer is on board",
+                    "b) Taxi back and VSI should be repaired",
+                    "c) Continue with flight with new reference."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> A minor error on the ground can often be corrected with the adjusting screw on the front of the instrument, or the pilot can simply accept the -100' indication as the new zero reference for the flight."
+            },
+            {
+                q: "VSI lag is reduced by?",
+                options: [
+                    "a) Two dashpots responding to acceleration.",
+                    "b) Two return springs.",
+                    "c) Bi-metallic strips."
+                ],
                 correct: 0,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Disruptions to the local static pressure field around the aircraft's skin (due to airflow, flaps, or gear) cause position error, also formally called pressure error."
+                sol: "<strong>Explanation:</strong> The Instantaneous VSI (IVSI) utilizes two accelerometer dashpots that sense vertical acceleration to generate an immediate pressure change, overcoming standard instrument lag."
             },
             {
-                q: "If the static source of an altimeter becomes blocked during a descent the instrument will:",
-                options: ["a) under-read", "b) gradually indicate zero", "c) continue to display the reading at which the blockage occurred"],
+                q: "The correct action to be taken when the static vent blocks on an unpressurised aircraft is to?",
+                options: [
+                    "a) Break the VSI glass.",
+                    "b) Use the standby static source.",
+                    "c) Calculate ROC using mathematically."
+                ],
+                correct: 1,
+                sol: "<strong>Explanation:</strong> The primary and correct action for a blocked static vent is to switch to the alternate/standby static source. Breaking the VSI glass is only an emergency last resort if no standby source is available."
+            },
+            {
+                q: "A VSI?",
+                options: [
+                    "a) Produces an output proportional to ambient pressure.",
+                    "b) Measures the difference between total pressure and static pressure.",
+                    "c) Measures the difference between the pressure inside and outside a capsule."
+                ],
                 correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>The altimeter relies entirely on changing static pressure. If blocked, the pressure inside the instrument case is completely trapped, and the altimeter will physically freeze at the altitude where the blockage happened."
+                sol: "<strong>Explanation:</strong> The VSI works by measuring the pressure differential between the instantaneous static pressure inside the capsule and the delayed static pressure trapped in the outer casing."
             },
             {
-                q: "The primary factor which makes the servo-assisted altimeter more accurate than the simple pressure altimeter is the use of:",
-                options: ["a) an induction pick-off device", "b) more effective temperature compensating leaf springs", "c) combination of counters/pointers"],
+                q: "A VSI indicates increasing ROD by?",
+                options: [
+                    "a) VSI needle moving downwards.",
+                    "b) VSI needle moving upwards.",
+                    "c) VSI needle stationary."
+                ],
                 correct: 0,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>An induction pick-off device (like an E-and-I bar) removes the mechanical friction and linkage lag present in traditional aneroid altimeters, massively improving sensitivity and accuracy."
-            },
-            {
-                q: "At sea level, on a typical servo altimeter, the tolerance in feet from indicated must not exceed:",
-                options: ["a) +/- 30ft", "b) +/- 75ft", "c) +/- 60ft"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>For a standard IFR-certified servo altimeter, the allowed mechanical tolerance (instrument error) on the ground at sea level is strictly limited to +/- 60 feet."
-            },
-            {
-                q: "An aircraft is flying straight and level, over a warm air mass. The altimeter reading will be:",
-                options: ["a) Greater than the real height", "b) less than the real height", "c) correct"],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>\"Hot to Cold, Don't be bold.\" In a warm air mass, pressure drops more slowly with altitude. Because the pressure is higher than standard, the altimeter thinks it is at a lower altitude. Therefore, the indicated reading will be LESS than the real true height."
-            },
-            {
-                q: "When flying from a sector of warm air into one of colder air, the altimeter will:",
-                options: ["a) be just as correct as before", "b) Under read", "c) Over read"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>In colder air, density is higher and pressure drops faster with altitude. The altimeter interprets this abnormally low pressure as being higher up. Thus, it over-reads (Indicated > True)."
-            },
-            {
-                q: "The hysteresis error of an altimeter varies substantially with the:",
-                options: ["a) Aircraft altitude", "b) time passed at a given altitude", "c) mach number of the aircraft"],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Hysteresis is a material memory effect in the aneroid capsule metal. If an aircraft stays at a high altitude for a long time, the capsule gets \"used\" to that shape and is slow to recover during descent. The error heavily depends on the time passed at that altitude."
-            },
-            {
-                q: "A pilot is given a QNH of 1003 hPa while coming in to land. He forgets to re-set his altimeter. The error experienced will be.",
-                options: ["a) Pilot Error", "b) Pressure Error", "c) Barometric error"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Failing to set the correct sub-scale pressure setting (QNH, QFE, or Standard) in the Kollsman window directly results in Barometric Error."
-            },
-            {
-                q: "For an altimeter, pressure fluctuations at the static vent cause:",
-                options: ["a) Barometric error", "b) Position error", "c) Hysteresis error"],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Any fluctuations or inaccuracies at the static vent caused by turbulent airflow over the aircraft's skin are classified as Position Error."
-            },
-            {
-                q: "An aircraft is passing 6,500 ft in a descent when the static line becomes blocked. The altimeter then reads:",
-                options: ["a) less than 6,500 ft", "b) zero", "c) 6,500 ft"],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>A static blockage permanently traps the ambient pressure inside the instrument at that exact moment. It will freeze and continue to read the altitude at which it was blocked (6,500 ft) regardless of further descent."
-            },
-            {
-                q: "The purpose of the vibrating device of an altimeter is to?",
-                options: ["a) Allow damping of the measurement in the unit.", "b) Reduce the hysteresis effect.", "c) Reduce the effect of friction in the linkages."],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>A vibrator (or tapper) gently shakes the internal mechanical linkages. This overcomes static friction (stiction), allowing the pointer to move smoothly and respond to small pressure changes."
-            },
-            {
-                q: "Lag error in servo assisted altimeter is virtually removed by:",
-                options: ["a) Electromechanical pick off device.", "b) Rocking mechanism.", "c) Using more than one capsule in series."],
-                correct: 0,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Traditional mechanical gears have friction that causes lag. Servo altimeters use an electromechanical pick-off (like an E-and-I bar) which has no physical friction, virtually eliminating lag error."
-            },
-            {
-                q: "Transducer in servo assisted altimeter is used to",
-                options: ["a) Increase sensitivity of altimeter", "b) to remove lag error.", "c) All the above"],
-                correct: 1,
-                sol: "<strong>DGCA Key Note:</strong><br>While transducers (pick-offs) effectively accomplish both, the specific DGCA answer key for this question marks <strong>b) to remove lag error</strong> as the primary correct answer."
-            },
-            {
-                q: "In an aircraft a static source is so placed that it is having subjected to dynamic pressure. The error caused of any will be known as:",
-                options: ["a) There will be no error", "b) Position Error", "c) Dynamic Pressure Error"],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>If the static port inadvertently captures dynamic pressure (ram air) due to poor placement or airflow disruption over the skin, it fails to read true static pressure. This is the definition of Position Error."
-            },
-            {
-                q: "The principle of operation of a servo-assisted pressure altimeter is that:",
-                options: ["a) static pressure is used in the same way as a simple altimeter except that several capsules are used", "b) static pressure changes are converted via an E- and I-bar transducer into electrical signal which is used, via a follow-up system, to move a digital counter and pointer system"],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Instead of a direct mechanical gear linkage, the expansion of the capsules moves an I-bar within an E-bar (an inductive transducer), creating an electrical signal that drives a servo motor to display the altitude."
-            },
-            {
-                q: "When flying from low pressure to high pressure, the barometric error of an altimeter will cause the instrument to:",
-                options: ["a) indicate a higher altitude than the correct one.", "b) Under read the true altitude of the aircraft.", "c) indicate the true altitude."],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>\"High to Low, Look out below\" means flying into low pressure makes you Over-read. Conversely, flying from Low to High pressure means your altimeter senses higher pressure and thinks it is lower. Therefore, it Under-reads (True > Indicated)."
-            },
-            {
-                q: "What will happen to the altimeter reading in a right sideslip, if an aircraft has a static vent at each side of the fuselage, but the left one is blocked?",
-                options: ["a) Over read.", "b) Under read.", "c) No change."],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>In a right sideslip, the wind hits the right side, creating higher localized dynamic pressure on the right port. Since the left port (which would normally balance it with low leeward pressure) is blocked, the system senses higher pressure. Higher pressure = lower indicated altitude (Under read)."
-            },
-            {
-                q: "A barometric altimeter comprises of?",
-                options: ["a) An aneroid capsule sensing static pressure.", "b) An aneroid capsule sensing pitot pressure.", "c) A differential capsule sensing pitot and static pressures."],
-                correct: 0,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>An altimeter strictly measures ambient atmospheric pressure using a sealed, evacuated aneroid capsule that expands and contracts as static pressure changes."
-            },
-            {
-                q: "What will happen to the altimeter reading in a right sideslip, if an aircraft has a static vent at each side of the fuselage, but the right one is blocked?",
-                options: ["a) Over read.", "b) Under read.", "c) No change."],
-                correct: 0,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>In a right sideslip, the left side is shielded from the wind (leeward side), experiencing lower pressure. With the right port blocked, the system only senses this artificially low pressure. Lower pressure = higher indicated altitude (Over read)."
-            },
-            {
-                q: "The altimeter of an aircraft with a static pressure source on each side of the fuselage will if one becomes blocked ?",
-                options: ["a) Over read when side slipping.", "b) Over read when side slipping towards the blocked source.", "c) Over read when side slipping towards the clear source."],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>If you slip towards the blocked source, the working clear source is on the leeward (downwind) side. The leeward side experiences lower pressure. Lower sensed pressure causes the altimeter to over-read."
-            },
-            {
-                q: "A servo altimeter is .... it employs an electrical pick-off?",
-                options: ["a) More accurate because...", "b) Less accurate because...", "c) Less reliable because..."],
-                correct: 0,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>The electrical pick-off (transducer) eliminates mechanical friction and lag inherent in traditional gears, making the servo altimeter much more accurate."
-            },
-            {
-                q: "What will happen to the altimeter reading if an aircraft flying at a fixed heading meets a colder air mass?",
-                options: ["a) Read less than true altitude.", "b) Read more than true altitude.", "c) Read zero."],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>\"Hot to Cold, Don't be bold.\" Colder air is denser, so pressure drops faster with height. The altimeter senses a lower pressure and thinks it is higher than it actually is (Indicated > True), meaning it reads more than true altitude."
-            },
-            {
-                q: "From where does the ADC obtain altitude data?",
-                options: ["a) Radio Altimeter.", "b) OAT sources.", "c) Barometric altitude source."],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>The Air Data Computer (ADC) calculates altitude using ambient static pressure, which it obtains directly from the barometric (static) altitude source."
-            },
-            {
-                q: "If icing or debris cause pressure disturbances at the static source, the effect will be?",
-                options: ["a) Increased compressibility error.", "b) Increased instrument error.", "c) Increased position error."],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>Position error (or pressure error) is defined as the inability of the static port to sense true undisturbed atmospheric pressure. Debris or ice disrupting the airflow creates this exact error."
-            },
-            {
-                q: "In a barometric altimeter............. Is fed into the capsule and ........... Is fed into the case?",
-                options: ["a) Static pressure ... dynamic pressure.", "b) Vacuum ... static pressure.", "c) Dynamic pressure ... vacuum."],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>A standard altimeter uses an evacuated aneroid capsule (a vacuum inside it to act as a fixed reference). The ambient Static Pressure is fed into the airtight casing surrounding the capsule."
-            },
-            {
-                q: "If the static pressure source in an un-pressurized aircraft became blocked the altimeter would.............. but might be rectified by..............?",
-                options: ["a) Read zero ... break the altimeter glass.", "b) Read zero ... open the windows.", "c) Freeze ... break the VSI glass."],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>A blocked static source traps pressure, causing the altimeter to freeze in place. In an un-pressurized aircraft, breaking the glass of the Vertical Speed Indicator (VSI) allows cabin pressure to enter the static system as a rough backup source."
-            },
-            {
-                q: "If the pitot source becomes blocked the barometric altimeter will?",
-                options: ["a) Freeze.", "b) Read zero.", "c) Be unaffected."],
-                correct: 2,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>The altimeter is connected exclusively to the static pressure system. It does not use pitot (total) pressure, so a pitot blockage has absolutely no effect on it."
-            },
-            {
-                q: "If the static vent becomes partly blocked in a descent the indications will?",
-                options: ["a) Be too high when descending but correct when at constant altitude.", "b) Be too high when descending but correct when at constant height.", "c) Be too low when descending but correct when at constant altitude."],
-                correct: 0,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>A partial block causes lag. In a descent, ambient pressure is increasing. The lag means the pressure inside the case is lower than it should be. The altimeter interprets this lower pressure as being too high. When leveled off, the pressure equalizes and reads correctly."
-            },
-            {
-                q: "A vibrator is sometimes fitted in an altimeter to?",
-                options: ["a) Overcome gauge parallax error.", "b) Reduce instrument errors.", "c) Reduce sensing errors."],
-                correct: 1,
-                sol: "<strong>Step-by-Step Resolution:</strong><br>A vibrator gently taps the mechanism to overcome static friction (stiction) in the mechanical linkages, which is categorized as a form of mechanical instrument error."
+                sol: "<strong>Explanation:</strong> Rate of Descent (ROD) is indicated on the lower half of the dial, so the needle moves downwards from the zero position to indicate an increasing descent rate."
             }
         ];
 
-        let activeQuizData = [];
-        let currentQuizIndex = 0;
-        let quizAnswers = [];
+        const pdf_mcqs = [
+            // Ready for PDF questions when uploaded
+            {
+        q: "What specific pressure differential does a Vertical Speed Indicator (VSI) utilize to provide readings?",
+        options: [
+            "a) Dynamic pressure compared to static pressure",
+            "b) Total pressure compared to static pressure",
+            "c) Current total pressure compared to historical total pressure",
+            "d) Current static pressure compared to historical static pressure"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> The VSI calculates vertical speed by comparing the instantaneous static pressure inside its sensing capsule against the delayed, historical static pressure trapped within the instrument casing."
+    },
+    {
+        q: "Which type of pressure's rate of change forms the foundational operating principle of a VSI?",
+        options: [
+            "a) Kinetic pressure",
+            "b) Dynamic pressure",
+            "c) Total pressure",
+            "d) Static pressure"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> The instrument relies exclusively on inputs from the aircraft's static pressure system to measure altitude changes over time."
+    },
+    {
+        q: "How can the inherent lag or response time in a vertical speed indicating system be improved?",
+        options: [
+            "a) By installing a return spring",
+            "b) By utilizing a bimetallic strip",
+            "c) By integrating an accelerometer sensor correction",
+            "d) By adding a secondary calibrated static port"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Incorporating accelerometer sensors (often referred to as dashpots) compensates for normal pressure lag, effectively creating an Instantaneous VSI (IVSI)."
+    },
+    {
+        q: "Assuming a true airspeed of 100 knots, what will the VSI indicate during a 3-degree glide slope descent?",
+        options: [
+            "a) -150 feet/min",
+            "b) -250 feet/min",
+            "c) -300 feet/min",
+            "d) -500 feet/min"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Using the standard rule of thumb for a 3-degree glidepath, multiplying the groundspeed (assuming 100 kt TAS equals GS in nil wind) by 5 yields a 500 feet per minute descent rate."
+    },
+    {
+        q: "What indication will the VSI display if the static ports become entirely obstructed by ice while climbing?",
+        options: [
+            "a) An increasing rate of climb",
+            "b) A descent reading",
+            "c) Zero",
+            "d) Maximum scale deflection"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Once the static source is fully blocked, the internal pressures will equalize through the instrument's internal metering leak. Without a changing external pressure differential, the needle will return to the zero position."
+    }
+        ];
 
-        function shuffleQuiz(dataArray) {
-            let shuffledData = JSON.parse(JSON.stringify(dataArray));
-            for (let i = shuffledData.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffledData[i], shuffledData[j]] = [shuffledData[j], shuffledData[i]];
-            }
-            shuffledData.forEach(question => {
-                let correctAnswerText = question.options[question.correct];
-                for (let i = question.options.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [question.options[i], question.options[j]] = [question.options[j], question.options[i]];
-                }
-                question.correct = question.options.indexOf(correctAnswerText);
-            });
-            return shuffledData;
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
         }
 
-        function startQuiz() {
-            if (quizData.length === 0) {
-                alert("The Theory Engine is currently empty. Please add your questions to the quizData array.");
-                return;
-            }
-            switchView('quiz-page');
-            activeQuizData = shuffleQuiz(quizData); // Keeps questions shuffled for better learning
-            currentQuizIndex = 0;
-            quizAnswers = new Array(activeQuizData.length).fill(null);
-            renderQuiz();
-        }
-
-        function renderQuiz() {
-            if (activeQuizData.length === 0) return;
-            const qData = activeQuizData[currentQuizIndex];
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
             
-            document.getElementById('quiz-counter').innerText = `Theory Q${currentQuizIndex + 1} of ${activeQuizData.length}`;
-            document.getElementById('quiz-progress').style.width = `${((currentQuizIndex + 1) / activeQuizData.length) * 100}%`;
-            document.getElementById('quiz-q-text').innerHTML = `<strong>Q${currentQuizIndex + 1}.</strong> ` + qData.q;
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
             
-            const optionsContainer = document.getElementById('quiz-options');
+            const optionsContainer = document.getElementById('theory-options');
             optionsContainer.innerHTML = '';
             
-            const hasAnswered = quizAnswers[currentQuizIndex] !== null;
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
             
             qData.options.forEach((optText, index) => {
                 const btn = document.createElement('button');
@@ -496,18 +452,113 @@
                     btn.classList.add('disabled');
                     if (index === qData.correct) {
                         btn.classList.add('correct');
-                    } else if (index === quizAnswers[currentQuizIndex]) {
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
                         btn.classList.add('wrong');
                     }
                 } else {
-                    btn.onclick = () => selectQuizOption(index);
+                    btn.onclick = () => selectTheoryOption(index);
                 }
                 optionsContainer.appendChild(btn);
             });
 
-            const solArea = document.getElementById('quiz-sol-area');
-            const solBox = document.getElementById('quiz-sol-box');
-            const revealBtn = document.getElementById('quiz-reveal-btn');
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // PDF ENGINE LOGIC
+        // ==========================================
+        let currentPdfIndex = 0;
+        let pdfAnswers = [];
+        let pdfRightCount = 0;
+        let pdfWrongCount = 0;
+
+        function startPdf() {
+            if (pdf_mcqs.length === 0) { alert("PDF Engine is empty."); return; }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            pdfRightCount = 0;
+            pdfWrongCount = 0;
+            document.getElementById('pdf-right').innerText = "0";
+            document.getElementById('pdf-wrong').innerText = "0";
+            pdfAnswers = new Array(pdf_mcqs.length).fill(null);
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdf_mcqs.length === 0) return;
+            const qData = pdf_mcqs[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Q${currentPdfIndex + 1} of ${pdf_mcqs.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdf_mcqs.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('pdf-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pdfAnswers[currentPdfIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pdfAnswers[currentPdfIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPdfOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('pdf', qData, hasAnswered);
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdf_mcqs.length - 1;
+        }
+
+        function selectPdfOption(selectedIndex) { 
+            pdfAnswers[currentPdfIndex] = selectedIndex;
+            if (selectedIndex === pdf_mcqs[currentPdfIndex].correct) {
+                pdfRightCount++;
+                document.getElementById('pdf-right').innerText = pdfRightCount;
+            } else {
+                pdfWrongCount++;
+                document.getElementById('pdf-wrong').innerText = pdfWrongCount;
+            }
+            renderPdf(); 
+        }
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdf_mcqs.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
             
             if (qData.sol) {
                 solArea.style.display = 'block';
@@ -523,177 +574,11 @@
             } else {
                 solArea.style.display = 'none';
             }
-            
-            document.getElementById('quiz-prev-btn').disabled = currentQuizIndex === 0;
-            document.getElementById('quiz-next-btn').disabled = currentQuizIndex === activeQuizData.length - 1;
         }
 
-        function selectQuizOption(selectedIndex) { quizAnswers[currentQuizIndex] = selectedIndex; renderQuiz(); }
-        function goPrevQuiz() { if (currentQuizIndex > 0) { currentQuizIndex--; renderQuiz(); } }
-        function goNextQuiz() { if (currentQuizIndex < activeQuizData.length - 1) { currentQuizIndex++; renderQuiz(); } }
-
-        // ==========================================
-        // PDF DATA ENGINE (Flashcard Style Mechanics)
-        // ==========================================
-        const pdfData = [
-            {
-                q: "The static pressure error of the static vent on which the altimeter is connected varies substantially with the:",
-                ans: "Mach number of the aircraft",
-                sol: "<strong>Explanation:</strong><br>Static sources are sited as far as possible to be error-free, but some small position/pressure error will remain. Because this error is caused by airflow disturbance around the aircraft's skin, it will change substantially with the aircraft's speed (Mach number) and configuration."
-            },
-            {
-                q: "If an aircraft is equipped with one altimeter which is compensated for position error and another altimeter which is not, and all other factors being equal:",
-                ans: "at high speed, the non-compensated altimeter will indicate a higher altitude",
-                sol: "<strong>Explanation:</strong><br>At high speeds, the disturbed airflow over the static ports usually creates a slightly lower pressure than the true ambient static pressure. Since the uncompensated altimeter senses this artificially lower pressure, it will interpret it as being at a higher altitude (over-read)."
-            },
-            {
-                q: "The error in altimeter readings caused by the variation of the static pressure near the source is known as:",
-                ans: "position pressure error",
-                sol: "<strong>Explanation:</strong><br>Also simply called 'Position Error' or 'Pressure Error', this is caused by the inability of the static port to sense true undisturbed atmospheric pressure due to turbulent airflow around the fuselage."
-            },
-            {
-                q: "The primary factor which makes the servo-assisted altimeter more accurate than the simple pressure altimeter is the use of:",
-                ans: "an induction pick-off device",
-                sol: "<strong>Explanation:</strong><br>An induction pick-off device (like an E-and-I bar) replaces direct mechanical gear linkages. By eliminating the physical friction of moving parts, the altimeter becomes vastly more sensitive and accurate."
-            },
-            {
-                q: "The QNH is by definition the value of the:",
-                ans: "altimeter setting so that the needles of the altimeter indicate the altitude of the location for which it is given",
-                sol: "<strong>Explanation:</strong><br>When QNH is set in the sub-scale, the altimeter reads elevation above Mean Sea Level (MSL). Therefore, when you are on the ground at the airport, the altimeter will indicate the actual airfield elevation."
-            },
-            {
-                q: "At sea level, on a typical servo altimeter, the tolerance in feet from indicated is:",
-                ans: "+/- 60 feet",
-                sol: "<strong>Explanation:</strong><br>While high-end servo altimeters can be incredibly precise (accurate to +/- 30ft at sea level under perfect conditions), the standard required tolerance limit for operational checks is +/- 60 feet."
-            },
-            {
-                q: "If the static source of an altimeter becomes blocked during a descent the instrument will:",
-                ans: "continue to display the reading at which the blockage occurred",
-                sol: "<strong>Explanation:</strong><br>If the static line becomes blocked, the pressure inside the instrument case cannot change. Without a change in pressure squeezing or releasing the aneroid capsule, the altimeter freezes and no change in altitude will be displayed in a climb or descent."
-            },
-            {
-                q: "The density altitude is:",
-                ans: "the altitude of the standard atmosphere on which the density is equal to the actual density of the atmosphere",
-                sol: "<strong>Explanation:</strong><br>Density altitude is the height when measured in terms of the density of the air rather than the distance from the ground. It is effectively pressure altitude adjusted for non-standard temperature."
-            },
-            {
-                q: "What is density altitude:",
-                ans: "altitude in the standard atmosphere at which the prevailing density is equal to the density in the standard atmosphere",
-                sol: "<strong>Explanation:</strong><br>This is another phrasing of the exact same concept. Both high temperatures and high humidity will cause an increase in density altitude, meaning the aircraft will perform as if it is higher than its true altitude."
-            },
-            {
-                q: "The purpose of the vibrating device of an altimeter is to:",
-                ans: "reduce the effect of friction in the linkages",
-                sol: "<strong>Explanation:</strong><br>A vibrator (or 'tapper') gently shakes the internal mechanical linkages to overcome static friction (stiction), allowing the pointer to respond smoothly to minor pressure changes."
-            },
-            {
-                q: "The pressure altitude is the altitude corresponding:",
-                ans: "in standard atmosphere, to the pressure Ps prevailing at this point",
-                sol: "<strong>Explanation:</strong><br>The altimeter is calibrated to International Standard Atmosphere (ISA) conditions. If the ambient static pressure (Ps) is 700 hPa, the altimeter simply looks at the standard atmosphere, sees that 700 hPa equates to 10,000 feet, and displays that as your Pressure Altitude."
-            },
-            {
-                q: "In case of accidental closing of an aircraft's left static pressure port (rain, birds) the altimeter:",
-                ans: "over-reads the altitude in case of a side-slip to the left and displays the correct information during symmetric flight",
-                sol: "<strong>Explanation:</strong><br>In a sideslip to the left, the wind hits the left side of the fuselage, while the right side becomes the shielded (leeward) side with lower pressure. Because the left port is blocked, the system only senses the lower pressure from the open right port. Lower pressure = higher indicated altitude (over-read)."
-            },
-            {
-                q: "The hysteresis error of an altimeter varies substantially with the:",
-                ans: "time passed at a given altitude",
-                sol: "<strong>Explanation:</strong><br>Hysteresis is the imperfect elasticity of the aneroid capsule metal. The error depends heavily on how long the metal has been held in a compressed or expanded state (time passed at a given altitude) and the rate of altitude change."
-            },
-            {
-                q: "When flying from a sector of warm air into one of colder air, the altimeter will:",
-                ans: "over-read",
-                sol: "<strong>Explanation:</strong><br>\"Hot to Cold, Don't be bold.\" Colder air is denser, meaning pressure drops faster as you climb. The altimeter senses this unexpectedly low pressure and interprets it as being higher up than you actually are."
-            },
-            {
-                q: "The altimeter consists of one or several aneroid capsules located in a sealed casing. The pressures in the aneroid capsule (i) and casing (ii) are respectively:",
-                ans: "(i) vacuum (or a very low pressure) (ii) static pressure",
-                sol: "<strong>Explanation:</strong><br>The aneroid capsule is evacuated (has a vacuum or very low residual pressure inside) to serve as a fixed reference. The casing surrounding the capsule is fed with ambient static pressure from the outside air."
-            },
-            {
-                q: "In a non-pressurised aircraft, if one or several static pressure ports are damaged, there is an ultimate emergency means for restoring a practically correct static pressure intake:",
-                ans: "breaking the rate-of-climb indicator glass window",
-                sol: "<strong>Explanation:</strong><br>If no alternate static source switch is available, breaking the glass on the Vertical Speed Indicator (Rate-of-Climb indicator) vents the instrument static lines to the ambient pressure inside the unpressurized cabin."
-            },
-            {
-                q: "An aircraft is flying at an indicated altitude of 16,000 ft. The outside air temperature is -30°C. What is the true altitude of the aircraft?",
-                ans: "15,200 ft",
-                sol: "<strong>Step-by-Step Resolution:</strong><br>1. Calculate ISA Temp at 16,000ft: 15°C - (2°C &times; 16) = -17°C.<br>2. Find Deviation: Actual is -30°C. Deviation is ISA -13°C (colder than standard).<br>3. Altimeter Rule: Colder than standard = Altimeter indicates MORE than true (over-reads).<br>4. Apply Correction Formula: 4 feet &times; ISA Deviation &times; (Altitude / 1000).<br>5. 4 &times; 13 &times; 16 = 832 ft of error.<br>6. True Altitude = 16,000 - 832 = 15,168 ft. The closest option is <strong>15,200 ft</strong>."
-            },
-            {
-                q: "An aircraft is equipped with one altimeter that is compensated for position error and another one altimeter that is not. Assuming all other factors are equal, during a straight symmetrical flight:",
-                ans: "the greater the speed, the greater the error between the two altimeters",
-                sol: "<strong>Explanation:</strong><br>Position (pressure) error is driven by the dynamic airflow disrupting the static ports. The faster the aircraft flies, the more violent the airflow disruption, causing the uncompensated altimeter to drift further from the compensated one."
-            },
-            {
-                q: "The altimeter of your aircraft indicates 11000 ft with a subscale-setting of 1013.25 mb. QNH is 1023 hPa. OAT is +3°C. The pressure altitude of the aircraft is:",
-                ans: "11000 ft",
-                sol: "<strong>Explanation:</strong><br>This is a reading comprehension trick. <strong>Pressure Altitude</strong> is literally defined as whatever the altimeter reads when 1013.25 hPa is set on the sub-scale. Since it is already set to 1013.25, the indicated 11,000 ft <em>is</em> the pressure altitude. Ignore the QNH and OAT distractors!"
-            },
-            {
-                q: "In an altimeter, what pressure is fed to the capsule and the case?",
-                ans: "Vacuum / Static",
-                sol: "<strong>Explanation:</strong><br>The aneroid capsule is sealed with a Vacuum (or near-vacuum) to create a fixed pressure reference. The instrument Case is fed with the ambient Static pressure."
-            },
-            {
-                q: "Given:<br>Pressure Altitude = 5000 ft<br>OAT = +35°C<br>What is true altitude?",
-                ans: "5550 ft (closest option to calculated 5600 ft)",
-                sol: "<strong>Step-by-Step Resolution:</strong><br>1. Calculate ISA Temp at 5000 ft: 15°C - (2°C &times; 5) = +5°C.<br>2. Find Deviation: Actual is +35°C. Deviation is +30°C (warmer than standard).<br>3. Calculate Error: 4 ft per 1°C deviation per 1,000 ft.<br>4. Error = 4 &times; 30 &times; 5 = 600 ft.<br>5. Warm airmass = True Altitude is higher than indicated.<br>6. True Altitude = 5000 + 600 = 5600 ft. (Note: Option 'b' 5550 ft is marked as the correct/closest answer in the bank)."
-            },
-            {
-                q: "Given:<br>Pressure Altitude = 29 000 ft<br>OAT = -55°C<br>What is the density altitude:",
-                ans: "27 500 ft",
-                sol: "<strong>Step-by-Step Resolution:</strong><br>1. Calculate ISA Temp at 29,000 ft: 15°C - (2°C &times; 29) = -43°C.<br>2. Find Deviation: OAT is -55°C. Deviation is -12°C (colder than standard).<br>3. Density Altitude Correction Rule: 120 ft per 1°C of deviation.<br>4. Total Correction = 12 &times; 120 = 1440 ft.<br>5. Since it is colder than standard, density altitude will be lower than pressure altitude.<br>6. Density Altitude = 29000 - 1440 = 27560 ft. (Option 'a' 27,500 ft is the closest correct answer)."
-            },
-            {
-                q: "Your true altitude is 5500 feet, the QNH is 995, and the SAT is +30°C. What is Density Altitude:",
-                ans: "9280 feet",
-                sol: "<strong>Step-by-Step Resolution:</strong><br>1. Find Pressure Altitude (PA): Standard pressure is 1013 hPa. 1013 - 995 = 18 hPa difference.<br>2. Convert hPa to feet: 18 &times; 30 ft/hPa = 540 ft.<br>3. Since QNH (995) is lower than standard (1013), PA is higher than true altitude: PA = 5500 + 540 = 6040 ft.<br>4. Find ISA Temp at 6040 ft: 15°C - (2°C &times; 6.04) = approx +3°C.<br>5. Find ISA Deviation: SAT (+30°C) - ISA (+3°C) = +27°C (warmer).<br>6. Calculate Density Altitude: PA + (120 &times; ISA Deviation).<br>7. DA = 6040 + (120 &times; 27) = 6040 + 3240 = <strong>9280 ft</strong>."
-            }
-        ];
-
-        let currentPdfIndex = 0;
-
-        function startPdf() {
-            if (pdfData.length === 0) {
-                alert("The PDF Data Engine is currently empty for Chapter 12.");
-                return;
-            }
-            switchView('pdf-page');
-            currentPdfIndex = 0;
-            renderPdf();
-        }
-
-        function renderPdf() {
-            if (pdfData.length === 0) return;
-            const qData = pdfData[currentPdfIndex];
-            
-            document.getElementById('pdf-counter').innerText = `PDF Question ${currentPdfIndex + 1} of ${pdfData.length}`;
-            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdfData.length) * 100}%`;
-            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
-            
-            const ansBox = document.getElementById('pdf-ans-box');
-            ansBox.innerHTML = `<strong>Answer:</strong><br>${qData.ans}`;
-            ansBox.style.display = 'none';
-            
-            const solBox = document.getElementById('pdf-sol-box');
-            solBox.innerHTML = qData.sol;
-            solBox.style.display = 'none';
-            
-            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
-            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdfData.length - 1;
-        }
-
-        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
-        function goNextPdf() { if (currentPdfIndex < pdfData.length - 1) { currentPdfIndex++; renderPdf(); } }
-
-        // ==========================================
-        // INITIALIZATION
-        // ==========================================
         window.onload = function() {
-            document.getElementById('quiz-card-count').innerText = quizData.length + " Theory MCQs";
-            document.getElementById('pdf-card-count').innerText = pdfData.length + " PDF Questions";
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+            document.getElementById('pdf-card-count').innerText = pdf_mcqs.length + " MCQs";
         };
     </script>
 </body>
