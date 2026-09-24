@@ -1,0 +1,585 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 13 | VSI</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 15px 50px; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-box { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: left; font-weight: 600; display: none; font-size: 1rem; }
+        .feedback-correct { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 15px; font-size: 1.15rem; margin-bottom: 15px; }
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; }
+        
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 13: Vertical Speed Indicator (VSI)</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startTheory()">
+                    <h3>Theory Engine</h3>
+                    <p id="theory-card-count">Loading MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startPdf()">
+                    <h3>PDF Data</h3>
+                    <p id="pdf-card-count">Loading PDF MCQs...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
+
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="padding: 10px 20px; font-size: 1rem; border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-box feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF ENGINE (MCQ) -->
+        <div id="pdf-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="pdf-right" class="score-right">0</span> | 
+                    Wrong: <span id="pdf-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="mcq-options" id="pdf-options"></div>
+
+                <div id="pdf-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="pdf-reveal-btn" class="btn" style="padding: 10px 20px; font-size: 1rem; border-color: #555;">Reveal Solution</button>
+                    <div id="pdf-sol-box" class="feedback-box feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAYS
+        // ==========================================
+        const theory_mcqs = [
+            {
+                q: "IVSI is more useful over normal VSI as its indications are:",
+                options: [
+                    "a) More reliable during steady climb/ descend",
+                    "b) More reliable when a/c initiates climb / descend",
+                    "c) Reliable at all times."
+                ],
+                correct: 1,
+                sol: "<strong>Explanation:</strong> An Instantaneous VSI (IVSI) uses accelerometers (dashpots) to overcome the inherent time lag of a standard VSI, making it much more accurate and reliable exactly when a climb or descent is initiated."
+            },
+            {
+                q: "A/C fitted with IVSI will have",
+                options: [
+                    "a) Climbing indications during turn",
+                    "b) Descend indications during turn",
+                    "c) Will show correct during turns."
+                ],
+                correct: 0,
+                sol: "<strong>Explanation:</strong> A known drawback of the IVSI is that during turns, centrifugal force pulls the piston out, causing the capsule to contract and falsely show a climbing indication."
+            },
+            {
+                q: "Compared to the VSI what errors are eliminated by the IVSI?",
+                options: [
+                    "a) lag",
+                    "b) temperature",
+                    "c) turning"
+                ],
+                correct: 0,
+                sol: "<strong>Explanation:</strong> The primary purpose of the Instantaneous Vertical Speed Indicator (IVSI) is to eliminate the instrument and pressure lag inherent in a standard VSI."
+            },
+            {
+                q: "The response time of a vertical speed detector may be increased by adding a:",
+                options: [
+                    "a) second calibrated port",
+                    "b) correction based on an accelometer sensor",
+                    "c) bimetallic strip"
+                ],
+                correct: 1,
+                sol: "<strong>Explanation:</strong> Adding an accelerometer sensor (dashpot assembly) \"increases\" the responsiveness (decreases the lag time), creating an IVSI."
+            },
+            {
+                q: "The vertical speed indicator of an aircraft flying at a true airspeed of 100kt, in a descent with a slope of 3 degrees, indicates:",
+                options: [
+                    "a) -300ft/min",
+                    "b) -250ft/min",
+                    "c) -500ft/min"
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> Using the 1-in-60 rule of thumb for a 3° glide slope: Rate of Descent (ROD) = Groundspeed × 5. Assuming zero wind, GS is 100kt. 100 × 5 = 500 ft/min. Since it's a descent, it is -500 ft/min."
+            },
+            {
+                q: "What does a vertical speed indicator actually measure?",
+                options: [
+                    "a) The rate of temperature change.",
+                    "b) The rate of temperature and altitude change.",
+                    "c) The rate of pressure change."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> A VSI is fundamentally a rate-of-pressure-change instrument. It measures how quickly the static pressure is changing and calibrates that into a rate of climb or descent."
+            },
+            {
+                q: "The vertical speed indicator VSI is fed by:",
+                options: [
+                    "a) differential pressure.",
+                    "b) static pressure.",
+                    "c) dynamic pressure."
+                ],
+                correct: 1,
+                sol: "<strong>Explanation:</strong> The VSI is connected exclusively to the aircraft's static pressure system."
+            },
+            {
+                q: "If the static vent becomes blocked during climb:",
+                options: [
+                    "a) the VSI will indicate an increasing rate of climb.",
+                    "b) the VSI will indicate a decreasing rate of climb.",
+                    "c) the VSI will return to zero.."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> If the static vent blocks, the pressure inside the instrument can no longer change. The pressure trapped in the casing will equalize with the pressure in the capsule via the metering leak, causing the needle to return to zero."
+            },
+            {
+                q: "Entering ground effect is likely to?",
+                options: [
+                    "a) Decrease static pressure but increase pitot pressure.",
+                    "b) Decrease pitot pressure but increase static pressure.",
+                    "c) Increase position errors."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> Ground effect alters the aerodynamic airflow around the airframe, which disrupts the local pressure at the static ports and increases position (pressure) error."
+            },
+            {
+                q: "If metered orifice in VSI becomes partly blocked, VSI indication will be:",
+                options: [
+                    "a) Too high when climbing",
+                    "b) Too low when descending",
+                    "c) Too high when climbing / descending"
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> A partial blockage of the metering leak slows down the equalization of pressure between the casing and the capsule. This creates a larger-than-normal pressure differential, causing the instrument to over-read (indicate too high) in both climbs and descents."
+            },
+            {
+                q: "If the casing of VSI in a pressurized a/c develops a leak, VSI indications will be",
+                options: [
+                    "a) Too low when climbing or descending",
+                    "b) Too high when climbing or descending",
+                    "c) Too high when climbing and too low when descending"
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> In a pressurized aircraft, cabin pressure is higher than external static pressure. A casing leak forces this extra pressure into the static chamber, causing the capsule to contract. This falsely indicates a high rate of climb, and conversely, will make a descent reading too low."
+            },
+            {
+                q: "If casing of VSI in an unpressurized a/c develops a leak.",
+                options: [
+                    "a) It will over read",
+                    "b) It will under read",
+                    "c) It will read zero."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> In an unpressurized aircraft, cabin pressure is essentially equal to external static pressure. If the case leaks, the pressure inside the capsule and case will quickly equalize with cabin pressure, resulting in a zero reading."
+            },
+            {
+                q: "The vertical speed indicator indications may be in error for some seconds after starting or finishing a climb or descent. The error is a result of:",
+                options: [
+                    "a) a combination of time lag and instrument error.",
+                    "b) a combination of time lag and manoeuvre induced errors.",
+                    "c) a combination of position error and manoeuvre induced errors."
+                ],
+                correct: 1,
+                sol: "<strong>Explanation:</strong> The initial error is caused by instrument time lag (waiting for pressure to bleed through the choke) combined with maneuver-induced errors (pitch changes disrupting airflow over the static ports)."
+            },
+            {
+                q: "If the pitot pipe becomes partly blocked?",
+                options: [
+                    "a) The VSI indication will be too low when climbing.",
+                    "b) The VSI will be too low when descending.",
+                    "c) The VSI will not be affected."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> The VSI is connected solely to the static pressure system. Blockages in the pitot tube (dynamic pressure) have no effect on the VSI."
+            },
+            {
+                q: "If the static pipe becomes partly blocked?",
+                options: [
+                    "a) The VSI indication will be too high when descending.",
+                    "b) The VSI indication will be too high when accelerating.",
+                    "c) The VSI indication will be too low when climbing or descending."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> A partial block in the static line restricts the flow of changing atmospheric pressure to the instrument, reducing the pressure differential and causing it to under-read (too low) during any altitude change."
+            },
+            {
+                q: "During taxing, VSI shows - 100'. Pilot should",
+                options: [
+                    "a) Continue with flight if engineer is on board",
+                    "b) Taxi back and VSI should be repaired",
+                    "c) Continue with flight with new reference."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> A minor error on the ground can often be corrected with the adjusting screw on the front of the instrument, or the pilot can simply accept the -100' indication as the new zero reference for the flight."
+            },
+            {
+                q: "VSI lag is reduced by?",
+                options: [
+                    "a) Two dashpots responding to acceleration.",
+                    "b) Two return springs.",
+                    "c) Bi-metallic strips."
+                ],
+                correct: 0,
+                sol: "<strong>Explanation:</strong> The Instantaneous VSI (IVSI) utilizes two accelerometer dashpots that sense vertical acceleration to generate an immediate pressure change, overcoming standard instrument lag."
+            },
+            {
+                q: "The correct action to be taken when the static vent blocks on an unpressurised aircraft is to?",
+                options: [
+                    "a) Break the VSI glass.",
+                    "b) Use the standby static source.",
+                    "c) Calculate ROC using mathematically."
+                ],
+                correct: 1,
+                sol: "<strong>Explanation:</strong> The primary and correct action for a blocked static vent is to switch to the alternate/standby static source. Breaking the VSI glass is only an emergency last resort if no standby source is available."
+            },
+            {
+                q: "A VSI?",
+                options: [
+                    "a) Produces an output proportional to ambient pressure.",
+                    "b) Measures the difference between total pressure and static pressure.",
+                    "c) Measures the difference between the pressure inside and outside a capsule."
+                ],
+                correct: 2,
+                sol: "<strong>Explanation:</strong> The VSI works by measuring the pressure differential between the instantaneous static pressure inside the capsule and the delayed static pressure trapped in the outer casing."
+            },
+            {
+                q: "A VSI indicates increasing ROD by?",
+                options: [
+                    "a) VSI needle moving downwards.",
+                    "b) VSI needle moving upwards.",
+                    "c) VSI needle stationary."
+                ],
+                correct: 0,
+                sol: "<strong>Explanation:</strong> Rate of Descent (ROD) is indicated on the lower half of the dial, so the needle moves downwards from the zero position to indicate an increasing descent rate."
+            }
+        ];
+
+        const pdf_mcqs = [
+            // Ready for PDF questions when uploaded
+            {
+        q: "What specific pressure differential does a Vertical Speed Indicator (VSI) utilize to provide readings?",
+        options: [
+            "a) Dynamic pressure compared to static pressure",
+            "b) Total pressure compared to static pressure",
+            "c) Current total pressure compared to historical total pressure",
+            "d) Current static pressure compared to historical static pressure"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> The VSI calculates vertical speed by comparing the instantaneous static pressure inside its sensing capsule against the delayed, historical static pressure trapped within the instrument casing."
+    },
+    {
+        q: "Which type of pressure's rate of change forms the foundational operating principle of a VSI?",
+        options: [
+            "a) Kinetic pressure",
+            "b) Dynamic pressure",
+            "c) Total pressure",
+            "d) Static pressure"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> The instrument relies exclusively on inputs from the aircraft's static pressure system to measure altitude changes over time."
+    },
+    {
+        q: "How can the inherent lag or response time in a vertical speed indicating system be improved?",
+        options: [
+            "a) By installing a return spring",
+            "b) By utilizing a bimetallic strip",
+            "c) By integrating an accelerometer sensor correction",
+            "d) By adding a secondary calibrated static port"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Incorporating accelerometer sensors (often referred to as dashpots) compensates for normal pressure lag, effectively creating an Instantaneous VSI (IVSI)."
+    },
+    {
+        q: "Assuming a true airspeed of 100 knots, what will the VSI indicate during a 3-degree glide slope descent?",
+        options: [
+            "a) -150 feet/min",
+            "b) -250 feet/min",
+            "c) -300 feet/min",
+            "d) -500 feet/min"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Using the standard rule of thumb for a 3-degree glidepath, multiplying the groundspeed (assuming 100 kt TAS equals GS in nil wind) by 5 yields a 500 feet per minute descent rate."
+    },
+    {
+        q: "What indication will the VSI display if the static ports become entirely obstructed by ice while climbing?",
+        options: [
+            "a) An increasing rate of climb",
+            "b) A descent reading",
+            "c) Zero",
+            "d) Maximum scale deflection"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Once the static source is fully blocked, the internal pressures will equalize through the instrument's internal metering leak. Without a changing external pressure differential, the needle will return to the zero position."
+    }
+        ];
+
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
+        }
+
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
+            
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('theory-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectTheoryOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // PDF ENGINE LOGIC
+        // ==========================================
+        let currentPdfIndex = 0;
+        let pdfAnswers = [];
+        let pdfRightCount = 0;
+        let pdfWrongCount = 0;
+
+        function startPdf() {
+            if (pdf_mcqs.length === 0) { alert("PDF Engine is empty."); return; }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            pdfRightCount = 0;
+            pdfWrongCount = 0;
+            document.getElementById('pdf-right').innerText = "0";
+            document.getElementById('pdf-wrong').innerText = "0";
+            pdfAnswers = new Array(pdf_mcqs.length).fill(null);
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdf_mcqs.length === 0) return;
+            const qData = pdf_mcqs[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Q${currentPdfIndex + 1} of ${pdf_mcqs.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdf_mcqs.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('pdf-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pdfAnswers[currentPdfIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pdfAnswers[currentPdfIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPdfOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('pdf', qData, hasAnswered);
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdf_mcqs.length - 1;
+        }
+
+        function selectPdfOption(selectedIndex) { 
+            pdfAnswers[currentPdfIndex] = selectedIndex;
+            if (selectedIndex === pdf_mcqs[currentPdfIndex].correct) {
+                pdfRightCount++;
+                document.getElementById('pdf-right').innerText = pdfRightCount;
+            } else {
+                pdfWrongCount++;
+                document.getElementById('pdf-wrong').innerText = pdfWrongCount;
+            }
+            renderPdf(); 
+        }
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdf_mcqs.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none';
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none';
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+            document.getElementById('pdf-card-count').innerText = pdf_mcqs.length + " MCQs";
+        };
+    </script>
+</body>
+</html>

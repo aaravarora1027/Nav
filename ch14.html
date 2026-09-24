@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 14 | Temperature</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; border-radius: 8px; }
+        .flashcard-ans-box { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 20px; font-size: 1.15rem; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; margin-top: 25px; margin-bottom: 25px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 14: Temperature</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startTheory()">
+                    <h3>Theory Engine</h3>
+                    <p id="theory-card-count">Loading MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startPdf()">
+                    <h3>PDF Data</h3>
+                    <p id="pdf-card-count">Loading PDF MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startNumerical()">
+                    <h3>Numericals</h3>
+                    <p id="num-card-count">Loading Flashcards...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
+
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF ENGINE (MCQ) -->
+        <div id="pdf-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="pdf-right" class="score-right">0</span> | 
+                    Wrong: <span id="pdf-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="mcq-options" id="pdf-options"></div>
+
+                <div id="pdf-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="pdf-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="pdf-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+        <!-- NUMERICAL ENGINE (FLASHCARDS) -->
+        <div id="numerical-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="num-counter">Numerical 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Numericals</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="num-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="num-q-text" style="font-size: 1.4rem;">Loading problem...</div>
+                
+                <div class="btn-group">
+                    <button class="btn" onclick="document.getElementById('num-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" onclick="document.getElementById('num-sol-box').style.display='block'">Reveal Solution</button>
+                </div>
+
+                <div id="num-ans-box" class="flashcard-ans-box" style="display:none;"></div>
+                <div id="num-sol-box" class="feedback-solution" style="display:none;"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="num-prev-btn" class="quiz-nav-btn" onclick="goPrevNum()">Previous</button>
+                <button id="num-next-btn" class="quiz-nav-btn" onclick="goNextNum()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAYS (Awaiting Data)
+        // ==========================================
+        const theory_mcqs = [
+        
+            // { q: "Question?", options: ["a) Opt 1", "b) Opt 2"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        
+        {
+        q: "Total Air Temp is always... than Static Air Temp and the difference varies with...",
+        options: ["a) warmer, altitude", "b) warmer, TAS", "c) colder, CAS"],
+        correct: 1, // Key: 1=b
+        sol: "<strong>Answer Key Note:</strong> Total Air Temperature (TAT) is warmer than SAT, varying with TAS."
+    },
+    {
+        q: "In an Air Data Computer (ADC), aero plane altitude is calculated from:",
+        options: ["a) Measurement of outside air temperature (OAT)", "b) The difference between absolute and dynamic pressure at the fuselage", "c) Measurement of absolute barometric pressure from a static source on the fuselage"],
+        correct: 2, // Key: 3=c
+        sol: "<strong>Answer Key Note:</strong> Calculated from absolute barometric pressure."
+    },
+    {
+        q: "M: Mach number, Ts: static temperature, Tt: total temperature. Which of the following statements is correct?",
+        options: ["a) Ts = Tt / (1+0.2M²)", "b) Ts = Tt x (1+0.2M²)", "c) Ts = Tt x (1+0.2M)"],
+        correct: 0, // Key: 4=a
+        sol: "<strong>Answer Key Note:</strong> Standard formula rearranged for Static Temperature."
+    },
+    {
+        q: "The difference between static air temperature and total air temperature is known as:",
+        options: ["a) hot ramp radiation", "b) corrected outside air temperature", "c) the ram rise"],
+        correct: 2, // Key: 5=c
+        sol: "<strong>Answer Key Note:</strong> Known as the ram rise."
+    },
+    {
+        q: "An Air Data Computer (ADC):",
+        options: ["a) transforms air data measurements into electric impulses driving servo motors in instruments", "b) is an auxiliary system that provides altitude information in the event that the static source is blocked", "c) measures position error in the static system and transmits this information to ATC"],
+        correct: 0, // Key: 6=a
+        sol: "<strong>Answer Key Note:</strong> Transforms measurements into electric impulses."
+    },
+    {
+        q: "Total air temp is _________ than _________ by an amount which is proportional to _________.",
+        options: ["a) Higher, SAT, CAS", "b) Higher, SAT, TAS", "c) Higher, SAT, LSS"],
+        correct: 1, // Key: 10=b
+        sol: "<strong>Answer Key Note:</strong> TAT is higher than SAT, proportional to TAS."
+    },
+    {
+        q: "What corrections must be applied to indicated airspeed to produce true airspeed?",
+        options: ["a) Correction for altitude and wind.", "b) Correction for heading and altitude.", "c) Correction for altitude and temperature."],
+        correct: 1, // Key: 24=b
+        sol: "<strong>Answer Key Note:</strong> The textbook key specifies 'Correction for heading and altitude', though aerodynamically density (alt/temp) is used. Memorize the key."
+    },
+    {
+        q: "EAS is?",
+        options: ["a) CAS corrected for adiabatic compression.", "b) IAS corrected for adiabatic compression.", "c) IAS corrected for pressure sensing errors."],
+        correct: 0, // Key: 25=a
+        sol: "<strong>Answer Key Note:</strong> CAS corrected for adiabatic compression."
+    },
+    {
+        q: "As pressure altitude increases when climbing at constant IAS?",
+        options: ["a) CAS will increase.", "b) CAS will decrease.", "c) TAS will increase."],
+        correct: 2, // Key: 26=c
+        sol: "<strong>Answer Key Note:</strong> TAS will increase."
+    },
+    {
+        q: "As pressure altitude increases when climbing at constant mach number?",
+        options: ["a) TAS will increase.", "b) CAS will decrease then remain constant.", "c) TAS will decrease."],
+        correct: 0, // Key: 27=a
+        sol: "<strong>Answer Key Note:</strong> The textbook key explicitly lists 'a) TAS will increase'. Memorize this for the exam."
+    },
+    {
+        q: "As pressure altitude increases.",
+        options: ["a) Temperature decreases.", "b) Temperature decreases then remains constant.", "c) Temperature increases then remains constant."],
+        correct: 1, // Key: 28=b
+        sol: "<strong>Answer Key Note:</strong> Decreases up to the tropopause, then remains constant."
+    },
+    {
+        q: "Mach number is the ratio of?",
+        options: ["a) IAS:TAS.", "b) CAS:LSS.", "c) TAS:LSS."],
+        correct: 2, // Key: 29=c
+        sol: "<strong>Answer Key Note:</strong> TAS to LSS."
+    },
+    {
+        q: "At a fixed pressure altitude an increase in temperature will?",
+        options: ["a) Decrease density but increase density altitude.", "b) Not affect density altitude.", "c) Increase density but decrease density altitude."],
+        correct: 0, // Key: 30=a
+        sol: "<strong>Answer Key Note:</strong> Density decreases, density altitude increases."
+    },
+    {
+        q: "The Airspeed Indicator measures:",
+        options: ["a) Differential pressure", "b) Differential pressure changes", "c) Static pressure changes"],
+        correct: 0, // Key: 31=a
+        sol: "<strong>Answer Key Note:</strong> Measures differential pressure (Pitot minus Static)."
+    },
+    {
+        q: "Calibrated air speed is:",
+        options: ["a) IAS plus the pressure error", "b) IAS plus density error correction", "c) IAS plus instrument error correction"],
+        correct: 0, // Key: 32=a
+        sol: "<strong>Answer Key Note:</strong> IAS plus the pressure error."
+    },
+    {
+        q: "CAS is IAS corrected for:",
+        options: ["a) position error.", "b) instrument error.", "c) density error."],
+        correct: 0, // Key: 33=a
+        sol: "<strong>Answer Key Note:</strong> Position error."
+    },
+    {
+        q: "EAS is:",
+        options: ["a) IAS corrected for compressibility", "b) CAS corrected for position error", "c) CAS corrected for compressibility"],
+        correct: 1, // Key: 34=b
+        sol: "<strong>Answer Key Note:</strong> The textbook key specifies 'CAS corrected for position error' for this specific question iteration. Memorize the key."
+    },
+    {
+        q: "At any given height or altitude, an aircraft will always lift-off at the same?",
+        options: ["a) CAS.", "b) Ground speed.", "c) EAS."],
+        correct: 2, // Key: 35=c
+        sol: "<strong>Answer Key Note:</strong> EAS."
+    },
+    {
+        q: "CAS is?",
+        options: ["a) EAS corrected for position error and compressibility error.", "b) IAS corrected for position error and instrument error.", "c) IAS corrected for density error and position error."],
+        correct: 1, // Key: 36=b
+        sol: "<strong>Answer Key Note:</strong> IAS corrected for position and instrument error."
+    },
+    {
+        q: "When descending through an isothermal layer at a constant Calibrated Airspeed (CAS), the True Airspeed (TAS) will?",
+        options: ["a) Decrease.", "b) Remain constant.", "c) Increase at an exponential rate."],
+        correct: 0, // Key: 37=a
+        sol: "<strong>Answer Key Note:</strong> TAS will decrease."
+    },
+    {
+        q: "For a constant Calibrated Airspeed (CAS) and a level flight, a fall in ambient temperature will result in a:",
+        options: ["a) higher True Air Speed (TAS) due to an increase in air density", "b) lower True Air Speed (TAS) due to an increase in air density", "c) higher True Air Speed (TAS) due to an decrease in air density"],
+        correct: 1, // Key: 46=b
+        sol: "<strong>Answer Key Note:</strong> Lower TAS due to an increase in air density."
+    },
+    {
+        q: "At a constant Mach number, the calibrated airspeed (CAS):",
+        options: ["a) remains unchanged when the altitude increases", "b) increases when the altitude increases", "c) decreases when the altitude increases"],
+        correct: 2, // Key: 47=c
+        sol: "<strong>Answer Key Note:</strong> CAS decreases when altitude increases."
+    },
+    {
+        q: "When descending through an isothermal layer at a constant Calibrated Airspeed (CAS), the True Airspeed (TAS) will:",
+        options: ["a) increase at an exponential rate", "b) increase at a linear rate", "c) decrease"],
+        correct: 2, // Key: 48=c
+        sol: "<strong>Answer Key Note:</strong> TAS will decrease."
+    },
+    {
+        q: "When descending through an isothermal level the TAS will ......, the CAS ...... and the LSS will ......",
+        options: ["a) remain constant, decrease, increase", "b) increase, increase, decrease", "c) remain constant, increase, remain constant"],
+        correct: 2, // Key: 49=c
+        sol: "<strong>Answer Key Note:</strong> The textbook key specifies option C for this blank structure."
+    },
+    {
+        q: "When descending through an inversion at constant TAS?",
+        options: ["a) Mach number increases.", "b) Mach number remains constant.", "c) Mach number decreases."],
+        correct: 0, // Key: 50=a
+        sol: "<strong>Answer Key Note:</strong> Mach number increases."
+    },
+    {
+        q: "When climbing through an inversion at constant TAS?",
+        options: ["a) Mach number decreases.", "b) Mach number remains constant.", "c) CAS decreases."],
+        correct: 0, // Key: 51=a
+        sol: "<strong>Answer Key Note:</strong> Mach number decreases."
+    },
+    {
+        q: "When descending through an inversion at constant CAS?",
+        options: ["a) Mach number decreases.", "b) Mach number increases.", "c) Mach number remains constant."],
+        correct: 0, // Key: 52=a
+        sol: "<strong>Answer Key Note:</strong> Mach number decreases."
+    },
+    {
+        q: "When climbing through an inversion at constant CAS?",
+        options: ["a) TAS increases.", "b) Mach number decreases.", "c) TAS decreases."],
+        correct: 1, // Key: 53=b
+        sol: "<strong>Answer Key Note:</strong> Mach number decreases."
+    },
+    {
+        q: "When climbing through an inversion at constant mach number?",
+        options: ["a) CAS increases.", "b) TAS increases.", "c) TAS remains constant."],
+        correct: 1, // Key: 54=b
+        sol: "<strong>Answer Key Note:</strong> TAS increases."
+    },
+    {
+        q: "When descending through an inversion at constant mach number?",
+        options: ["a) CAS increases.", "b) TAS decreases.", "c) TAS remains constant."],
+        correct: 1, // Key: 55=b
+        sol: "<strong>Answer Key Note:</strong> TAS decreases."
+    },
+    {
+        q: "When climbing through an inversion at constant CAS?",
+        options: ["a) TAS increases.", "b) TAS decreases.", "c) Mach number decreases."],
+        correct: 0, // Key: 56=a
+        sol: "<strong>Answer Key Note:</strong> TAS increases."
+    },
+    {
+        q: "When descending through an inversion at constant CAS?",
+        options: ["a) TAS increases.", "b) TAS decreases.", "c) Mach number increases."],
+        correct: 1, // Key: 57=b
+        sol: "<strong>Answer Key Note:</strong> TAS decreases."
+    },
+    {
+        q: "When descending through an isothermal layer at constant TAS?",
+        options: ["a) Mach number increases.", "b) Mach number decreases.", "c) Mach number remains constant."],
+        correct: 2, // Key: 58=c
+        sol: "<strong>Answer Key Note:</strong> Mach number remains constant."
+    },
+    {
+        q: "When climbing through an isothermal layer at constant TAS?",
+        options: ["a) Mach number increases.", "b) Mach number decreases.", "c) Mach number remains constant."],
+        correct: 1, // Key: 59=b
+        sol: "<strong>Answer Key Note:</strong> The textbook key specifies 'Mach number decreases'."
+    },
+    {
+        q: "When descending through an isothermal layer at constant CAS?",
+        options: ["a) Mach number increases.", "b) Mach number decreases.", "c) Mach number remains constant."],
+        correct: 1, // Key: 60=b
+        sol: "<strong>Answer Key Note:</strong> Mach number decreases."
+    }
+];
+
+        const pdf_mcqs = [
+             // { q: "Question?", options: ["a) Opt 1", "b) Opt 2"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        const numerical_data = [
+        {
+        q: "Cruising at FL390, M.84 is found to give a TAS of 499kt. The ISA deviation at this level will be:",
+        ans: "+15", // Key: 2=b
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option B in the textbook key."
+    },
+    {
+        q: "A/C is flying at TAS = 520 Kts. SAT is -20°C. Find TAT.",
+        ans: "15.64°C", // From text ans
+        sol: "<strong>Answer Key Note:</strong> Solution provided directly in the textbook text."
+    },
+    {
+        q: "TAT = -25°C, SAT = -35°C. Find TAS.",
+        ans: "275.4 Kts", // From text ans
+        sol: "<strong>Answer Key Note:</strong> Solution provided directly in the textbook text."
+    },
+    {
+        q: "A/C is flying at TAS = 400 Kts, SAT = 23°C. Find Dynamic rise in temperature.",
+        ans: "21.09°C", // From text ans
+        sol: "<strong>Answer Key Note:</strong> Solution provided directly in the textbook text."
+    },
+    {
+        q: "A temperature sensor having a recovery factor of 0.75 indicates 30°C. Static Air Temperature (SAT) is 25°C. How high is the Ram-rise?",
+        ans: "5°C", // Key: 11=b
+        sol: "<strong>Answer Key Note:</strong> The exact mathematical calculation yields 6.67°C, but the DGCA Answer Key specifies Option B (5°C)."
+    },
+    {
+        q: "If pressure altitude is 30000 ft amsl and mach number is 0.84 what is the ISA TAT?",
+        ans: "-12°C", // Key: 12=c
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option C in the textbook key."
+    },
+    {
+        q: "If indicated TAT is -10°C, pressure altitude is 30000 ft. amsl, and mach number is 0.84, what is the temperature deviation?",
+        ans: "2°C", // Key: 13=a
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option A in the textbook key."
+    },
+    {
+        q: "If pressure altitude is 40,000 ft. amsl, indicated TAT is -29°C what is the mach number assuming ISA conditions?",
+        ans: "0.8", // Key: 14=c
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option C in the textbook key."
+    },
+    {
+        q: "If mach number is 0.88 and TAT is -4°C, what is the pressure altitude in the international standard atmosphere?",
+        ans: "28000 ft", // Key: 15=b
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option B in the textbook key."
+    },
+    {
+        q: "If pressure altitude is 30000 ft., indicated TAT is -10°C, mach number is 0.82, what is the density altitude?",
+        ans: "30382 ft", // Key: 16=b
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option B in the textbook key."
+    },
+    {
+        q: "FL350, Mach 0.80, OAT -55°C. Calculate the values for TAS and local speed of sound (LSS)?",
+        ans: "TAS = 460 kt, LSS 575 kt", // Key: 17=a
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option A in the textbook key."
+    },
+    {
+        q: "TAS = 485 kt, OAT = ISA +10°C, FL 410. Calculate the Mach number?",
+        ans: "0.825", // Key: 18=c
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option C in the textbook key."
+    },
+    {
+        q: "TAS 487kt, FL 330, Temperature ISA + 15. Calculate the MACH number?",
+        ans: "0.81", // Key: 19=a
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option A in the textbook key."
+    },
+    {
+        q: "M 0.80, OAT -50°C, FL 330, GS 490 kt, VAR 20°W, Magnetic heading 140°, drift is 11° right. Calculate the true W/V?",
+        ans: "020°/95 kts", // Text ans / options
+        sol: "<strong>Answer Key Note:</strong> Exact solution vector provided in the textbook option list."
+    },
+    {
+        q: "FL250, OAT -15°C, TAS 250 kt. Calculate the Mach No.?",
+        ans: "0.40", // Key: 21=b
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option B in the textbook key."
+    },
+    {
+        q: "IAS 120 kt, FL 80, OAT +20°C. What is the TAS?",
+        ans: "141 kts", // Key: 22=a
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option A in the textbook key."
+    },
+    {
+        q: "FL120, OAT is ISA standard, CAS is 200 kt. Track is 222°(M), Heading is 215°(M), Variation is 15°W, time to fly 105 NM is 21 MIN. what is the W/V?",
+        ans: "050°(T) / 70 kt", // Key: 23=b
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option B in the textbook key."
+    },
+    {
+        q: "An aircraft is flying at mach 0.86 and the true ambient air temperature is -42°C. Determine a) The local speed of sound b) The TAS",
+        ans: "LSS = 593 kts, TAS = 510 kts", // From text
+        sol: "<strong>Answer Key Note:</strong> Solution provided directly in the textbook text."
+    },
+    {
+        q: "An aircraft flying at a TAS of 1100 knots at FL 650. A change in 0.1M causes a change in TAS of 57 knots. The temperature deviation at FL 650 assuming an ISA atmosphere is:",
+        ans: "+5", // Key: 39=a
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option A in the textbook key."
+    },
+    {
+        q: "If the outside temperature at 35000ft is -40°C, the local speed of sound is:",
+        ans: "596kt", // Key: 40=c
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option C in the textbook key."
+    },
+    {
+        q: "An aircraft is flying at FL 390, temperature -56.5° C at Mach 0.85. The TAS of the aircraft is:",
+        ans: "561", // Key: 41=a
+        sol: "<strong>Answer Key Note:</strong> The textbook key explicitly lists 'a) 561'. Memorize this for the exam."
+    },
+    {
+        q: "The velocity of sound at the sea level in a standard atmosphere is:",
+        ans: "661kt", // Key: 42=a
+        sol: "<strong>Answer Key Note:</strong> Derived directly from Option A in the textbook key."
+    },
+    {
+        q: "If a Decrease of 0.12 in the Mach number results in a decrease of 80 Knots in the TAS, what is the local speed of sound?",
+        ans: "667 Kts", // From text
+        sol: "<strong>Answer Key Note:</strong> Solution provided directly in the textbook text."
+    },
+    {
+        q: "An increase of 0.15 Mach results in an increase of 93 kt TAS of an aircraft. The local speed of sound is:",
+        ans: "620 kt", // Option a calculation
+        sol: "<strong>Answer Key Note:</strong> Mathematically derived from the provided question text."
+    }
+        ];
+
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
+        }
+
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
+            
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('theory-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectTheoryOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // PDF ENGINE LOGIC
+        // ==========================================
+        let currentPdfIndex = 0;
+        let pdfAnswers = [];
+        let pdfRightCount = 0;
+        let pdfWrongCount = 0;
+
+        function startPdf() {
+            if (pdf_mcqs.length === 0) { alert("PDF Engine is empty."); return; }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            pdfRightCount = 0;
+            pdfWrongCount = 0;
+            document.getElementById('pdf-right').innerText = "0";
+            document.getElementById('pdf-wrong').innerText = "0";
+            pdfAnswers = new Array(pdf_mcqs.length).fill(null);
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdf_mcqs.length === 0) return;
+            const qData = pdf_mcqs[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Q${currentPdfIndex + 1} of ${pdf_mcqs.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdf_mcqs.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('pdf-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pdfAnswers[currentPdfIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pdfAnswers[currentPdfIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPdfOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('pdf', qData, hasAnswered);
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdf_mcqs.length - 1;
+        }
+
+        function selectPdfOption(selectedIndex) { 
+            pdfAnswers[currentPdfIndex] = selectedIndex;
+            if (selectedIndex === pdf_mcqs[currentPdfIndex].correct) {
+                pdfRightCount++;
+                document.getElementById('pdf-right').innerText = pdfRightCount;
+            } else {
+                pdfWrongCount++;
+                document.getElementById('pdf-wrong').innerText = pdfWrongCount;
+            }
+            renderPdf(); 
+        }
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdf_mcqs.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // NUMERICAL ENGINE LOGIC (Flashcards)
+        // ==========================================
+        let currentNumIndex = 0;
+
+        function startNumerical() {
+            if (numerical_data.length === 0) { alert("Numerical Engine is empty."); return; }
+            switchView('numerical-page');
+            currentNumIndex = 0;
+            renderNumerical();
+        }
+
+        function renderNumerical() {
+            if (numerical_data.length === 0) return;
+            const qData = numerical_data[currentNumIndex];
+            
+            document.getElementById('num-counter').innerText = `Numerical Card ${currentNumIndex + 1} of ${numerical_data.length}`;
+            document.getElementById('num-progress').style.width = `${((currentNumIndex + 1) / numerical_data.length) * 100}%`;
+            
+            // Text ONLY (No numbering)
+            document.getElementById('num-q-text').innerHTML = qData.q;
+            
+            // Reset visibility
+            document.getElementById('num-ans-box').style.display = 'none';
+            document.getElementById('num-sol-box').style.display = 'none';
+            
+            // Populate content
+            document.getElementById('num-ans-box').innerHTML = `<strong>Answer:</strong> ${qData.ans}`;
+            document.getElementById('num-sol-box').innerHTML = qData.sol || "No solution provided.";
+            
+            document.getElementById('num-prev-btn').disabled = currentNumIndex === 0;
+            document.getElementById('num-next-btn').disabled = currentNumIndex === numerical_data.length - 1;
+        }
+
+        function goPrevNum() { if (currentNumIndex > 0) { currentNumIndex--; renderNumerical(); } }
+        function goNextNum() { if (currentNumIndex < numerical_data.length - 1) { currentNumIndex++; renderNumerical(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none';
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none';
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+            document.getElementById('pdf-card-count').innerText = pdf_mcqs.length + " MCQs";
+            document.getElementById('num-card-count').innerText = numerical_data.length + " Cards";
+        };
+    </script>
+</body>
+</html>
