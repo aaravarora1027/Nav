@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Tests | Air Navigation</title>
+    <style>
+        /* --- CORE STYLING --- */
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+            --selected-bg: #304ffe; --selected-border: #536dfe; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px 0; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; max-height: 95vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; overflow: hidden; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; flex-shrink: 0; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+
+        /* --- Mock Test List (Long Bars) --- */
+        .mock-list { display: flex; flex-direction: column; gap: 15px; margin-top: 10px; overflow-y: auto; padding-right: 10px; flex-grow: 1; }
+        .mock-bar { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 6px; padding: 20px 25px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; flex-shrink: 0; }
+        .mock-bar:hover { border-color: var(--text-muted); background-color: #0a0a0a; }
+        
+        .mock-info { display: flex; flex-direction: column; gap: 5px; }
+        .mock-title { font-size: 1.5rem; font-weight: bold; color: var(--text-main); }
+        .mock-count { font-size: 0.95rem; color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .mock-actions { display: flex; gap: 15px; }
+        .action-prac-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; font-size: 1rem; }
+        .action-prac-btn:hover { background-color: #666; }
+        .action-exam-btn { background-color: var(--bg-color); color: var(--selected-border); border: 1px solid var(--selected-border); padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 1rem; }
+        .action-exam-btn:hover { background-color: rgba(83, 109, 254, 0.1); border-color: #7b8aff; color: #7b8aff; }
+
+        /* --- Common Quiz Area --- */
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; overflow-y: auto; display: flex; flex-direction: column; }
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.2rem; color: var(--text-muted); font-weight: 600; }
+        
+        .question-text { font-size: 1.3rem; margin-bottom: 25px; line-height: 1.5; font-weight: 500; color: var(--text-main); } 
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        
+        /* Practice Mode Specifics */
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        .score-tracker { font-size: 1.1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        /* Exam Mode Specifics */
+        .mcq-option.selected { background-color: rgba(48, 79, 254, 0.15); border-color: var(--selected-border); }
+        .exam-header { display: flex; justify-content: space-between; align-items: center; background-color: var(--bg-color); border: 1px solid var(--border); padding: 15px 25px; border-radius: 6px; margin-bottom: 20px; flex-shrink: 0; }
+        .timer { font-size: 1.8rem; font-family: 'Courier New', monospace; font-weight: bold; color: var(--wrong-border); letter-spacing: 2px; }
+        .submit-btn { background-color: #d32f2f; color: white; border: none; font-weight: bold; padding: 10px 25px; border-radius: 4px; font-size: 1.1rem; cursor: pointer; transition: background 0.2s; }
+        .submit-btn:hover { background-color: #b71c1c; }
+        
+        /* Jump Grid */
+        .jump-grid-container { border-top: 1px solid var(--border); padding-top: 15px; margin-top: auto; flex-shrink: 0; }
+        .jump-grid-title { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .jump-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(35px, 1fr)); gap: 8px; max-height: 150px; overflow-y: auto; padding-right: 5px; }
+        .jump-btn { background-color: var(--panel-bg); color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 8px 0; text-align: center; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: all 0.2s; }
+        .jump-btn:hover { background-color: var(--highlight); color: white; }
+        .jump-btn.active { border-color: var(--text-main); color: var(--text-main); }
+        .jump-btn.attempted { background-color: var(--selected-border); color: white; border-color: var(--selected-bg); }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); flex-shrink: 0; }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 120px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+
+        /* --- Results & Review Screen (FIXED) --- */
+        .results-card { display: flex; flex-direction: column; align-items: center; padding: 10px 20px 0 20px; flex-grow: 1; overflow: hidden; width: 100%; }
+        .results-header-block { text-align: center; flex-shrink: 0; margin-bottom: 15px; }
+        .results-score { font-size: 4rem; font-weight: bold; color: var(--correct-border); margin: 5px 0; }
+        .results-details { font-size: 1.3rem; color: var(--text-muted); margin-bottom: 15px; }
+        
+        .review-section { width: 100%; overflow-y: auto; padding-right: 10px; border-top: 1px solid var(--border); padding-top: 20px; padding-bottom: 20px; flex-grow: 1; text-align: left; }
+        .review-title { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 15px; border-bottom: 1px dashed var(--border); padding-bottom: 10px; display: none; }
+        .review-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 15px 20px; border-radius: 6px; margin-bottom: 15px; }
+        .review-q { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--text-main); }
+        .review-wrong { color: var(--wrong-border); margin-bottom: 5px; font-weight: 500; }
+        .review-correct { color: var(--correct-border); font-weight: bold; }
+        .review-unattempted { color: var(--text-muted); margin-bottom: 5px; font-style: italic; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- HUB PAGE (List of 8 Mock Tests) -->
+        <div id="hub-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Mock Tests Terminal</h2>
+                <a href="index.html" class="nav-btn">Back to Index</a>
+            </div>
+            
+            <div class="mock-list" id="mock-list-container">
+                <!-- JavaScript will inject the 8 bars here -->
+            </div>
+        </div>
+
+        <!-- PRACTICE ENGINE -->
+        <div id="practice-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="prac-counter">Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="prac-right" class="score-right">0</span> | 
+                    Wrong: <span id="prac-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="quitToHub()">Exit Practice</button>
+            </div>
+            
+            <div class="content-area">
+                <div class="question-text" id="prac-q-text">Loading question...</div>
+                <div class="mcq-options" id="prac-options"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="prac-prev-btn" class="quiz-nav-btn" onclick="goPrevPrac()">Previous</button>
+                <button id="prac-next-btn" class="quiz-nav-btn" onclick="goNextPrac()">Next</button>
+            </div>
+        </div>
+
+        <!-- EXAM ENGINE -->
+        <div id="exam-page" class="view-section">
+            <div class="exam-header">
+                <h2 id="exam-counter" style="color: var(--text-muted);">Question 1 of X</h2>
+                <div class="timer" id="exam-timer">03:00:00</div>
+                <button class="submit-btn" onclick="submitExam()">Submit Test</button>
+            </div>
+            
+            <div class="content-area">
+                <div class="question-text" id="exam-q-text">Loading question...</div>
+                <div class="mcq-options" id="exam-options"></div>
+                
+                <div class="jump-grid-container">
+                    <div class="jump-grid-title">Navigation Panel (Click to jump)</div>
+                    <div class="jump-grid" id="exam-jump-grid"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="exam-prev-btn" class="quiz-nav-btn" onclick="goPrevExam()">Previous</button>
+                <button id="exam-next-btn" class="quiz-nav-btn" onclick="goNextExam()">Next</button>
+            </div>
+        </div>
+
+        <!-- RESULTS & REVIEW ENGINE -->
+        <div id="results-page" class="view-section">
+            <div class="results-card">
+                <div class="results-header-block">
+                    <h2>Exam Submitted</h2>
+                    <div class="results-score" id="results-score-display">0 / 0</div>
+                    <div class="results-details" id="results-percentage">0% Accurate</div>
+                    <button class="btn" style="border-color: var(--correct-border);" onclick="quitToHub()">Return to Hub</button>
+                </div>
+                
+                <h3 class="review-title" id="review-title">Incorrect & Unattempted Questions:</h3>
+                <div class="review-section" id="review-container">
+                    <!-- Incorrectly answered questions will populate here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        function quitToHub() {
+            if(examTimerInterval) clearInterval(examTimerInterval);
+            switchView('hub-page');
+        }
+
+        // ==========================================
+        // 8 DATA ARRAYS
+        // ==========================================
+        
+        // PASTE YOUR 100 QUESTIONS INSIDE THIS mock_data_1 ARRAY
+        const mock_data_1 = [{ q: "The rigidity of a gyroscope increases when:", options: ["a) RPM increases, mass concentrated near the center.", "b) RPM increases, mass concentrated at the periphery.", "c) RPM decreases, radius decreases."], correct: 1 },
+    { q: "During which approximate time of the year is the Earth at perihelion (closest to the sun)?", options: ["a) 21 March.", "b) 21 September.", "c) Beginning of January."], correct: 2 },
+    { q: "How is 'convergency' defined in navigation?", options: ["a) The angle of inclination of meridians towards each other.", "b) The angle at which a meridian intersects the equator.", "c) The inclination angle between two parallels of latitude."], correct: 0 },
+    { q: "What is the initial great circle track from point A (S 27° 30' E 017° 45') to point B (S 27° 30' E 029° 15')?", options: ["a) 092.65°", "b) 088.34°", "c) 091.61°"], correct: 0 },
+    { q: "Evaluate the following statements regarding sunrise and sunset times:", options: ["a) In May, sunrise happens later at 4500N than 4500S.", "b) In November, sunset happens earlier at 4500S than 4500N.", "c) At the equator, sunrise and sunset happen at fairly regular times year-round."], correct: 2 },
+    { q: "When flying toward the International Date Line from an easterly direction, you:", options: ["a) should increase the date by one at the first midnight.", "b) must be prepared to subtract 1 from your current date.", "c) must be prepared to add 1 to your current date."], correct: 1 },
+    { q: "If the Magnetic direction is 270° and the True direction is 265°, what is the magnetic variation?", options: ["a) 5° West", "b) 5° East", "c) 5° West in the Northern Hemisphere"], correct: 0 },
+    { q: "Zero magnetic variation is found exclusively at:", options: ["a) the Equator", "b) the Poles", "c) it could occur anywhere"], correct: 2 },
+    { q: "Which aircraft radio equipment operates on a frequency of 4400 MHz?", options: ["a) Weather radar", "b) Primary radar", "c) Radio altimeter"], correct: 2 },
+    { q: "Calculate the rhumb-line distance between point A (60°00'N 002°30'E) and point B (60°00'N 007°30'W).", options: ["a) 600nm", "b) 450nm", "c) 300nm"], correct: 2 },
+    { q: "An aircraft flies the following rhumb line tracks from 04°00'N 030°00'W: 700 NM South, 700 NM East, 700 NM North, 700 NM West. What is its final position?", options: ["a) 04° 00'N 030° 30'W.", "b) 03° 58'N 030° 02'W.", "c) 04° 00'N 029° 55'W."], correct: 2 },
+    { q: "An aircraft at 60°N 005°W flies a track of 090°(T) for 350 km. What is the final longitude?", options: ["a) 002° 10'W.", "b) 000° 15'E.", "c) 001° 19'E."], correct: 0 },
+    { q: "What is the approximate circumference of the Earth?", options: ["a) 5,600 Km.", "b) 13,200 Km.", "c) 40,000 Km."], correct: 2 },
+    { q: "An aircraft over PONTA (55°30'N 060°15'W) receives PBN VOR (53°30'N 060°15'W). Mag variation is 31°W at PONTA and 28°W at PBN. What is the radial from PBN?", options: ["a) 031°", "b) 332°", "c) 028°"], correct: 2 },
+    { q: "Distance Q to R is 1960 NM. GS out is 380 kt, GS back is 470 kt. Safe endurance is 7 HR. What is the distance to the Point of Safe Return (PSR)?", options: ["a) 1471 NM.", "b) 1442 NM.", "c) 1538 NM."], correct: 0 },
+    { q: "What is the microtesla strength of the horizontal (H) component of Earth's magnetic field directly at the magnetic North pole?", options: ["a) 0.", "b) 10.", "c) 16."], correct: 0 },
+    { q: "A direct reading magnetic compass is negatively affected by: 1. Nearby electrical equipment, 2. Ferrous metals, 3. Non-ferrous metals.", options: ["a) 1, 2.", "b) 1, 3.", "c) 1, 4."], correct: 0 },
+    { q: "If the ADF pointer indicates 270 degrees while the RMI rose is stuck at 075 degrees, what is the relative bearing of the beacon?", options: ["a) 290 degrees.", "b) 110 degrees.", "c) 195 degrees."], correct: 2 },
+    { q: "In the southern hemisphere, when an aircraft lands on a southerly heading, the direct reading magnetic compass will indicate:", options: ["a) a 180 degree turn to the west.", "b) a 180 degree turn to the east.", "c) no apparent turn."], correct: 2 },
+    { q: "Which of the following statements about great circles on a direct Mercator chart is true?", options: ["a) Except for meridians and the equator, they are curves concave to the equator.", "b) Their center cannot be the center of the Earth.", "c) They are always represented by straight lines."], correct: 0 },
+    { q: "On a polar stereographic chart tangent at the pole, how do great circles (excluding meridians) appear?", options: ["a) The higher the latitude, the closer they approximate a straight line.", "b) The lower the latitude, the closer they approximate a straight line.", "c) They are all perfectly straight lines."], correct: 0 },
+    { q: "Distance Q to R is 1970 NM. GS out is 436 kt, GS back is 485 kt. Safe endurance is 9 HR. What is the distance to the Point of Safe Return (PSR)?", options: ["a) 1964 MIN.", "b) 2079 MIN.", "c) 2066 MIN."], correct: 2 },
+    { q: "True course A to B is 090°, TAS 460 kts, W/V = 360/100 kt, Variation 10°E, Deviation -2°. Calculate compass heading and groundspeed.", options: ["a) 069° - 448 kt.", "b) 067° - 446 kt.", "c) 069° - 458 kt."], correct: 0 },
+    { q: "What is the true altitude if the altimeter indicates 16,000 ft and the ambient temperature is -30° C?", options: ["a) 15200 ft.", "b) 16200 ft.", "c) 16400 ft."], correct: 1 },
+    { q: "Pressure altitude is 30,000 ft, indicated TAT is -10° C, Mach number is 0.82. What is the density altitude?", options: ["a) 31000 ft.", "b) 30382 ft.", "c) 30674 ft."], correct: 1 },
+    { q: "When descending at a constant CAS through an isothermal layer, what happens to the True Airspeed (TAS)?", options: ["a) TAS increases.", "b) TAS decreases.", "c) TAS remains constant."], correct: 1 },
+    { q: "During a constant CAS climb, how does the Mach meter indication behave?", options: ["a) Increase.", "b) Decrease.", "c) Remain constant."], correct: 0 },
+    { q: "What do Mach meter indications primarily vary with?", options: ["a) Airspeed and temperature.", "b) Only airspeed.", "c) Density and altitude."], correct: 1 },
+    { q: "Points A and B are 1000 NM apart. TAS = 490 kt. Headwind out is -20 kt, return headwind is +40 kt. What is the distance from A to the Point of Equal Time (PET)?", options: ["a) 470 NM.", "b) 455 NM.", "c) 530 NM."], correct: 1 },
+    { q: "Aircraft flying A to B. Distance is 3000 NM. TAS 390 kt, mean wind out +55 kt, mean wind back -75 kt. Safe endurance 9 HR 30 MIN. Distance to Point of Safe Return (PSR)?", options: ["a) 2254 NM.", "b) 1752 NM.", "c) 1711 NM."], correct: 2 },
+    { q: "TAS = 197 kt, True course = 240°, W/V = 180/30 kt. Descent from FL 220 to FL 40 covers 39 NM. What is the approximate rate of descent?", options: ["a) 800 FT/MIN.", "b) 950 FT/MIN.", "c) 1400 FT/MIN."], correct: 0 },
+    { q: "Aircraft on ILS 3 degree glide slope, crossing threshold at 50 ft. DME is 18 nm from threshold. What is the height above threshold elevation? (Use 1 in 60 rule and 6080 ft = 1 NM)", options: ["a) 5522 feet.", "b) 5472 feet.", "c) 5422 feet."], correct: 1 },
+    { q: "When an airplane's center of gravity is at the forward limit, the aircraft will be:", options: ["a) highly unstable, requiring small elevator control for pitch changes.", "b) highly stable, requiring significant elevator control for pitch changes.", "c) highly stable, requiring small elevator control for pitch changes."], correct: 1 },
+    { q: "Adding fixed necessary equipment (catering, safety/rescue gear, crew) to the basic empty mass yields:", options: ["a) landing mass.", "b) dry operating mass.", "c) take-off mass."], correct: 1 },
+    { q: "Jet transport limits: Max Ramp Mass 63,060 kg, Max Take Off 62,800 kg, Max Landing 54,900 kg, Max Zero Fuel 51,300 kg. Taxi 400 kg, Trip fuel 8400 kg, Reserve 1800 kg, Alternate 1100 kg. If Dry Operating Mass is 34,930 kg, what is the maximum traffic load if fields are not performance limited?", options: ["a) 16,370 kg", "b) 16,430 kg", "c) 17,070 kg"], correct: 1 },
+    { q: "Determine Zero Fuel Mass: Standard Empty Mass 1764 lbs, Optional Eq 35 lbs, Pilot+Pax 300 lbs, Cargo 350 lbs. Fuel density 6 lbs/Gal.", options: ["a) 2659 lbs", "b) 2414 lbs", "c) 2449 lbs"], correct: 2 },
+    { q: "Max Landing Mass 125,000 kg, Max Zero Fuel 108,500 kg, Max Take-off 155,000 kg, Dry Operating Mass 82,000 kg. Trip fuel 17,000 kg, reserve 5,000 kg. What is the maximum permitted take-off mass and maximum traffic load?", options: ["a) 130500 kg and 26500 kg", "b) 130500 kg and 31500 kg", "c) 125500 kg and 21500 kg"], correct: 1 },
+    { q: "Loads within the aircraft must be adequately secured to:", options: ["a) avoid excessive g-loading in the flare.", "b) prevent unplanned CG shifts and structural damage.", "c) allow for steep turns."], correct: 1 },
+    { q: "Who carries the responsibility for determining the principal method of loading the aircraft?", options: ["a) the operator", "b) the loading supervisor", "c) the CAA"], correct: 0 },
+    { q: "A reduction in aircraft airspeed will cause an air-driven artificial horizon to indicate:", options: ["a) a climbing turn to the right.", "b) a pitch up.", "c) a descending turn to the left."], correct: 2 },
+    { q: "While executing a turn at the magnetic equator with a direct reading compass, there will be:", options: ["a) no turning error.", "b) an over-read through North and under-read through South.", "c) a tendency to under-read all turns due to liquid swirl."], correct: 0 },
+    { q: "Under IFR, what are the minimum deviations in TAS and time that must be reported to ATC to conform to PANS-RAC?", options: ["a) TAS 10kt and time 2 minutes", "b) TAS 5% and time 3 minutes", "c) TAS 3% and time 3 minutes"], correct: 2 },
+    { q: "Magnetic heading 311°, Drift angle 10° left, Relative bearing of NDB 270°. What is the magnetic bearing of the NDB measured from the aircraft?", options: ["a) 221°", "b) 208°", "c) 211°"], correct: 1 },
+    { q: "Which white EFIS symbol generally represents the aircraft?", options: ["a) Triangle", "b) House-shape", "c) Circle"], correct: 0 },
+    { q: "What is the effect on the Mach number and TAS in an aircraft that is climbing at a constant CAS?", options: ["a) Both Mach number and TAS increase.", "b) Mach number increases; TAS remains constant.", "c) Both Mach number and TAS decrease."], correct: 0 },
+    { q: "If the aircraft's left static pressure port accidentally closes (e.g., rain, birds), how will the altimeter behave?", options: ["a) Over-reads in a right side-slip, accurate in symmetric flight.", "b) Provides reliable readings in all situations.", "c) Over-reads in a left side-slip, accurate in symmetric flight."], correct: 2 },
+    { q: "If one altimeter is position-error compensated and another is uncompensated, all other factors being equal at high speeds:", options: ["a) the uncompensated altimeter will indicate a lower altitude.", "b) the uncompensated altimeter will indicate a higher altitude.", "c) ATC will receive an erroneous SSR report."], correct: 0 },
+    { q: "A volcanic cloud blocks the total pressure probe of the ASI. If the pilot begins a stabilized descent, the indicated airspeed will:", options: ["a) increase steadily.", "b) decrease abruptly towards zero.", "c) decrease steadily."], correct: 1 },
+    { q: "In a constant RAS (Rectified Airspeed) climb, the Mach meter indication will:", options: ["a) decrease.", "b) increase.", "c) increase then remain constant."], correct: 0 },
+    { q: "The hysteresis error of an altimeter varies substantially based on the:", options: ["a) time spent at a given altitude.", "b) Mach number of the aircraft.", "c) altitude of the aircraft."], correct: 2 },
+    { q: "When flying from a sector of warm air into a sector of colder air, the altimeter will:", options: ["a) over-read.", "b) read just as correctly as before.", "c) show the actual height above ground."], correct: 0 },
+    { q: "What does QNH represent?", options: ["a) Ambient pressure at mean sea level.", "b) Pressure set to obtain a zero indication on the runway.", "c) Pressure set to obtain the runway's elevation reading."], correct: 0 },
+    { q: "During approach, the radio altimeter reads 650 ft. This indicates the:", options: ["a) height of the lowest wheels above the ground at that instant.", "b) height of the aircraft above the ground at that instant.", "c) height of the aircraft relative to the runway elevation."], correct: 0 },
+    { q: "Modern low-altitude radio altimeters emit waves in which frequency band?", options: ["a) HF (High Frequency)", "b) UHF (Ultra High Frequency)", "c) SHF (Super High Frequency)"], correct: 2 },
+    { q: "The operation of a modern aircraft's radio altimeter is based on:", options: ["a) Pulse modulation of the carrier wave.", "b) A combination of frequency and pulse modulation.", "c) Frequency modulation of the carrier wave."], correct: 2 },
+    { q: "If the pitot tube becomes partially blocked:", options: ["a) The VSI indication will be too low when climbing.", "b) The VSI will be too low when descending.", "c) The VSI will not be affected."], correct: 2 },
+    { q: "If the static port becomes partially blocked:", options: ["a) The VSI indication will be too high when descending.", "b) The VSI will read too high when accelerating in a constant descent.", "c) The VSI indication will be too low when descending."], correct: 2 },
+    { q: "What does the symbol AS (or similar structural speed limit) usually denote?", options: ["a) MMO.", "b) VNE.", "c) Temperature and VMO."], correct: 1 },
+    { q: "How is VNO defined?", options: ["a) Speed that may only be exceeded with caution and in still air.", "b) Speed that must never be exceeded.", "c) Speed that may be exceeded only in emergencies."], correct: 0 },
+    { q: "In an unpressurized aircraft, if the pitot tube fractures and its drain blocks, the ASI will:", options: ["a) over-read.", "b) under-read.", "c) give a constant reading."], correct: 1 },
+    { q: "To meet an arrival time, a pilot of a pressurized aircraft descends at maximum ground speed. This descent speed is limited by:", options: ["a) MMO only.", "b) VMO in still air.", "c) Initially by MMO, then by VMO below a specific flight level."], correct: 2 },
+    { q: "In a standard atmosphere at sea level, the Calibrated Airspeed (CAS) is:", options: ["a) Lower than the true airspeed (TAS).", "b) Equal to the true airspeed (TAS).", "c) Independent of the true airspeed (TAS)."], correct: 1 },
+    { q: "What is VLO?", options: ["a) Maximum speed at which the landing gear can be operated safely.", "b) Maximum flight speed with the landing gear extended.", "c) Maximum speed with flaps extended in a given position."], correct: 0 },
+    { q: "Mach meter indications are affected by which variables?", options: ["a) Airspeed and temperature", "b) Only airspeed", "c) Only temperature"], correct: 1 },
+    { q: "If an aircraft flies through a cold front at a constant CAS and altitude, how will the Mach meter respond?", options: ["a) Increase.", "b) Decrease.", "c) Remain constant."], correct: 2 },
+    { q: "To achieve the best efficiency in a gyroscope, the mass should be concentrated:", options: ["a) Close to the axis with a low rotation speed.", "b) On the periphery with a high rotation speed.", "c) Close to the axis with a high rotation speed."], correct: 1 },
+    { q: "A standby horizon or emergency attitude indicator:", options: ["a) Only operates during a complete electrical failure.", "b) Contains its own separate gyro.", "c) Automatically connects to the primary vertical gyro if the alternator fails."], correct: 1 },
+    { q: "A standard turn indicator is built around a gyroscope possessing:", options: ["a) 1 degree of freedom.", "b) 3 degrees of freedom.", "c) 2 degrees of freedom."], correct: 0 },
+    { q: "Directional gyro indications are subject to errors from: 1. Earth rotation, 2. Aircraft motion on Earth, 3. Lateral/transversal bank angles, 4. North change, 5. Mechanical defects.", options: ["a) 2, 3, 5.", "b) 1, 2, 3, 5.", "c) 3, 4, 5."], correct: 1 },
+    { q: "During a 270° turn at constant bank and pitch, a classic artificial horizon will show:", options: ["a) Excessive nose-up and insufficient bank angle.", "b) Excessive nose-up and excessive bank angle.", "c) Insufficient nose-up and insufficient bank angle."], correct: 1 },
+    { q: "An artificial horizon utilizes a gyroscope featuring:", options: ["a) Two degrees of freedom and a vertical spin axis.", "b) Two degrees of freedom and a longitudinal spin axis.", "c) Two degrees of freedom and a lateral spin axis."], correct: 0 },
+    { q: "When used with an attitude indicator, a turn indicator will show: 1. Turn direction, 2. Rate of turn, 3. Angular velocity about true vertical axis.", options: ["a) 1, 2.", "b) 1, 3.", "c) 1, 2, 4."], correct: 0 },
+    { q: "Rate of Turn indications are generally:", options: ["a) Proportional to TAS.", "b) Proportional to CAS.", "c) Proportional to mass."], correct: 0 },
+    { q: "For a rate one turn at 150 Kts, the required Angle of Bank (AOB) is approximately:", options: ["a) 22°.", "b) 33°.", "c) 44°."], correct: 0 },
+    { q: "Following an engine failure, the pilot uses rudder to arrest yaw but side-slips down track with wings level. The turn and slip indicator will show:", options: ["a) Both needle and ball central.", "b) Needle central, ball displaced left.", "c) Needle central, ball displaced right."], correct: 0 },
+    { q: "In a GNSS/GPS system, a position fix is obtained by:", options: ["a) measuring the phase angle of signals received from satellites.", "b) measuring the signal travel time from the aircraft to satellites and back.", "c) measuring the time taken for satellite transmissions to reach the receiver."], correct: 2 },
+    { q: "An airway 10 NM wide is defined by two VORs (accuracy +/- 3.5°). To ensure accurate tracking within the airway, the maximum distance between the transmitters is approximately:", options: ["a) 50 NM", "b) 165 NM", "c) 105 NM"], correct: 1 },
+    { q: "If a DME in tracking mode suffers a signal strength reduction, the equipment initially switches to:", options: ["a) standby mode", "b) signal controlled search", "c) memory mode"], correct: 1 },
+    { q: "In which situation will an airborne DME speed indication most accurately represent the aircraft's groundspeed?", options: ["a) Tracking directly away from the station at a range of 10 NM.", "b) Tracking directly towards the station at 100 NM or more.", "c) Passing abeam the station within 5 NM at FL400."], correct: 0 },
+    { q: "Which of the following is a standard ILS localizer frequency?", options: ["a) 109.15 MHz", "b) 108.25 MHz", "c) 110.20 MHz"], correct: 0 },
+    { q: "A primary radar operates on the principle of:", options: ["a) phase comparison", "b) continuous wave transmission", "c) pulse technique"], correct: 2 },
+    { q: "What factors are most liable to affect NDB/ADF system performance and reliability?", options: ["a) static interference, night effect, absence of failure warning system.", "b) static interference, station interference, latitude error.", "c) height error, station interference, mountain effect."], correct: 0 },
+    { q: "Why does a DME system use different frequencies for transmitting and receiving?", options: ["a) To prevent the receiving equipment from self-triggering via the transmitter.", "b) To avoid receiving signals intended for other aircraft.", "c) To prevent system overload."], correct: 0 },
+    { q: "What is the maximum distance between VOR and DME installations for them to share the same Morse code identifier?", options: ["a) 600 m", "b) 2000 m", "c) 300 m"], correct: 0 },
+    { q: "The minimum number of satellites required for Receiver Autonomous Integrity Monitoring (RAIM) is:", options: ["a) 3", "b) 4", "c) 5"], correct: 2 },
+    { q: "What is the first returning sky wave called?", options: ["a) The critical ray.", "b) The sky ray.", "c) The space wave."], correct: 0 },
+    { q: "Under what condition is the Critical Point (CP) located exactly halfway?", options: ["a) In 0 wind (O-H) conditions.", "b) In nil wind conditions.", "c) In beam wind conditions."], correct: 1 },
+    { q: "When tracking inbound on a VOR radial, the aircraft flies a:", options: ["a) constant heading.", "b) rhumb line track.", "c) great circle track."], correct: 2 },
+    { q: "What is a VOT?", options: ["a) A test VOR.", "b) A tracking VOR.", "c) A terminal VOR."], correct: 0 },
+    { q: "Aircraft heading 100°(M) from a VOR. To center the needle with a 'TO' flag showing, set the OBS to:", options: ["a) 110 degrees.", "b) 290 degrees.", "c) 280 degrees."], correct: 2 },
+    { q: "Heading 090°, Dev 2°W, Var 12°E, TAS 160 kt. Tracking radial 070° from a VOR at 14 NM in 6 MIN. Wind velocity (T)?", options: ["a) 160°/50 kt.", "b) 150°/50 kt.", "c) 160°/60 kt."], correct: 0 },
+    { q: "In a banked turn, a barometric altimeter relying on a single static source will:", options: ["a) over-indicate.", "b) under-indicate.", "c) over or under indicate, depending on the position of the static source."], correct: 2 },
+    { q: "What defines the Conversion angle?", options: ["a) Difference between G/C measured at either meridian.", "b) Difference between G/C and R/L Bearings.", "c) Difference between Grid north and True North."], correct: 1 },
+    { q: "A Mach meter is essentially constructed of:", options: ["a) An altimeter with a density capsule.", "b) An ASI with an altitude capsule.", "c) A VSI with a modified scale."], correct: 1 },
+    { q: "VMO is calculated based on:", options: ["a) TAS.", "b) EAS.", "c) CAS."], correct: 0 },
+    { q: "In a non-pressurized aircraft, if static ports are damaged, breaking the VSI glass window will:", options: ["a) partially restore ambient cabin pressure as an emergency means.", "b) slightly open a window to restore pressure.", "c) require descending to reach 1013.25 hPa."], correct: 0 },
+    { q: "The response time of a vertical speed indicator may be increased by adding a:", options: ["a) correction based on an accelerometer sensor.", "b) bi-metallic strip.", "c) return spring."], correct: 2 },
+    { q: "Heading information from a gyro platform is provided by a gyro featuring:", options: ["a) 2 degrees-of-freedom in the vertical axis.", "b) 1 degree-of-freedom in the horizontal axis.", "c) 2 degrees-of-freedom in the horizontal axis."], correct: 2 },
+    { q: "In low-altitude radio altimeters, height measurement is based upon:", options: ["a) a frequency modulation wave measuring the frequency shift between transmitted and received ground reflections.", "b) a pulse transmission measuring the time between transmission and reception.", "c) a continuous wave transmission measuring DOPPLER shift."], correct: 0 },
+    { q: "Based on a standard HSI display with the lubber line indicating right of the 025° bug, what heading is the aircraft currently flying?", options: ["a) 025°", "b) 030°", "c) 037°"], correct: 2 }
+            
+        ];
+        
+        const mock_data_2 = [];
+        const mock_data_3 = [];
+        const mock_data_4 = [];
+        const mock_data_5 = [];
+        const mock_data_6 = [];
+        const mock_data_7 = [];
+        const mock_data_8 = [];
+
+        const all_mocks = {
+            1: mock_data_1, 2: mock_data_2, 3: mock_data_3, 4: mock_data_4, 
+            5: mock_data_5, 6: mock_data_6, 7: mock_data_7, 8: mock_data_8
+        };
+
+        // Initialize the Hub Page List
+        window.onload = function() {
+            const listContainer = document.getElementById('mock-list-container');
+            for(let i = 1; i <= 8; i++) {
+                const count = all_mocks[i].length;
+                listContainer.innerHTML += `
+                    <div class="mock-bar">
+                        <div class="mock-info">
+                            <div class="mock-title">Mock Test ${i}</div>
+                            <div class="mock-count">${count} Questions</div>
+                        </div>
+                        <div class="mock-actions">
+                            <button class="action-prac-btn" onclick="startPractice(${i})">Practice</button>
+                            <button class="action-exam-btn" onclick="startExam(${i})">Start Exam</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        let activeData = [];
+
+        // ==========================================
+        // PRACTICE ENGINE LOGIC
+        // ==========================================
+        let currentPracIndex = 0;
+        let pracAnswers = [];
+        let pracRightCount = 0;
+        let pracWrongCount = 0;
+
+        function startPractice(testId) {
+            activeData = all_mocks[testId];
+            if (activeData.length === 0) { alert(`Mock Test ${testId} is currently empty.`); return; }
+            
+            switchView('practice-page');
+            currentPracIndex = 0;
+            pracRightCount = 0;
+            pracWrongCount = 0;
+            document.getElementById('prac-right').innerText = "0";
+            document.getElementById('prac-wrong').innerText = "0";
+            pracAnswers = new Array(activeData.length).fill(null);
+            renderPractice();
+        }
+
+        function renderPractice() {
+            if (activeData.length === 0) return;
+            const qData = activeData[currentPracIndex];
+            document.getElementById('prac-counter').innerText = `Practice Q${currentPracIndex + 1} of ${activeData.length}`;
+            document.getElementById('prac-q-text').innerHTML = `<strong>Q${currentPracIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('prac-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pracAnswers[currentPracIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pracAnswers[currentPracIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPracOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+            
+            document.getElementById('prac-prev-btn').disabled = currentPracIndex === 0;
+            document.getElementById('prac-next-btn').disabled = currentPracIndex === activeData.length - 1;
+        }
+
+        function selectPracOption(selectedIndex) { 
+            pracAnswers[currentPracIndex] = selectedIndex;
+            if (selectedIndex === activeData[currentPracIndex].correct) {
+                pracRightCount++;
+                document.getElementById('prac-right').innerText = pracRightCount;
+            } else {
+                pracWrongCount++;
+                document.getElementById('prac-wrong').innerText = pracWrongCount;
+            }
+            renderPractice(); 
+        }
+        function goPrevPrac() { if (currentPracIndex > 0) { currentPracIndex--; renderPractice(); } }
+        function goNextPrac() { if (currentPracIndex < activeData.length - 1) { currentPracIndex++; renderPractice(); } }
+
+
+        // ==========================================
+        // EXAM ENGINE LOGIC
+        // ==========================================
+        let currentExamIndex = 0;
+        let examQuestions = []; 
+        let examTimerInterval;
+        let examSecondsRemaining = 10800; // 3 hours
+
+        function startExam(testId) {
+            activeData = all_mocks[testId];
+            if (activeData.length === 0) { alert(`Mock Test ${testId} is currently empty.`); return; }
+            
+            if(!confirm(`Start 3-Hour Exam for Mock Test ${testId}?\nTimer will begin immediately.`)) return;
+
+            switchView('exam-page');
+            currentExamIndex = 0;
+            
+            // Generate Scrambled Options
+            examQuestions = activeData.map(q => {
+                let mappedOptions = q.options.map((opt, idx) => ({ text: opt, isCorrect: (idx === q.correct) }));
+                
+                // Fisher-Yates Shuffle
+                for (let i = mappedOptions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [mappedOptions[i], mappedOptions[j]] = [mappedOptions[j], mappedOptions[i]];
+                }
+
+                return {
+                    originalQ: q.q,
+                    shuffledOptions: mappedOptions,
+                    userSelectedIndex: null
+                };
+            });
+
+            buildJumpGrid();
+
+            // Start Timer
+            examSecondsRemaining = 10800;
+            updateTimerDisplay();
+            clearInterval(examTimerInterval);
+            examTimerInterval = setInterval(timerTick, 1000);
+
+            renderExam();
+        }
+
+        function renderExam() {
+            if (examQuestions.length === 0) return;
+            const qState = examQuestions[currentExamIndex];
+            
+            document.getElementById('exam-counter').innerText = `Exam Q${currentExamIndex + 1} of ${examQuestions.length}`;
+            document.getElementById('exam-q-text').innerHTML = `<strong>Q${currentExamIndex + 1}.</strong> ` + qState.originalQ;
+            
+            const optionsContainer = document.getElementById('exam-options');
+            optionsContainer.innerHTML = '';
+            
+            qState.shuffledOptions.forEach((optObj, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optObj.text;
+                
+                if (qState.userSelectedIndex === index) {
+                    btn.classList.add('selected');
+                }
+                
+                btn.onclick = () => selectExamOption(index);
+                optionsContainer.appendChild(btn);
+            });
+            
+            updateJumpGridUI();
+            
+            document.getElementById('exam-prev-btn').disabled = currentExamIndex === 0;
+            document.getElementById('exam-next-btn').disabled = currentExamIndex === examQuestions.length - 1;
+        }
+
+        function selectExamOption(selectedIndex) {
+            examQuestions[currentExamIndex].userSelectedIndex = selectedIndex;
+            renderExam();
+        }
+
+        function goPrevExam() { if (currentExamIndex > 0) { currentExamIndex--; renderExam(); } }
+        function goNextExam() { if (currentExamIndex < examQuestions.length - 1) { currentExamIndex++; renderExam(); } }
+        function jumpToQuestion(index) { currentExamIndex = index; renderExam(); }
+
+        function buildJumpGrid() {
+            const grid = document.getElementById('exam-jump-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < examQuestions.length; i++) {
+                const btn = document.createElement('div');
+                btn.className = 'jump-btn';
+                btn.id = `jump-btn-${i}`;
+                btn.innerText = i + 1;
+                btn.onclick = () => jumpToQuestion(i);
+                grid.appendChild(btn);
+            }
+        }
+
+        function updateJumpGridUI() {
+            for (let i = 0; i < examQuestions.length; i++) {
+                const btn = document.getElementById(`jump-btn-${i}`);
+                if (!btn) continue;
+                
+                btn.className = 'jump-btn';
+                if (examQuestions[i].userSelectedIndex !== null) btn.classList.add('attempted');
+                if (i === currentExamIndex) btn.classList.add('active');
+            }
+        }
+
+        function timerTick() {
+            if (examSecondsRemaining > 0) {
+                examSecondsRemaining--;
+                updateTimerDisplay();
+            } else {
+                clearInterval(examTimerInterval);
+                alert("Time is up! Auto-submitting exam.");
+                submitExam(true); 
+            }
+        }
+
+        function updateTimerDisplay() {
+            const h = Math.floor(examSecondsRemaining / 3600).toString().padStart(2, '0');
+            const m = Math.floor((examSecondsRemaining % 3600) / 60).toString().padStart(2, '0');
+            const s = (examSecondsRemaining % 60).toString().padStart(2, '0');
+            document.getElementById('exam-timer').innerText = `${h}:${m}:${s}`;
+        }
+
+        // --- Scoring & Review Generation ---
+        function submitExam(force = false) {
+            if (!force) {
+                const unattempted = examQuestions.filter(q => q.userSelectedIndex === null).length;
+                let msg = "Submit the exam?";
+                if (unattempted > 0) msg += `\nYou have ${unattempted} unattempted questions!`;
+                if (!confirm(msg)) return;
+            }
+
+            clearInterval(examTimerInterval);
+            
+            let finalScore = 0;
+            let hasMistakes = false;
+            
+            const reviewContainer = document.getElementById('review-container');
+            const reviewTitle = document.getElementById('review-title');
+            reviewContainer.innerHTML = ''; // Clear previous review
+
+            examQuestions.forEach((qState, index) => {
+                const isAttempted = qState.userSelectedIndex !== null;
+                const isCorrect = isAttempted && qState.shuffledOptions[qState.userSelectedIndex].isCorrect;
+
+                if (isCorrect) {
+                    finalScore++;
+                } else {
+                    hasMistakes = true;
+                    // Find correct answer text
+                    const correctOpt = qState.shuffledOptions.find(o => o.isCorrect).text;
+                    // Find what user selected
+                    const userOpt = isAttempted ? qState.shuffledOptions[qState.userSelectedIndex].text : "";
+
+                    const reviewHtml = `
+                        <div class="review-card">
+                            <div class="review-q">Q${index + 1}. ${qState.originalQ}</div>
+                            ${isAttempted ? `<div class="review-wrong">✖ Your Answer: ${userOpt}</div>` : `<div class="review-unattempted">⚠ Not Attempted</div>`}
+                            <div class="review-correct">✔ Correct Answer: ${correctOpt}</div>
+                        </div>
+                    `;
+                    reviewContainer.innerHTML += reviewHtml;
+                }
+            });
+
+            // Toggle visibility of the review section
+            if(hasMistakes) {
+                reviewTitle.style.display = 'block';
+            } else {
+                reviewTitle.style.display = 'none';
+                reviewContainer.innerHTML = '<div style="text-align:center; color: var(--correct-border); font-size: 1.2rem; margin-top: 20px;">Perfect Score! No mistakes to review.</div>';
+            }
+
+            switchView('results-page');
+            document.getElementById('results-score-display').innerText = `${finalScore} / ${examQuestions.length}`;
+            let percent = ((finalScore / examQuestions.length) * 100).toFixed(1);
+            document.getElementById('results-percentage').innerText = `${percent}% Accurate`;
+        }
+
+    </script>
+</body>
+</html>

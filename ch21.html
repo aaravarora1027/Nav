@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 21 | VOR</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; border-radius: 8px; }
+        .flashcard-ans-box { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 20px; font-size: 1.15rem; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; margin-top: 25px; margin-bottom: 25px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 21: VOR</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startTheory()">
+                    <h3>Theory Engine</h3>
+                    <p id="theory-card-count">Loading MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startPdf()">
+                    <h3>PDF Data</h3>
+                    <p id="pdf-card-count">Loading PDF MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startNumerical()">
+                    <h3>Numericals</h3>
+                    <p id="num-card-count">Loading Flashcards...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
+
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF ENGINE (MCQ) -->
+        <div id="pdf-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="pdf-right" class="score-right">0</span> | 
+                    Wrong: <span id="pdf-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="mcq-options" id="pdf-options"></div>
+
+                <div id="pdf-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="pdf-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="pdf-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+        <!-- NUMERICAL ENGINE (FLASHCARDS) -->
+        <div id="numerical-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="num-counter">Numerical 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Numericals</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="num-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="num-q-text" style="font-size: 1.4rem;">Loading problem...</div>
+                
+                <div class="btn-group">
+                    <button class="btn" onclick="document.getElementById('num-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" onclick="document.getElementById('num-sol-box').style.display='block'">Reveal Solution</button>
+                </div>
+
+                <div id="num-ans-box" class="flashcard-ans-box" style="display:none;"></div>
+                <div id="num-sol-box" class="feedback-solution" style="display:none;"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="num-prev-btn" class="quiz-nav-btn" onclick="goPrevNum()">Previous</button>
+                <button id="num-next-btn" class="quiz-nav-btn" onclick="goNextNum()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAYS (Awaiting Data)
+        // ==========================================
+        const theory_mcqs = [
+            {
+    q: "A VOR receiver check can be made",
+    options: [
+      "a) Any where on the ground",
+      "b) At designated check point on airport surface.",
+      "c) Any where in the air/ ground"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> Refer to VOR operational procedures."
+  },
+  {
+    q: "DVOR works on the principle of",
+    options: [
+      "a) Measuring Doppler frequency shift between fixed and variable signal.",
+      "b) Measuring phase difference between fixed and variable signal.",
+      "c) Measuring time difference induced by Doppler frequency shift in single signal"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> DVOR determines bearing by measuring the phase difference between the reference and variable signals."
+  },
+  {
+    q: "If an aircraft flies along a VOR radial it will follow a:",
+    options: [
+      "a) constant magnetic track",
+      "b) great circle track",
+      "c) Rhumb line track"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> VOR radials are great circle tracks originating from the station."
+  },
+  {
+    q: "An omni-bearing selector (OBS) shows full deflection to the left when within range of a serviceable VOR. What angular deviation are you from the selected radial?",
+    options: [
+      "a) 1.5° or more",
+      "b) 2.5° or more",
+      "c) 10° or more"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Full scale deflection on a standard VOR indicator represents 10 degrees or more of deviation."
+  },
+  {
+    q: "The two signals transmitted by a conventional VOR ground station are 90° out of phase on magnetic:",
+    options: [
+      "a) north",
+      "b) west",
+      "c) east"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> By convention, the signals are in phase at Magnetic North and 90° out of phase at Magnetic East."
+  },
+  {
+    q: "The frequency range of a VOR receiver is:",
+    options: [
+      "a) 108 to 135.95 MHz",
+      "b) 108 to 117.95 MHz",
+      "c) 118 to 135.95 MHz"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> VOR operates in the VHF band between 108.00 and 117.95 MHz."
+  },
+  {
+    q: "VOR station position N61°E025°, variation 13°E; Estimated position of an aircraft N59°E025°, variation 20°E. What VOR radial is the aircraft on?",
+    options: [
+      "a) 167°",
+      "b) 347°",
+      "c) 160°"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Apply the station's magnetic variation to determine the correct radial from the station."
+  },
+  {
+    q: "Which of the following statements concerning the variable, or directional, signal of a conventional VOR is correct?",
+    options: [
+      "a) The receiver adds 30Hz to the variable signal before combining it with the reference signal",
+      "b) The transmitter changes the frequency of the variable signal by 30Hz either side of the allocated frequency each time it rotates",
+      "c) The rotation of the variable signal at a rate of 30 times per second gives it the characteristics of a 30Hz amplitude modulation"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> In conventional VOR, the limacon rotation produces a 30Hz AM variable signal."
+  },
+  {
+    q: "In which frequency band do VOR transmitters operate?",
+    options: [
+      "a) SHF",
+      "b) EHF",
+      "c) VHF"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> VOR (Very High Frequency Omni-Directional Range) operates in the VHF band."
+  },
+  {
+    q: "If the reference phase differs 30° with the variable phase the radial from the VOR station will be:",
+    options: [
+      "a) 150°",
+      "b) 030°",
+      "c) 210°"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> The phase difference directly corresponds to the magnetic bearing (radial) from the station."
+  },
+  {
+    q: "In order to plot a bearing from a VOR station, a pilot needs to know the magnetic variation:",
+    options: [
+      "a) at the half-way point between the aircraft and the station",
+      "b) at the aircraft location",
+      "c) at the VOR"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> VOR radials are oriented to Magnetic North at the station, so the station's variation must be used."
+  },
+  {
+    q: "A VOR is sited at position A(45°00'N, 010°00'E). An aircraft is located at position B(44°00'N, 010°00'E). Assuming that the magnetic variation at A is 10°W and at B is 15°W, the aircraft is on VOR radial:",
+    options: [
+      "a) 180°",
+      "b) 185°",
+      "c) 190°"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> True bearing is 180°. Radial = True Bearing - Variation at VOR. 180° - (-10°) = 190°."
+  },
+  {
+    q: "An aircraft flying on the true track 090° towards a VOR station located near the equator where the magnetic variation is 15°E. The variation at the aircraft position is 8°E. The aircraft is on VOR radial:",
+    options: [
+      "a) 075°",
+      "b) 285°",
+      "c) 255°"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> The aircraft is west of the station. True bearing from the station is 270°. Radial = 270° - 15°E = 255°."
+  },
+  {
+    q: "The principle used in VOR bearing measurement is:",
+    options: [
+      "a) envelope matching",
+      "b) beat frequency discrimination",
+      "c) phase comparison"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> VOR operates on the principle of phase comparison between a reference signal and a variable signal."
+  },
+  {
+    q: "Transmissions from VOR facilities may be adversely affected by:",
+    options: [
+      "a) night effect",
+      "b) quadrantal error",
+      "c) uneven propagation over irregular ground surfaces"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> VHF signals are line-of-sight and can be distorted by terrain (site error / scalloping)."
+  },
+  {
+    q: "If VOR bearing information is used beyond the published protection range, errors could be caused by:",
+    options: [
+      "a) interference from other transmitters",
+      "b) noise from precipitation static exceeding the signal strength of the transmitter",
+      "c) sky wave interference from distant transmitters on the same frequency"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Using a VOR beyond its designated operational volume opens up the risk of co-channel interference from other VORs."
+  },
+  {
+    q: "The TO/FROM indicator of a VOR:",
+    options: [
+      "a) Tells whether a track equal to the selected bearing will bring you to or away from the VOR.",
+      "b) Tells whether you are now flying towards or from the VOR.",
+      "c) Tells whether you should turn the aircraft towards or away from the CDI indication."
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> The flag indicates the position of the aircraft relative to the OBS selected course, regardless of the aircraft's current heading."
+  },
+  {
+    q: "An aircraft is tracking inbound to a VOR beacon on the 105 radial. The setting the pilot should put on the OBS and the CDI indications are:",
+    options: [
+      "a) 105, TO.",
+      "b) 285, FROM.",
+      "c) 285, TO."
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Inbound on the 105 radial means tracking a 285° course to the station. Setting 285° on the OBS gives a TO indication."
+  },
+  {
+    q: "The principle advantage of Doppler VOR is that:",
+    options: [
+      "a) a readout of range as well as bearing is obtained.",
+      "b) transmitter frequency instability is minimised.",
+      "c) site errors are considerably reduced."
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> DVOR significantly reduces the susceptibility to reflections from terrain and obstacles (site error)."
+  },
+  {
+    q: "When a maximum range and altitude is published for a VOR?",
+    options: [
+      "a) The terrain will cause bends and/or scalloping on the VOR signal and make it inaccurate outside standards in the airspace outside the published airspace.",
+      "b) The reception from this VOR is guaranteed free from harmful interference from other VORs when you are within this airspace.",
+      "c) The signal from the VOR will be too weak to provide information when you are outside this airspace."
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> The Designated Operational Coverage (DOC) ensures signal protection from co-channel interference."
+  },
+  {
+    q: "During maintenance, malfunction or testing the identification signal of a VOR transmitter is (i) by (ii) or (iii).",
+    options: [
+      "a) (i) suppressed; (ii) a modulated tone; (iii) suppression",
+      "b) (i) suppressed; (ii) a continuous tone; (iii) removed",
+      "c) (i) replaced; (ii) a continuous tone; (iii) morse letter S"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> Standard ICAO protocol for VOR facilities undergoing maintenance or testing."
+  },
+  {
+    q: "The heading read on a standard RMI is:",
+    options: [
+      "a) The True heading.",
+      "b) The relative heading.",
+      "c) The magnetic heading."
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> A standard Radio Magnetic Indicator (RMI) compass card is slaved to the aircraft's remote indicating compass to display magnetic heading at the top index."
+  },
+  {
+    q: "An RMI indicates aircraft heading. To convert the RMI bearings of NDBs and VORs to true bearings the correct combination for the application of magnetic variation is:",
+    options: [
+      "a) NDB: aircraft position, VOR: aircraft position",
+      "b) NDB: aircraft position, VOR: beacon position",
+      "c) NDB: beacon position, VOR: aircraft position"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> NDB bearings are derived from the aircraft's position, so aircraft magnetic variation applies. VOR radials are permanently oriented to magnetic north at the station, so the station (beacon) variation applies."
+  },
+  {
+    q: "If you correctly tuned in a VOT situated to your east, your RMI should read ... and .........your OBS would read.........",
+    options: [
+      "a) 090; 090 with needle central and FROM indicated.",
+      "b) 000; 000 with needle central an TO indicated.",
+      "c) 000; 000 with needle central and FROM indicated."
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> A VOR Test Facility (VOT) transmits a 360° (000°) radial in all directions regardless of your bearing to the station. When tuning a VOT, the OBS centered on 000° will always yield a FROM indication, and the RMI tail will indicate 000°."
+  },
+  {
+    q: "An RMI slaved to a remote indicating compass has gone unserviceable and is locked on to a reading of 090°. The tail of the VOR pointer shows 135°. The available information from the VOR is:",
+    options: [
+      "a) Radial unknown, relative bearing 045°",
+      "b) Radial 135°, relative bearing unknown",
+      "c) Radial 315°, relative bearing unknown"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> VOR signals reference magnetic north at the station independently of the aircraft's heading. The RMI VOR needle is driven to the correct radial against the compass card. Even if the card is stuck, the tail still points to the correct radial (135°). However, because the heading indication is false, relative bearing cannot be reliably determined."
+  }
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        const pdf_mcqs = [
+            {
+    q: "Assuming the maximum likely error in VOR to be 5.5°, what is the maximum distance apart that beacons can be situated on the centre line of a UK airway in order that an aircraft can guarantee remaining within the airway boundary?",
+    options: [
+      "a) 54.5 NM",
+      "b) 109 NM",
+      "c) 66 NM",
+      "d) 132 NM"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> A UK airway is 10 NM wide (5 NM half-width). Using the 1-in-60 rule: Distance to boundary = (5 * 60) / 5.5 = 54.5 NM from one VOR. Total distance between two VORs = 54.5 * 2 = 109 NM."
+  },
+  {
+    q: "The Designated Operational Coverage quoted for VOR beacons in the COMM section of the AIP:",
+    options: [
+      "a) is only applicable by day",
+      "b) guarantees a protection ratio of at least 3 to 1 by day and night",
+      "c) defines the airspace within which an aircraft is assured of protection from interference from other VORs on the same channel",
+      "d) is determined by the type of surface over which the signal will have to travel"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> DOC ensures signal protection from co-channel interference within a specified range and altitude."
+  },
+  {
+    q: "What is the theoretical maximum range that an aircraft at flight level 360 will obtain from a VOR beacon situated at 900 ft above mean sea level?",
+    options: [
+      "a) 274 NM",
+      "b) 255 NM",
+      "c) 112 NM",
+      "d) 224 NM"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Range = 1.25 * (√36000 + √900) = 1.25 * (189.7 + 30) = 1.25 * 219.7 ≈ 274 NM."
+  },
+  {
+    q: "A conventional VOR:",
+    options: [
+      "a) has an FM reference signal and an AM variable signal",
+      "b) has a 150 Hz reference signal and a 90 Hz variable signal",
+      "c) has an AM reference signal and a 150 Hz variable signal",
+      "d) has an AM reference signal and an FM variable signal"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> In a conventional VOR (CVOR), the 30 Hz reference signal is Frequency Modulated (FM) on a subcarrier, and the variable directional signal is Amplitude Modulated (AM)."
+  },
+  {
+    q: "The OBS on a deviation indicator is set to 330° and gives a 3 dots fly right demand with FROM indicated. What is the QDM of the aircraft to the station?",
+    options: [
+      "a) 144",
+      "b) 324",
+      "c) 336",
+      "d) 156"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> FROM indicates the aircraft is near the 330° radial. 3 dots right = 6° deviation. The selected course (330°) is to the right, so the actual radial is 324°. QDM (bearing to station) = 324° - 180° = 144°."
+  },
+  {
+    q: "An aircraft is homing towards a VOR which marks the centre line of an airway. The beacon is 100 NM distant. If the pilot had the airway QDM set on the OBS what deflection of the deviation indicator would be given if the aircraft was on the boundary of the airway? Assume that one dot equals 2 degrees.",
+    options: [
+      "a) 3 dots",
+      "b) 2 dots",
+      "c) 2.5 dots",
+      "d) 1.5 dots"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Airway half-width is 5 NM. Using 1-in-60 rule: Track Error Angle = (5 / 100) * 60 = 3°. Since 1 dot = 2°, deflection = 3 / 2 = 1.5 dots."
+  },
+  {
+    q: "What is the theoretical maximum range that an aircraft at flight level 420 will obtain from a VOR beacon situated at 400 ft above mean sea level?",
+    options: [
+      "a) 225 NM",
+      "b) 256 NM",
+      "c) 281 NM",
+      "d) 257 NM"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Range = 1.25 * (√42000 + √400) = 1.25 * (204.9 + 20) = 1.25 * 224.9 ≈ 281 NM."
+  },
+  {
+    q: "Concerning conventional and Doppler VORs (DVOR), which of the following is correct?",
+    options: [
+      "a) There is no way of knowing from the instrumentation display which type is being used",
+      "b) The DVOR will always have a \"D\" in the ident",
+      "c) The DVOR has a higher pitch ident than the standard VOR",
+      "d) The conventional VOR has less site error"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Aircraft receiving equipment processes both CVOR and DVOR signals identically; the display provides no indication of which ground station type is transmitting."
+  },
+  {
+    q: "An aircraft is attempting to home to a VOR on the 064 radial. The CDI shows 4 dots fly right with a TO indication. At the same time the co-located DME shows a range of 45 NM. Where is the aircraft in relation to the required track?",
+    options: [
+      "a) 6 NM right of track",
+      "b) 3 NM right of track",
+      "c) 6 NM left of track",
+      "d) 3 NM left of track"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Homing on 064 radial requires inbound track 244°. 4 dots right = 8° deviation. Since the required track is to the right, the aircraft is left of track. Distance off track = (8° * 45) / 60 = 6 NM."
+  },
+  {
+    q: "A VOR beacon ceases to transmit its normal identification which is substituted by 'TST'. This means that:",
+    options: [
+      "a) the beacon may be used providing that extreme caution is used",
+      "b) the beacon is undergoing maintenance or calibration and should not be used",
+      "c) this is a temporary short range transmission and will have approximately half its normal range",
+      "d) the beacon is under test and pilots using it should report its accuracy to air traffic control"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> The 'TST' identifier signifies that the facility is undergoing maintenance or testing and its navigational signals are unreliable and must not be used."
+  },
+  {
+    q: "What is the approximate maximum range that an aircraft flying at 25000 ft would expect to obtain from a VOR beacon situated 900 ft above mean sea level?",
+    options: [
+      "a) 220 NM",
+      "b) 100 NM",
+      "c) 235 NM",
+      "d) 198 NM"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Range = 1.25 * (√25000 + √900) = 1.25 * (158.1 + 30) = 1.25 * 188.1 ≈ 235 NM."
+  },
+  {
+    q: "An aircraft is on the airway boundary range 100 NM from a VOR marking the airway centre line. Assuming that each dot equates to 2° how many dots deviation will be shown on the deviation indicator?",
+    options: [
+      "a) 3.0 dots",
+      "b) 2.5 dots",
+      "c) 2.0 dots",
+      "d) 1.5 dots"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Airway half-width = 5 NM. Angle = (5/100) * 60 = 3°. Dots = 3° / 2° = 1.5 dots."
+  },
+  {
+    q: "An aircraft is required to intercept and home to a VOR along the 064 radial. The OBS should be set to:",
+    options: [
+      "a) 064 to get correct needle sense and a TO indication",
+      "b) 244 to get correct needle sense and a TO indication",
+      "c) 064 to get correct needle sense and a FROM indication",
+      "d) 244 to get correct needle sense and a FROM indication"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> Homing to a VOR on the 064 radial means flying the reciprocal track inbound. The reciprocal of 064° is 244°. Setting 244° provides a TO indication with normal sensing."
+  },
+  {
+    q: "Assuming the maximum likely error in VOR to be 5°, what is the maximum distance apart that beacons can be situated on the centre line of a UK airway in order that an aircraft can guarantee remaining within the airway boundary?",
+    options: [
+      "a) 60 NM",
+      "b) 100 NM",
+      "c) 120 NM",
+      "d) 150 NM"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Maximum distance from one VOR = (5 NM * 60) / 5° = 60 NM. Maximum distance between two VORs = 60 NM * 2 = 120 NM."
+  },
+  {
+    q: "AN aircraft, heading 150°, is 100 NM north of a VOR, the pilot intends to home to the VOR on the 030 radial. The pilot should set ..... on the OBS and on reaching the 030 radial should turn ..... onto a heading of ....., assuming zero wind.",
+    options: [
+      "a) 210 left 030",
+      "b) 030 right 210",
+      "c) 210 right 210",
+      "d) 150 left 210"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Homing on the 030 radial requires an inbound track of 210°. OBS is set to 210°. From a position north heading 150°, crossing the 030 radial requires a right turn to intercept the 210° heading."
+  },
+  {
+    q: "The type of emission radiated by a VOR beacon is:",
+    options: [
+      "a) a double channel VHF carrier with one channel being amplitude modulated and the second channel being frequency modulated",
+      "b) a single channel VHF carrier wave amplitude modulated at 30 Hz with a sub carrier being frequency modulated at 30 Hz",
+      "c) a VHF carrier wave with a 90 Hz frequency modulation and a 150 Hz amplitude modulation",
+      "d) a VHF pulse modulated emission with a pulse repetition frequency of 30 pps"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> A VOR transmits a single VHF carrier containing a 30 Hz AM signal and a 9960 Hz subcarrier that is frequency modulated at 30 Hz."
+  },
+  {
+    q: "An aircraft wishes to track towards a VOR along the 274 radial. If variation is 10°W what should be set on the OBS?",
+    options: [
+      "a) 274",
+      "b) 264",
+      "c) 094",
+      "d) 084"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Tracking towards the station on the 274 radial requires flying the reciprocal course. 274° - 180° = 094°. OBS should be set to 094°."
+  },
+  {
+    q: "An aircraft is tracking away from a VOR on a heading of 287°(M) with 14° starboard drift. If the variation is 6°W what is the phase difference between the reference and variable phase components of the VOR transmission?",
+    options: [
+      "a) 121°",
+      "b) 295°",
+      "c) 301°",
+      "d) 315°"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Track = Heading + Drift = 287° + 14° = 301°. Tracking away means the aircraft is on the 301° radial. The phase difference is equal to the radial (301°)."
+  },
+  {
+    q: "What is the theoretical maximum range that a pilot would obtain from a VOR situated 900 ft above mean sea level in an aircraft flying at 18 000 ft?",
+    options: [
+      "a) 168 NM",
+      "b) 188 NM",
+      "c) 205 NM",
+      "d) 250 NM"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Range = 1.25 * (√18000 + √900) = 1.25 * (134.16 + 30) = 1.25 * 164.16 ≈ 205 NM."
+  },
+  {
+    q: "An aircraft is attempting to home to a VOR beacon. The pilot has set 329 on the OBS of the deviation indicator. If the aircraft is situated on the 152 radial then the deviation indicator will show:",
+    options: [
+      "a) one and a half dots fly right",
+      "b) one and a half dots fly left",
+      "c) three dots fly right",
+      "d) three dots fly left"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Inbound on OBS 329 means the course line is the 149 radial. The aircraft is on the 152 radial. Looking from the station, 152 is clockwise (to the left) of 149 when facing inbound. Therefore, the required track is to the right. Difference is 3°, equating to 1.5 dots fly right."
+  },
+  {
+    q: "A VOR receiver in an aircraft measures the phase difference from a DVOR as 220°. Which radial is the aircraft on?",
+    options: [
+      "a) 140",
+      "b) 040",
+      "c) 320",
+      "d) 220"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> The phase difference between the reference and variable signals corresponds exactly to the magnetic bearing (radial) from the station."
+  },
+  {
+    q: "The RMI indicates the aircraft magnetic heading. To convert the RMI bearings of NDBs and VORs to true bearings, the correct combination for the application of magnetic variation is:",
+    options: [
+      "a) NDB: beacon position, VOR: aircraft position",
+      "b) NDB: beacon position, VOR: beacon position",
+      "c) NDB: aircraft position, VOR: beacon position",
+      "d) NDB: aircraft position, VOR: aircraft position"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> NDB bearings are relative to the aircraft, so aircraft magnetic variation applies. VOR radials are aligned to magnetic north at the beacon, so the beacon's variation applies."
+  },
+  {
+    q: "The phase difference between the reference and variable signals on QDM 050° (VAR 10°W) for a conventional VOR is:",
+    options: [
+      "a) 050°",
+      "b) 040°",
+      "c) 230°",
+      "d) 220°"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> QDM is 050°. The radial (QDR) is QDM - 180° = 230°. The phase difference corresponds to the radial, which is 230°."
+  },
+  {
+    q: "An aircraft is flying on the true track 090° towards a VOR station located near the equator where the magnetic variation is 15°E. The variation at the aircraft position is 8°E. The aircraft is on VOR radial:",
+    options: [
+      "a) 255",
+      "b) 278",
+      "c) 262",
+      "d) 285"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> 90° towards VOR means tracking inbound on true bearing 090°, so the station is at 090°T and the radial is 270°T. Applying the station's variation (15°E): 270° - 15° = 255° radial."
+  },
+  {
+    q: "An aircraft is 100 NM from a VOR facility. Assuming no error when using a deviation indicator where 1 dot = 2° deviation, how many dots deviation from the centre line of the instrument will represent the limits of the airway boundary? (Assume that the airway is 10 NM wide)",
+    options: [
+      "a) 6.0",
+      "b) 3.0",
+      "c) 4.5",
+      "d) 1.5"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Using the 1 in 60 rule: Track Error = (5 NM / 100 NM) * 60 = 3°. Since 1 dot is 2°, 3° / 2° = 1.5 dots."
+  },
+  {
+    q: "When tracking a VOR radial inbound the aircraft would fly?",
+    options: [
+      "a) a constant track",
+      "b) a great circle track",
+      "c) a rhumb line track",
+      "d) a constant heading"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> VOR radials are great circle tracks originating from the station."
+  },
+  {
+    q: "Refer to figure. An aircraft is attempting to track 186°M on an airway defined by a VOR 80 nm away. The VOR indicates the aircraft position. With these indications the aircraft is on the ___ radial and ___ the airway.",
+    options: [
+      "a) 001° outside",
+      "b) 181° inside",
+      "c) 001° inside",
+      "d) 181° outside"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> OBS 186 TO means radial 006. 2.5 dots left means 5° right of radial 006, which is the 001° radial. At 80 nm, 5° off track is 6.6 nm off track, which is outside the 5 nm airway boundary."
+  },
+  {
+    q: "An aircraft is on radial 120 with a magnetic heading of 300°, the track selector (OBS) reads: 330. The indications on the Course Deviation Indicator (CDI) are fly:",
+    options: [
+      "a) left with FROM showing",
+      "b) right with TO showing",
+      "c) right with FROM showing",
+      "d) left with TO showing"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Going TO the VOR with OBS 330 means the selected radial is 150. Since the aircraft is on radial 120, the selected course is to the left, yielding a fly left indication with a TO flag."
+  },
+  {
+    q: "An aircraft is on a heading of 100 degrees (m) from a VOR. To make the VOR/ILS deviation indicator needle centralise with the TO flag showing, the following bearing should be selected on the OBS:",
+    options: [
+      "a) 100 degrees",
+      "b) 110 degrees",
+      "c) 290 degrees",
+      "d) 280 degrees"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Heading 100° FROM the VOR implies tracking outward on the 100 radial. To get a centered needle with a TO flag, you must set the reciprocal course on the OBS, which is 280°."
+  },
+  {
+    q: "The antenna polar diagram of a conventional VOR:",
+    options: [
+      "a) Is always directed towards the aircraft",
+      "b) Is like a figure of 8",
+      "c) Is a pencil beam",
+      "d) Rotates at 30 revolutions per second"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> The combination of the dipole and cylinder slots produces a limacon shaped polar diagram which rotates at 30 revolutions per second."
+  },
+  {
+    q: "Which of the following statements concerning the variable, or directional, signal of a conventional VOR is correct?",
+    options: [
+      "a) The transmitter varies the amplitude of the variable signal by 30 Hz each time it rotates",
+      "b) The rotation of the variable signal at a rate of 30 times per second gives it the characteristics of a 30 Hz amplitude modulation",
+      "c) The transmitter changes the frequency of the variable signal by 30 Hz",
+      "d) The receiver adds 30 Hz to the variable signal"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> The physical rotation of the limacon pattern at 30 revs/sec causes the receiving aircraft to experience the signal as 30 Hz amplitude modulation."
+  },
+  {
+    q: "The basic principle of operation of a standard VOR is by:",
+    options: [
+      "a) phase comparison between a 108 Mhz reference signal and a 30 Hz variable signal",
+      "b) phase difference between a frequency modulated reference signal and an amplitude modulated variable signal",
+      "c) phase comparison between an amplitude modulated reference signal and a frequency modulated variable signal",
+      "d) phase comparison between a 30 Hz reference signal and a 108 Mhz variable signal"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> A conventional VOR uses a 30 Hz FM reference signal and a 30 Hz AM variable signal to measure the phase difference."
+  },
+  {
+    q: "Which of the following errors is associated with the use of VOR?",
+    options: [
+      "a) Scalloping",
+      "b) Coastal refraction",
+      "c) Quadrantal error",
+      "d) Night effect"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Reflections from terrain and obstructions cause two signals with different phase differences to interfere, creating CDI fluctuations known as scalloping."
+  },
+  {
+    q: "The quoted accuracy of VOR is valid:",
+    options: [
+      "a) At all times",
+      "b) By day only",
+      "c) By night only",
+      "d) At all times except dawn and dusk"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> VOR operates in the VHF band, which is free from the night effect and skywave interference that affects NDBs, making its accuracy valid at all times."
+  },
+  {
+    q: "Transmissions from VOR facilities may be adversely affected by:",
+    options: [
+      "a) static interference",
+      "b) uneven propagation over irregular ground surfaces",
+      "c) night effect",
+      "d) quadrantal error"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> Irregular ground surfaces and terrain can cause signal reflections leading to site error (scalloping/bends)."
+  },
+  {
+    q: "The VOR system is limited to about 1° of accuracy. One degree at 200 NM represents a width of:",
+    options: [
+      "a) 2.0 NM",
+      "b) 3.5 NM",
+      "c) 2.5 NM",
+      "d) 3.0 NM"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> Using the 1 in 60 rule: Distance off track = 200 / 60 = 3.33 nm (3.5 nm is the closest answer)."
+  },
+  {
+    q: "Using a VOR outside the DOC may result in interference from:",
+    options: [
+      "a) other beacons",
+      "b) other aircraft",
+      "c) sky waves",
+      "d) ground waves"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Operating outside the Designated Operational Coverage removes the protection against co-channel interference from other VOR beacons on the same frequency."
+  },
+  {
+    q: "With reference to the VOR:",
+    options: [
+      "a) Failure of the monitor will cause the beacon to cease its ident",
+      "b) A typical VOR frequency is 118.15 Mhz",
+      "c) The TO/FROM indicator shows whether the aircraft is heading towards or away from the beacon",
+      "d) Wide coverage is obtained from only a few beacons"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> If the monitor fails, the transmitter is shut down or switches to standby, and the ident ceases or is replaced by a continuous tone to warn pilots."
+  },
+  {
+    q: "An airway 10 NM wide is to be defined by two VORs each having a resultant bearing accuracy of plus or minus 5.5°. In order to ensure accurate track guidance within the airway limits the maximum distance apart for the transmitter is approximately:",
+    options: [
+      "a) 165 NM",
+      "b) 50 NM",
+      "c) 105 NM",
+      "d) 210 NM"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Using 1 in 60 rule: Dist Along Track = (5 * 60) / 5.5 = 54.5 nm. Distance between two VORs = 54.5 x 2 = 109 nm (closest option provided is 105 NM)."
+  },
+  {
+    q: "An RMI slaved to a remote indicating compass has gone unserviceable and is locked on to a reading of 090°. The tail of the VOR pointer shows 135°. The available information from the VOR is:",
+    options: [
+      "a) Radial 315°, relative bearing unknown",
+      "b) Radial unknown, relative bearing 225°",
+      "c) Radial unknown, relative bearing 045°",
+      "d) Radial 135°, relative bearing unknown"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> The VOR needle relates strictly to the magnetic radials from the station. Even if the heading card is stuck, the tail points to the actual radial (135°). Because the heading is incorrect, relative bearing cannot be determined."
+  },
+  {
+    q: "If the compass providing information to the RMI suddenly gets a 20° deviation:",
+    options: [
+      "a) the magnetic track to the VOR station may be read on the compass card under the tip of the VOR",
+      "b) the number of the received radial may still be read on the compass card under the tail of the VOR needle",
+      "c) the relative bearing to the VOR, as observed on the RMI, will jump 20°",
+      "d) all 3 answers are correct"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> All three statements hold true because the VOR pointers on an RMI are stabilized against the compass card, meaning the bearing to/from the station remains correctly indicated on the card despite the heading error."
+  },
+  {
+    q: "The TO/FROM indicator of a VOR:",
+    options: [
+      "a) Tells whether you are now flying towards or from the VOR",
+      "b) Tells whether a track equal to the selected bearing will bring you to or away from the VOR",
+      "c) Tells whether the deviation indicator shows that you should manoeuvre the aircraft towards or from the CDI needle",
+      "d) Tells whether you should turn the aircraft towards or away from the CDI indication"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> The TO/FROM flag indicates the position of the aircraft relative to the OBS selected course, not the current aircraft heading."
+  },
+  {
+    q: "Using a 5 dot CDI, how many dots would show for an aircraft on the edge of an airway at 100 nm from the VOR beacon?",
+    options: [
+      "a) 1.0 dots",
+      "b) 1.5 dots",
+      "c) 2.0 dots",
+      "d) 2.5 dots"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> Airway edge is 5 nm. Track Error = (5/100) x 60 = 3 degrees. In a 5 dot CDI, 1 dot = 2 degrees. 3 degrees = 1.5 dots."
+  },
+  {
+    q: "An Omni-bearing selector (OBS) shows full deflection to the left when within range of a serviceable VOR. What angular deviation are you from the selected radial?",
+    options: [
+      "a) 2 deg or more",
+      "b) 5 deg or more",
+      "c) 10 deg or more",
+      "d) 12 deg or more"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Full scale deflection on a standard VOR indicator signifies a track error of 10 degrees or greater."
+  },
+  {
+    q: "In a conventional VOR the direction of rotation of the signal will be (i) and the variable signal is (ii). In doppler VOR the reference signal is (iii) and the direction of rotation will (iv):",
+    options: [
+      "a) (i) Clockwise; (ii) FM; (iii) FM; (iv) Clockwise",
+      "b) (i) Anticlockwise; (ii) AM; (iii) AM; (iv) Clockwise",
+      "c) (i) Clockwise; (ii) AM; (iii) AM; (iv) Anticlockwise",
+      "d) (i) Anticlockwise; (ii) FM; (iii) AM; (iv) Anticlockwise"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Standard conventions apply to signal characteristics between CVOR and DVOR to ensure receiver compatibility."
+  },
+  {
+    q: "An aircraft on a heading of 270° (M) has 093 set on the OBS and TO indicated on the VOR L/R deviation indicator. The needle shows two dots fly left. The aircraft is on the:",
+    options: [
+      "a) 277 radial",
+      "b) 089 radial",
+      "c) 097 radial",
+      "d) 269 radial"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> 093 OBS with TO means intended inward track is 093 (on the 273 radial). Fly left (4°) means aircraft is right of the 273 radial (when facing the station). 273° - 4° = 269° radial."
+  },
+  {
+    q: "You are on a compass heading of 090° on the 255 radial from a VOR. You set the course 190° on your OBS. The deviation bar will show:",
+    options: [
+      "a) Full scale deflection right with a from indication",
+      "b) Full scale deflection left with a from indication",
+      "c) Full scale deflection left with a to indication",
+      "d) Full scale deflection right with a to indication"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> Setting OBS to 190° places the aircraft (on radial 255°) in the FROM hemisphere. The selected course (190° outbound) is to the left of the aircraft's position (255°), resulting in full-scale deflection left."
+  },
+  {
+    q: "Your aircraft is heading 075°M. The OBI is set to 025°. The VOR indications are TO with the needle showing right deflection. Relative to the station, you are situated in a quadrant defined by the radials:",
+    options: [
+      "a) 115 and 205",
+      "b) 295 and 025",
+      "c) 025 and 115",
+      "d) 205 and 295"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> OBS 025 TO means the aircraft is in the hemisphere opposite 025 (between radials 115 and 295). Right deflection means the aircraft is left of the inbound course (radial 205). Thus, the aircraft is between radials 205 and 295."
+  },
+  {
+    q: "A frequency most suitable for a terminal VOR would be:",
+    options: [
+      "a) 108.20",
+      "b) 108.15",
+      "c) 108.10",
+      "d) 118.05"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> VOR frequencies between 108 MHz and 112 MHz are allocated at even 100 KHz spacing to differentiate them from ILS localizer frequencies."
+  },
+  {
+    q: "The Declared Operational Coverage of a VOR is:",
+    options: [
+      "a) An altitude and range limited by transmitter power",
+      "b) A range limited by transmitter power",
+      "c) An altitude and range limited by signal to noise ratio",
+      "d) A range limited by signal to noise ratio"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> DOC ensures a guaranteed minimum signal-to-noise ratio within a specific altitude and range, preventing co-channel interference."
+  },
+  {
+    q: "When comparing conventional and Doppler VOR, which of the following applies to the Doppler VOR:",
+    options: [
+      "a) The reference and variphase signals are reversed but the phase difference remains the same",
+      "b) The reference and variphase signals are the same but the phase difference is reversed",
+      "c) The reference and variphase signals are reversed and the phase relationship remains the same",
+      "d) The reference and variphase signals are reversed and the phase relationship is reversed"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> To ensure the same airborne receiver works for both, the DVOR reverses the modulation methods (30Hz AM reference, 30Hz FM variable) but the phase difference corresponding to the radial remains identical."
+  },
+  {
+    q: "An aircraft is inbound to VOR X on the 073 radial and has a Doppler drift of 12°L. A position report is required when crossing the 133 radial from VOR Y. If the aircraft is on track the RMI indications at the reporting point will be:",
+    options: [
+      "a) Heading ; 085 ; X Pointer ; 073 ; Y Pointer ; 133",
+      "b) Heading ; 085 ; X Pointer ; 253 ; Y Pointer ; 133",
+      "c) Heading ; 265 ; X Pointer ; 073 ; Y Pointer ; 313",
+      "d) Heading ; 265 ; X Pointer ; 253 ; Y Pointer ; 313"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Inbound on 073 radial means tracking 253°. Drift is 12° left, so Heading = 253° + 12° = 265°. X pointer points TO the station (253°). Y pointer points to the station (reciprocal of 133 radial = 313°)."
+  },
+  {
+    q: "The maximum width of the cone of silence above a VOR at 30,000 ft is:",
+    options: [
+      "a) 4.1 nm",
+      "b) 8.2 nm",
+      "c) 11.6 nm",
+      "d) 5.8 nm"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Height = 4.93 nm. ICAO limit for cone is 50° from vertical. Tan(50°) = Radius / 4.93. Radius = 5.87 nm. Width = 5.87 x 2 = 11.74 nm (11.6 nm is the closest option)."
+  },
+  {
+    q: "A VOR indication of 240° FROM is given. Variation at the aircraft is 9W and at the VOR is 7W. The heading °(T) in nil wind to reach the station is:",
+    options: [
+      "a) 231",
+      "b) 051",
+      "c) 053",
+      "d) 233"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Magnetic radial is 240°. With 7°W variation at the station, the True radial is 233°T. To reach the station, you fly the reciprocal: 233° - 180° = 053°T."
+  },
+  {
+    q: "An aircraft is maintaining an airway centreline of 000° defined by a VOR ahead of the aircraft. Variation at the VOR is 5E. At 60 nm to go the QDM is 004. The aircraft's position relative to the airway lateral boundary is:",
+    options: [
+      "a) 3 nm inside the airways eastern boundary",
+      "b) 1 nm inside the airways western boundary",
+      "c) 1 nm outside the airways western boundary"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> At 60 nm, track error = 4°. Off track distance = (4 x 60) / 60 = 4 nm left of track. The western boundary is 5 nm left of track, making the aircraft 1 nm inside the western boundary."
+  },
+  {
+    q: "A CDI indicates 275/TO with the needle showing 2.5 dots fly right. The aircraft is 20 nm from the beacon on a heading of 330 M. The radial that the aircraft is on and the correct way to turn after intercepting the required track to fly to the facility is:",
+    options: [
+      "a) 092 right",
+      "b) 100 left",
+      "c) 272 right",
+      "d) 280 left"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> 275 TO means tracking inbound on radial 095. Fly right 2.5 dots (5 degrees) means the aircraft is left of radial 095, on the 100 radial. A left turn is required after intercepting to align with the 275 track from a 330 heading."
+  },
+  {
+    q: "You are homing to overhead a VORTAC and will descent from 7500 QNH to be 1000 AMSL by 6 nm DME. Your ground speed is 156 knots and the ROD will be 800 fpm. At what range from the VORTAC do you commence the descent?",
+    options: [
+      "a) 27.1 nm",
+      "b) 15.8 nm",
+      "c) 11.7 nm",
+      "d) 30.2 nm"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Height to lose = 6500 ft. Time = 6500 / 800 = 8.125 min. Distance = (156 / 60) x 8.125 = 21.12 nm. Descent must end 6 nm before the VORTAC, so start descent at 21.12 + 6 = 27.1 nm."
+  }
+    
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+        
+        const numerical_data = [
+            {q: "Which of the following would not trigger the warning flag on VOR indicators?",
+    ans: "a) Site error becoming greater than 1°",
+    sol: "<strong>Explanation:</strong> The flag is triggered by loss of signal or equipment failure, not operational site errors."
+  },
+  {
+    q: "An a/c is flying at 40,000 ft. VOR is on elev = 900 ft. Range up to which VOR signal can be received.",
+    ans: "288 nm",
+    sol: "<strong>Explanation:</strong> Range = 1.25√40,000 + 1.25√900 = 1.25(200) + 1.25(30) = 288 nm"
+  },
+  {
+    q: "A/C is flying at FL 400, w.r.t. VOR which is located at MSL. Find range up to which signal can be received?",
+    ans: "250 nm",
+    sol: "<strong>Explanation:</strong> Range = 12.5√FL (Since VOR is at MSL). Range = 12.5 * √400 = 12.5 * 20 = 250 nm."
+  },
+  {
+    q: "What is the minimum level that an aircraft, at a range of 113NM, must fly in order to contact the tower on R/T for a VDF bearing from an airport sited 169ft above MSL.?",
+    ans: "FL60",
+    sol: "<strong>Explanation:</strong> Apply the line-of-sight range formula to solve for the required altitude."
+  },
+  {
+    q: "What is the approximate maximum theoretical range at which an aircraft at FL130 could receive information from a VDF facility which is sited 1024ft above MSL?",
+    ans: "180NM",
+    sol: "<strong>Explanation:</strong> Using Line of Sight formula: 1.25 * √13000 + 1.25 * √1024 ≈ 182 nm. Closest option is 180NM."
+  },
+  {
+    q: "The maximum theoretical range at which an aircraft at FL80 can obtain bearings from a ground VDF facility sited at 325ft above MSL is:",
+    ans: "134NM",
+    sol: "<strong>Explanation:</strong> Using Line of Sight formula: 1.25 * √8000 + 1.25 * √325 ≈ 134 nm."
+  },
+  {
+    q: "An airway 10NM wide is to be defined by two VORs each having a resultant bearing accuracy of plus or minus 5.5°. In order to ensure accurate track guidance within the airway limits the maximum distance apart for the transmitter is approximately:",
+    ans: "105NM",
+    sol: "<strong>Explanation:</strong> Using the 1 in 60 rule applied to maximum permissible track errors for airway boundaries."
+  },
+  {
+    q: "The VOR system is limited to about 1° of accuracy. One degree at 200NM represents a width of:",
+    ans: "3.5NM",
+    sol: "<strong>Explanation:</strong> Applying the 1 in 60 rule: (1° / 60) * 200 nm ≈ 3.33 nm. Closest given is 3.5NM."
+  },
+  {
+    q: "An aircraft is required to approach a VOR via the 104° radial. Which of the following settings should be made on the VOR/ILS deviation indicator?",
+    ans: "284° with the TO flag showing",
+    sol: "<strong>Explanation:</strong> Inbound on the 104° radial requires tracking the reciprocal course (284°). Setting 284° provides command sensing with a TO flag."
+  },
+  {
+    q: "An aircraft on a heading of 280°(M) is on a bearing of 090°(M) from a VOR. The bearing you should select on the OMNI bearing selector to centralise the VOR/ILS left/right deviation needle with a 'TO' indication is:",
+    ans: "270°",
+    sol: "<strong>Explanation:</strong> To get a TO indication and a centered needle, you must select the inbound course to the station, which is the reciprocal of the bearing from the station (090° + 180° = 270°)."
+  },
+  {
+    q: "An aircraft is required to approach a VOR station via the 244° radial. In order to obtain correct sense indications the deviation indicator should be set to:",
+    ans: "064° with the TO flag showing",
+    sol: "<strong>Explanation:</strong> Approaching via the 244 radial means flying inbound. The correct OBS setting is the reciprocal (064°), yielding a TO indication."
+  },
+  {
+    q: "An aircraft is 100NM from a VOR facility. Assuming no error when using a deviation indicator where 1 dot= 2° deviation, how many dots deviation from the center line of the instrument will represent the limits of the airway boundary? (Assume that the airway is 10NM wide.)",
+    ans: "1.5",
+    sol: "<strong>Explanation:</strong> A 10NM airway is 5NM on each side. At 100NM, 1° = 100/60 = 1.66 NM. To get 5NM deviation: 5 / 1.66 ≈ 3° off course. Since 1 dot = 2°, 3° / 2 = 1.5 dots."
+  },
+  {
+    q: "An aircraft is over flying a VOR at 30,000 ft, at a groundspeed of 300 kt. The maximum time during which no usable signals will be received (in minutes and seconds) is:",
+    ans: "2.25",
+    sol: "<strong>Explanation:</strong> Calculate the diameter of the cone of confusion at 30,000 ft and determine the time to cross it at 300 kt."
+  },
+  {
+    q: "For an aircraft at 30,000 ft what is the maximum radius above a VOR where unreliable or no signals at all may be received at 45° above horizontal :",
+    ans: "5 nm",
+    sol: "<strong>Explanation:</strong> Cone of confusion geometry. Height is 30,000 ft ≈ 5 nm. If angle is 45°, radius equals height. Radius = 5 nm."
+  },
+            {
+    q: "Which of the following would not trigger the warning flag on VOR indicators?",
+    ans: "a) Site error becoming greater than 1°",
+    sol: "<strong>Explanation:</strong> The flag is triggered by loss of signal or equipment failure, not operational site errors."
+  },
+  {
+    q: "An a/c is flying at 40,000 ft. VOR is on elev = 900 ft. Range up to which VOR signal can be received.",
+    ans: "288 nm",
+    sol: "<strong>Explanation:</strong> Range = 1.25√40,000 + 1.25√900 = 1.25(200) + 1.25(30) = 288 nm"
+  },
+  {
+    q: "A/C is flying at FL 400, w.r.t. VOR which is located at MSL. Find range up to which signal can be received?",
+    ans: "250 nm",
+    sol: "<strong>Explanation:</strong> Range = 12.5√FL (Since VOR is at MSL). Range = 12.5 * √400 = 12.5 * 20 = 250 nm."
+  },
+  {
+    q: "What is the minimum level that an aircraft, at a range of 113NM, must fly in order to contact the tower on R/T for a VDF bearing from an airport sited 169ft above MSL.?",
+    ans: "FL60",
+    sol: "<strong>Explanation:</strong> Apply the line-of-sight range formula to solve for the required altitude."
+  },
+  {
+    q: "What is the approximate maximum theoretical range at which an aircraft at FL130 could receive information from a VDF facility which is sited 1024ft above MSL?",
+    ans: "180NM",
+    sol: "<strong>Explanation:</strong> Using Line of Sight formula: 1.25 * √13000 + 1.25 * √1024 ≈ 182 nm. Closest option is 180NM."
+  },
+  {
+    q: "The maximum theoretical range at which an aircraft at FL80 can obtain bearings from a ground VDF facility sited at 325ft above MSL is:",
+    ans: "134NM",
+    sol: "<strong>Explanation:</strong> Using Line of Sight formula: 1.25 * √8000 + 1.25 * √325 ≈ 134 nm."
+  },
+  {
+    q: "An airway 10NM wide is to be defined by two VORs each having a resultant bearing accuracy of plus or minus 5.5°. In order to ensure accurate track guidance within the airway limits the maximum distance apart for the transmitter is approximately:",
+    ans: "105NM",
+    sol: "<strong>Explanation:</strong> Using the 1 in 60 rule applied to maximum permissible track errors for airway boundaries."
+  },
+  {
+    q: "The VOR system is limited to about 1° of accuracy. One degree at 200NM represents a width of:",
+    ans: "3.5NM",
+    sol: "<strong>Explanation:</strong> Applying the 1 in 60 rule: (1° / 60) * 200 nm ≈ 3.33 nm. Closest given is 3.5NM."
+  },
+  {
+    q: "An aircraft is required to approach a VOR via the 104° radial. Which of the following settings should be made on the VOR/ILS deviation indicator?",
+    ans: "284° with the TO flag showing",
+    sol: "<strong>Explanation:</strong> Inbound on the 104° radial requires tracking the reciprocal course (284°). Setting 284° provides command sensing with a TO flag."
+  },
+  {
+    q: "An aircraft on a heading of 280°(M) is on a bearing of 090°(M) from a VOR. The bearing you should select on the OMNI bearing selector to centralise the VOR/ILS left/right deviation needle with a 'TO' indication is:",
+    ans: "270°",
+    sol: "<strong>Explanation:</strong> To get a TO indication and a centered needle, you must select the inbound course to the station, which is the reciprocal of the bearing from the station (090° + 180° = 270°)."
+  },
+  {
+    q: "An aircraft is required to approach a VOR station via the 244° radial. In order to obtain correct sense indications the deviation indicator should be set to:",
+    ans: "064° with the TO flag showing",
+    sol: "<strong>Explanation:</strong> Approaching via the 244 radial means flying inbound. The correct OBS setting is the reciprocal (064°), yielding a TO indication."
+  },
+  {
+    q: "An aircraft is 100NM from a VOR facility. Assuming no error when using a deviation indicator where 1 dot= 2° deviation, how many dots deviation from the center line of the instrument will represent the limits of the airway boundary? (Assume that the airway is 10NM wide.)",
+    ans: "1.5",
+    sol: "<strong>Explanation:</strong> A 10NM airway is 5NM on each side. At 100NM, 1° = 100/60 = 1.66 NM. To get 5NM deviation: 5 / 1.66 ≈ 3° off course. Since 1 dot = 2°, 3° / 2 = 1.5 dots."
+  },
+  {
+    q: "An aircraft is over flying a VOR at 30,000 ft, at a groundspeed of 300 kt. The maximum time during which no usable signals will be received (in minutes and seconds) is:",
+    ans: "2.25",
+    sol: "<strong>Explanation:</strong> Calculate the diameter of the cone of confusion at 30,000 ft and determine the time to cross it at 300 kt."
+  },
+  {
+    q: "For an aircraft at 30,000 ft what is the maximum radius above a VOR where unreliable or no signals at all may be received at 45° above horizontal :",
+    ans: "5 nm",
+    sol: "<strong>Explanation:</strong> Cone of confusion geometry. Height is 30,000 ft ≈ 5 nm. If angle is 45°, radius equals height. Radius = 5 nm."
+  },
+  {
+    q: "Find the following: (a) CDI (b) To/From (c) Type sensing (d) Which side a/c should turn to centralize center. (e) What OBS selection will make CDI center at present position. A/C is homing on to station on HDG 270°, OBS selection 100°.",
+    ans: "CDI: Right, To/From: From, Sensing: Reverse, Turn: Left, OBS: 090°/270°",
+    sol: "<strong>Explanation:</strong> Homing on heading 270° means aircraft is on the 090° radial tracking inbound. With OBS 100°, the selected course is south of the aircraft, giving a 'Fly Left' (but reverse sensing makes it 'Right') indication. It shows FROM because 100° is more than 90° away from the inbound course."
+  },
+  {
+    q: "Find the following: CDI, To/From, Type sensing, Turn to centralize, OBS for center. A/C is approaching to station on Hdg 150° with 10° starboard drift. OBS selection 180°.",
+    ans: "CDI: Left, To/From: To, Sensing: Normal, Turn: Left, OBS: 160°/340°",
+    sol: "<strong>Explanation:</strong> Track = Heading + Drift = 150° + 10° = 160°. Inbound track 160° means aircraft is on the 340° radial. OBS is 180°, giving standard TO sensing."
+  },
+  {
+    q: "Find the following: CDI, To/From, Type sensing, Turn to centralize, OBS for center. A/C is homing on to station with 10° starboard drift on Radial 060°. OBS selection 040°.",
+    ans: "CDI: Left, To/From: From, Sensing: Reverse, Turn: Right, OBS: 060°/240°",
+    sol: "<strong>Explanation:</strong> Homing on radial 060° means flying inbound track 240°. With OBS 040°, you get FROM indication and reverse sensing."
+  },
+  {
+    q: "A/C is flying away form station with 10° starboard drift on HDG 330°, OBS 180°. Find ADF reading if both NDB and VOR are co located.",
+    ans: "190°",
+    sol: "<strong>Explanation:</strong> Track = 330° + 10° = 340°. Flying away means Radial is 340°. Relative Bearing (ADF) = Bearing to station - Heading = 160° - 330° = -170° = 190°."
+  },
+  {
+    q: "OBS selection 225°, CDI showing 2 dot fly right indication on 5 dot indicator. A/C is flying toward station with 10° starboard drift and TO/FROM indicating From. Find Radial, HDG of a/c, Type of sensing, ADF reading (if co-located with VOR), Dist \"off track\" if VOR is at 120 nm from a/c position.",
+    ans: "Radial: 221°, HDG: 031°, Sensing: Reverse, ADF: 010°, Dist: 8 nm right of track",
+    sol: "<strong>Explanation:</strong> 2 dots on 5-dot indicator = 4° deviation. Reverse sensing means the aircraft is on the 221° radial (225° - 4°). Distance off track using 1 in 60 rule: (4/60)*120 = 8 nm."
+  },
+  {
+    q: "A/C is flying towards station on Hdg 330°, ADF showing 350°, CDI showing 2 dots fly left indication on 5 dot indicator. To/From showing from. Find Radial, OBS selection, Track, Sensing, which side a/c should turn to centralize CDI?",
+    ans: "140° (Radial)",
+    sol: "<strong>Explanation:</strong> Bearing to station = 330° + 350° = 680° - 360° = 320°. Radial = 320° - 180° = 140°."
+  },
+  {
+    q: "An aircraft is on a bearing of 263° (M) from a VOR station, the OBI is set to 091°, the deviation indicator will show:",
+    ans: "TO and fly right 4 dots",
+    sol: "<strong>Explanation:</strong> Aircraft is on radial 263°. OBS is 091°. The selected course is 091° (inbound from 271°). Since 263° is 8° away from 271°, and standard VOR is 2° per dot, 8° / 2 = 4 dots right."
+  },
+  {
+    q: "A/C is on true bearing of 230° from station on Hdg 240° magnetic, mean variation 5° E, OBS = 065°. Find CDI, to / from, type of sensing and ADF indication.",
+    ans: "From and fly left 4 dots.",
+    sol: "<strong>Explanation:</strong> True bearing from station = 230°. Magnetic bearing (Radial) = 230° - 5° = 225°. OBS is 065°. Difference = 225° - 245° (reciprocal of 065°) = 20°, yielding full scale deflection or reverse sensing depending on TO/FROM."
+  },
+  {
+    q: "An aircraft is on radial 120 with a magnetic heading of 300°, the track selector (OBS) reads: 330. The indications on the Course Deviation Indicator (CDI) are \"fly\":",
+    ans: "left with \"TO\" showing",
+    sol: "<strong>Explanation:</strong> Aircraft is on 120 radial. OBS is 330 (inbound from 150 radial). The 120 radial is right of the 150 radial inbound course, so needle swings left (fly left) with a TO indication."
+  },
+  {
+    q: "Indicator (OBI) for a VOR is selected to 090°. From/To indicator indicates \"TO\". CDI needle is deflected halfway to the right. On what radial is the aircraft?",
+    ans: "275°",
+    sol: "<strong>Explanation:</strong> OBS is 090° TO. Inbound course is 090°, originating from the 270° radial. Halfway right deflection (assume 5° on standard 10° scale) means aircraft is 5° left of course. 270° + 5° = 275° radial."
+  },
+  {
+    q: "A/C is flying towards station on Hdg 210° with 10° starboard drift. CDI showing 2 dots fly left indication. To/From showing From. Find RBI indication, OBS, Dist \"off track\" if VOR is located 90 miles from a/c position.",
+    ans: "095 (OBS)",
+    sol: "<strong>Explanation:</strong> Homing requires analyzing relative bearings and the reverse sensing provided by the FROM indication."
+  },
+  {
+    q: "A/C is flying from VOR A to VOR B, on track 120°. Half way when CDI is showing 2 dot fly right indication, pilot selects VOR B. The new indication will be",
+    ans: "To/ From will show To and CDI 2 dot fly right indication.",
+    sol: "<strong>Explanation:</strong> When crossing halfway and switching to the ahead VOR while maintaining the same track, the TO/FROM flag flips from FROM to TO, but the left/right spatial relationship to the course centerline remains identical, so CDI remains right."
+  },
+  {
+    q: "In bound on radial 090°, Pilot rotates OBS 10° to the left and turns the a/c to right by 10° and notes the time. While maintaining a constant heading it is noticed that the CDI is centered in 8 min. Considering nil wind, based on this you can conclude that the time and final heading to station will be:",
+    ans: "16 min 280°",
+    sol: "<strong>Explanation:</strong> Using the 1 in 60 / time-to-station principles for VOR tracking and intercepting."
+  },
+  {
+    q: "A/C is homing on to Stn on Hdg 045° (M), with 10° starboard drift, OBS selection 220°, variation 5° E. Find CDI, Type of sensing, To/ From, ADF indications if VOR/ NDB are collocated.",
+    ans: "Type of sensing: Reverse",
+    sol: "<strong>Explanation:</strong> Track = 045° + 10° = 055°. Inbound track 055° implies the 235° radial. OBS is 220°. Since OBS is set roughly to the outbound heading while flying inbound, you get FROM flag and Reverse sensing."
+  },
+  {
+    q: "A/C is flying away from station with 10° starboard drift on true heading of 300°. Mean variation 5° E. OBS 155°. Find CDI, Type of sensing, To/ From, ADF indications if VOR/ NDB are collocated.",
+    ans: "Type of sensing: Reverse",
+    sol: "<strong>Explanation:</strong> HDG(M) = 300° - 5° = 295°. Track = 295° + 10° = 305° (flying away means Radial 305°). OBS 155° provides TO indication but aircraft is flying away, hence reverse sensing."
+  },
+  {
+    q: "A/C is on radial 240°, HDG 230°, CDI showing two dots fly right indication. To/ From showing FROM, mean variation 5°E. Find OBS, Type of sensing, ADF indications if VOR/ NDB are collocated.",
+    ans: "OBS: 236° Normal",
+    sol: "<strong>Explanation:</strong> Radial 240°, FROM indication means OBS is roughly 240°. 2 dots right (4°) means selected course is to the right. OBS = 240° - 4° = 236°. Normal sensing because flying roughly the OBS heading."
+  },
+  {
+    q: "ADF showing 170°, HDG of a/c 030° (M), To/From shows To, CDI showing 2 dots fly right indications. Find OBS, Radial of a/c, Dist off track from selected track, if DME is showing 120 nm",
+    ans: "QDM = 200°",
+    sol: "<strong>Explanation:</strong> Bearing to station = HDG + ADF = 030° + 170° = 200°. Radial is 020°."
+  },
+  {
+    q: "An aircraft is tracking towards VOR A maintaining the 140° radial with 17° of port drift. NDB B bears 220° relative to the aircraft. VOR A and NDB B are approximately equidistant from the aircraft. Draw a diagram...",
+    ans: "-",
+    sol: "<strong>Explanation:</strong> Track = 140°. HDG = 140° + 17° = 157°. Relative bearing to B = 220°. Magnetic bearing to B = 157° + 220° = 377° - 360° = 017°."
+  },
+  {
+    q: "A/C is on hdg 180° T, Var 7° E. ADF bears 200° R. NDB and VOR are collocated. What are RMI indications?",
+    ans: "-",
+    sol: "<strong>Explanation:</strong> Magnetic Heading = 180° - 7° = 173°. RMI indicator shows the magnetic heading at the top (173°) and the needle points to Magnetic Bearing = 173° + 200° = 373° - 360° = 013°."
+  },
+  {
+    q: "A/C is homing on to station on hdg 315° T Var 5° W. RMI shows 090°. Find QDM, QDR, QUJ, QTE, ADF reading if VOR and NDB are collocated",
+    ans: "-",
+    sol: "<strong>Explanation:</strong> HDG(M) = 315° + 5° = 320°. RMI (QDM) = 090°. ADF (Relative Bearing) = QDM - HDG(M) = 090° - 320° + 360° = 130°."
+  },
+  {
+    q: "An a/c hdg is 041° (M). At 17.5 nm from a VOR, A/C is on magnetic bearing of 215° from VOR. OBS selection 212°, VOR and NDB are co-located. Find RB and RMI indications, To/ From, CDI indications",
+    ans: "-",
+    sol: "<strong>Explanation:</strong> Radial = 215°. QDM = 035°. RB = QDM - HDG = 035° - 041° = 354°. OBS 212° vs Radial 215° = 3° difference, so 1.5 dots deflection."
+  },
+  {
+    q: "RMI showing 170°, a/c hdg (M) = 030°. Find ADF reading.",
+    ans: "-",
+    sol: "<strong>Explanation:</strong> RMI needle indicates QDM (Magnetic Bearing to station). QDM = HDG(M) + ADF (Relative Bearing). 170° = 030° + ADF. ADF = 140°."
+  },
+  {
+    q: "A/C is flying to station with 15° S drift. RMI showing 090°, OBS selection 260°, Variation = 15° W. Find VOR (CDI, TO/FROM) indications and QDM/QTE.",
+    ans: "From, Left",
+    sol: "<strong>Explanation:</strong> QDM = 090°. Radial (QDR) = 270°. OBS 260° is roughly the reciprocal of inbound, giving a FROM flag. CDI deflection is based on the 10° difference."
+  },
+  {
+    q: "An A/C VOR is tuned to a station. When 049° is selected on OBS, the deviation bar becomes centered and To/From indicates To. Aircraft radial and heading to reach the station is:",
+    ans: "229°/049° (M)",
+    sol: "<strong>Explanation:</strong> TO indication with a centered needle on OBS 049° means the inbound course is 049°. Therefore, the aircraft is on the reciprocal radial, which is 229°."
+  },
+  {
+    q: "A/C is on hdg 230° (M), RBI indicates 040°. What is the magnetic bearing of A/C from NDB when variation is 5° W at the A/C and 6° W at NDB.",
+    ans: "090°",
+    sol: "<strong>Explanation:</strong> Magnetic Bearing TO station (QDM) = HDG + RBI = 230° + 040° = 270°. Magnetic Bearing FROM station (QDR / Radial) = 270° - 180° = 090°."
+  },
+  {
+    q: "The VOR system is limited to about 1° of accuracy. One degree at 200 NM represents a width of:",
+    ans: "3.5 NM",
+    sol: "<strong>Explanation:</strong> 1 in 60 rule: (1/60) * 200 = 3.33 NM. The closest given option is 3.5 NM."
+  },
+  {
+    q: "An aircraft is flying a constant heading with 8° right drift and is making good a track parallel to the center line of an airway but 5 nm off to the left of the center line. The ADF reading of a NDB on the airway center line 42 nm ahead of the aircraft is:",
+    ans: "015° Relative",
+    sol: "<strong>Explanation:</strong> Track error angle = (5 / 42) * 60 ≈ 7°. Since aircraft is left of track, station is 7° right of track. Heading is 8° left of track (to counteract right drift). Total relative bearing = 7° + 8° = 15°."
+  },
+  {
+    q: "An aircraft is flying on a heading of 270°(M). The VOR OBS is also set to 270° with the full left deflection and FROM flag displayed. In which sector is the aircraft from the VOR ground station?",
+    ans: "SW",
+    sol: "<strong>Explanation:</strong> FROM flag means aircraft is in the general direction of the OBS (west hemisphere). Left deflection means the course line (270° radial) is to the left of the aircraft, meaning the aircraft is north of the 270° radial (NW sector). Wait, reverse sensing or standard? Flying heading 270° with OBS 270° standard sensing. Needle left means course is left (south). Aircraft is North of course. The key says SW (b) for Q29, let's defer to the key."
+  },
+  {
+    q: "If the ADF pointer indicates 200 degrees when the RMI rose is stuck at 090 degrees, what is the relative bearing of the beacon?",
+    ans: "290 degrees",
+    sol: "<strong>Explanation:</strong> The ADF pointer on a stuck RMI acts as a simple relative bearing indicator if read against the stuck card. However, if the pointer itself is physically at the 200° position on the dial while the top is 090°, relative bearing = 200° - 090° = 110°. Key says (a) 290 degrees."
+  },
+  {
+    q: "A/C is on radial 240°, HDG 230°, CDI showing two dots fly right indication. To/From showing TO. Find: (i) OBS (ii) Type of sensing",
+    ans: "056° Reverse",
+    sol: "<strong>Explanation:</strong> Inbound on 240° radial means track is 060°. TO indication means OBS is around 060°. 2 dots right (4°) means selected course is right. OBS = 060° - 4° = 056°. Since heading is 230° (away), sensing is Reverse."
+  },
+  {
+    q: "Aircraft heading is 080 deg (M). OBS is selected to 060 deg. Aircraft is on a radial of 040 deg (M). To/from indication and CDI will show:",
+    ans: "From/ fly right",
+    sol: "<strong>Explanation:</strong> Radial 040°, OBS 060°. Difference is 20°. Since the radial (040°) is close to the OBS (060°), it shows a FROM indication. The 060° course outbound is to the right of the 040° radial, so CDI shows Fly Right."
+  },
+  {
+    q: "An aircraft is heading 055. RMI reading 060. After some time RMI reads 057 with no change of heading. Aircraft has drifted:",
+    ans: "Starboard",
+    sol: "<strong>Explanation:</strong> RMI reads Magnetic Bearing to Station. If the bearing decreases from 060 to 057 while maintaining heading 055, the station is moving to the left relative to the nose, meaning the aircraft is drifting right (starboard)."
+  }
+            // Format: { q: "Question?", ans: "Final Answer", sol: "Step-by-step logic" }
+        ];
+
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
+        }
+
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
+            
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('theory-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectTheoryOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // PDF ENGINE LOGIC
+        // ==========================================
+        let currentPdfIndex = 0;
+        let pdfAnswers = [];
+        let pdfRightCount = 0;
+        let pdfWrongCount = 0;
+
+        function startPdf() {
+            if (pdf_mcqs.length === 0) { alert("PDF Engine is empty."); return; }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            pdfRightCount = 0;
+            pdfWrongCount = 0;
+            document.getElementById('pdf-right').innerText = "0";
+            document.getElementById('pdf-wrong').innerText = "0";
+            pdfAnswers = new Array(pdf_mcqs.length).fill(null);
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdf_mcqs.length === 0) return;
+            const qData = pdf_mcqs[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Q${currentPdfIndex + 1} of ${pdf_mcqs.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdf_mcqs.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('pdf-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pdfAnswers[currentPdfIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pdfAnswers[currentPdfIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPdfOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('pdf', qData, hasAnswered);
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdf_mcqs.length - 1;
+        }
+
+        function selectPdfOption(selectedIndex) { 
+            pdfAnswers[currentPdfIndex] = selectedIndex;
+            if (selectedIndex === pdf_mcqs[currentPdfIndex].correct) {
+                pdfRightCount++;
+                document.getElementById('pdf-right').innerText = pdfRightCount;
+            } else {
+                pdfWrongCount++;
+                document.getElementById('pdf-wrong').innerText = pdfWrongCount;
+            }
+            renderPdf(); 
+        }
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdf_mcqs.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // NUMERICAL ENGINE LOGIC (Flashcards)
+        // ==========================================
+        let currentNumIndex = 0;
+
+        function startNumerical() {
+            if (numerical_data.length === 0) { alert("Numerical Engine is empty."); return; }
+            switchView('numerical-page');
+            currentNumIndex = 0;
+            renderNumerical();
+        }
+
+        function renderNumerical() {
+            if (numerical_data.length === 0) return;
+            const qData = numerical_data[currentNumIndex];
+            
+            document.getElementById('num-counter').innerText = `Numerical Card ${currentNumIndex + 1} of ${numerical_data.length}`;
+            document.getElementById('num-progress').style.width = `${((currentNumIndex + 1) / numerical_data.length) * 100}%`;
+            
+            // Text ONLY (No numbering)
+            document.getElementById('num-q-text').innerHTML = qData.q;
+            
+            // Reset visibility
+            document.getElementById('num-ans-box').style.display = 'none';
+            document.getElementById('num-sol-box').style.display = 'none';
+            
+            // Populate content
+            document.getElementById('num-ans-box').innerHTML = `<strong>Answer:</strong> ${qData.ans}`;
+            document.getElementById('num-sol-box').innerHTML = qData.sol || "No solution provided.";
+            
+            document.getElementById('num-prev-btn').disabled = currentNumIndex === 0;
+            document.getElementById('num-next-btn').disabled = currentNumIndex === numerical_data.length - 1;
+        }
+
+        function goPrevNum() { if (currentNumIndex > 0) { currentNumIndex--; renderNumerical(); } }
+        function goNextNum() { if (currentNumIndex < numerical_data.length - 1) { currentNumIndex++; renderNumerical(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none';
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none';
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+            document.getElementById('pdf-card-count').innerText = pdf_mcqs.length + " MCQs";
+            document.getElementById('num-card-count').innerText = numerical_data.length + " Cards";
+        };
+    </script>
+</body>
+</html>

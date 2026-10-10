@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 20 | Track and Drift</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; justify-content: center; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; max-width: 400px; margin: 0 auto; width: 100%; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header span { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 25px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 30px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .reveal-btn-container { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
+        
+        .feedback-solution { display: none; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; border-radius: 8px; margin-bottom: 15px; animation: fadeIn 0.3s; }
+        .ans-box { border-left: 4px solid var(--correct-border); }
+        .sol-box { border-left: 4px solid #2196f3; }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 20: Track and Drift</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startNum()">
+                    <h3>Numericals</h3>
+                    <p id="num-card-count">Loading Cards...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- NUMERICAL ENGINE -->
+        <div id="num-page" class="view-section">
+            <div class="quiz-top-header">
+                <span id="num-counter">Numerical Card 1 of X</span>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Numericals</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="num-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="num-q-text">Loading question...</div>
+                
+                <div class="reveal-btn-container">
+                    <button id="btn-reveal-ans" class="btn" onclick="revealAnswer()">Reveal Answer</button>
+                    <button id="btn-reveal-sol" class="btn" onclick="revealSolution()">Reveal Solution</button>
+                </div>
+
+                <div id="ans-box" class="feedback-solution ans-box"></div>
+                <div id="sol-box" class="feedback-solution sol-box"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="num-prev-btn" class="quiz-nav-btn" onclick="goPrevNum()">Previous</button>
+                <button id="num-next-btn" class="quiz-nav-btn" onclick="goNextNum()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAY
+        // ==========================================
+        const numerical_data = [
+            {
+                q: "An a/c is homing to station on 090° with 10° starboard drift, find RBI indication.",
+                ans: "010°",
+                sol: "<strong>Explanation:</strong><br>MBT = 090°<br>MH = 090° - 10° = 080°<br>RB = 090° - 080° = 010°"
+            },
+            {
+                q: "A/C is homing on to station on 360° with 15° Port drift. Find RBI indication.",
+                ans: "345°",
+                sol: "<strong>Explanation:</strong><br>MBT = 360°<br>MH = 015°<br>RB = 360° - 015° = 345°"
+            },
+            {
+                q: "A/C is flying away from station on 270° with 15° P drift. Find ADF reading.",
+                ans: "165°",
+                sol: "<strong>Explanation:</strong><br>MBF = 270°<br>MBT = 090°<br>MH = 285°<br>RB = 090° - 285° = -195° + 360° = 165°"
+            },
+            {
+                q: "An a/c is flying away from station on a magnetic heading of 030°. RBI is showing 185°, find track and drift.",
+                ans: "Track = 035°, Drift = 5° S",
+                sol: "<strong>Explanation:</strong><br>RB = 185°, MH = 030°<br>MBT = RB + MH = 185° + 030° = 215°<br>Track = 035°<br>Drift = 5° S"
+            },
+            {
+                q: "A/C is flying away from station on a trk of 200° with 10° S drift. Find heading and RB indication.",
+                ans: "Heading = 190°, RBI = 190°",
+                sol: "<strong>Explanation:</strong><br>MBF = 200°<br>MBT = 020°<br>MH = 190°<br>RB = 020° - 190° = -170° + 360° = 190°<br>Hdg = 190°, RBI indication = 190°"
+            },
+            {
+                q: "An a/c is flying away from station on a hdg of 270° making good a trk of 260°. Find RBI and drift indication.",
+                ans: "RBI = 170°, Drift = 10° P",
+                sol: "<strong>Explanation:</strong><br>MBF = 260°<br>MBT = 080°<br>MH = 270°<br>Drift = 10° P<br>RB = 080° - 270° = -190° + 360° = 170°"
+            },
+            {
+                q: "After flying for 2 hrs at G/S of 80 kts, ADF shows 168°, Hdg of a/c is 090°, if the remaining time to go to station is 2 hrs. Find<br>(i) New hdg to reach station.<br>(ii) Trk req. from place of departure.",
+                ans: "(i) 114°, (ii) 090°",
+                sol: "<strong>Explanation:</strong><br>RB = 168°, H = 090°<br>MBT = 168° + 090° = 258°<br>Track = 078°, Drift = 12° P<br>12/60 = P/160 ⇒ P = 32 nm<br>CA = (32 × 60) / 160 = 12°<br>(i) Heading to reach stn = Total Correction to heading = 090° + 12° + 12° = 114°<br>(ii) 090° (TMG = Required Track ± Drift, 078° = RT - 12°, RT = 078° + 12° = 090°)"
+            },
+            {
+                q: "After flying for 180 nm on a hdg of 200° ADF shows 186°, If remaining dist. to go to destination is 120 nm, find new hdg to the station.",
+                ans: "185°",
+                sol: "<strong>Explanation:</strong><br>MBT = 200° + 186° = 386° = 026°<br>Track = 026° + 180° = 206°<br>Drift = 6° S<br>θ/60 = P/180 ⇒ P = (180 × 6) ÷ 60 = 18 nm<br>CA = (18 ÷ 120) × 60 = 9°<br>TC = 9° + 6° = 15°<br>Heading to reach station = 200° - 15° = 185°"
+            },
+            {
+                q: "Compass heading 270°, Deviation 2° W, Variation 30° E, Relative bearing 316°. What is the QDR?",
+                ans: "044°",
+                sol: "<strong>Explanation:</strong><br>Magnetic Heading (MH) = Compass Heading ± Deviation = 270° - 2°(W) = 268°.<br>Magnetic Bearing To (QDM) = MH + RB = 268° + 316° = 584° - 360° = 224°.<br>QDR (Magnetic Bearing From) = QDM ± 180° = 224° - 180° = 044°."
+            },
+            {
+                q: "The inbound track to NDB is 075° (T), Variation 10° W, drift 7° Right. The relative bearing to maintained on the radio compass to reach NDB is:",
+                ans: "007 Relative",
+                sol: "<strong>Explanation:</strong><br>Inbound Track (T) = 075°.<br>Magnetic Track (QDM) = True Track ± Variation = 075° + 10°(W) = 085°.<br>Magnetic Heading (MH) = Magnetic Track - Drift = 085° - 7°(R) = 078°.<br>Relative Bearing = QDM - MH = 085° - 078° = 007°."
+            },
+            {
+                q: "An aircraft is \"homing\" to a radio beacon whilst maintaining a relative bearing of zero. If the magnetic heading decreases, the aircraft is experiencing:",
+                ans: "right drift",
+                sol: "<strong>Explanation:</strong> Homing with RB = 0° means the aircraft's nose is always pointing at the station. If the magnetic heading is continuously decreasing, it means the aircraft is continually turning left. This indicates the wind is blowing the aircraft to the right of the direct track (right drift), requiring continuous leftward corrections to keep the station on the nose."
+            },
+            {
+                q: "An aircraft flying at 9000 feet towards a station will be able to receive VHF R/T transmissions from a ground station located at 1600 AMSL at a distance of _______ NMs.",
+                ans: "168",
+                sol: "<strong>Explanation:</strong><br>Maximum VHF Range = 1.25 × (√H_aircraft + √H_station)<br>Range = 1.25 × (√9000 + √1600)<br>Range = 1.25 × (94.87 + 40) = 1.25 × 134.87 ≈ 168.5 nm."
+            }
+        ];
+
+        // ==========================================
+        // ENGINE LOGIC
+        // ==========================================
+        let currentNumIndex = 0;
+
+        function startNum() {
+            if (numerical_data.length === 0) { alert("No questions available."); return; }
+            switchView('num-page');
+            currentNumIndex = 0;
+            renderNum();
+        }
+
+        function renderNum() {
+            if (numerical_data.length === 0) return;
+            const qData = numerical_data[currentNumIndex];
+            
+            document.getElementById('num-counter').innerText = `Numerical Card ${currentNumIndex + 1} of ${numerical_data.length}`;
+            document.getElementById('num-progress').style.width = `${((currentNumIndex + 1) / numerical_data.length) * 100}%`;
+            document.getElementById('num-q-text').innerHTML = qData.q;
+            
+            // Hide answers/solutions initially
+            const ansBox = document.getElementById('ans-box');
+            const solBox = document.getElementById('sol-box');
+            ansBox.style.display = 'none';
+            solBox.style.display = 'none';
+            ansBox.innerHTML = `<strong>Answer:</strong> ${qData.ans}`;
+            
+            if (qData.sol) {
+                solBox.innerHTML = qData.sol;
+                document.getElementById('btn-reveal-sol').style.display = 'inline-block';
+            } else {
+                document.getElementById('btn-reveal-sol').style.display = 'none';
+            }
+            
+            // Button states
+            document.getElementById('num-prev-btn').disabled = currentNumIndex === 0;
+            document.getElementById('num-next-btn').disabled = currentNumIndex === numerical_data.length - 1;
+        }
+
+        function revealAnswer() {
+            document.getElementById('ans-box').style.display = 'block';
+        }
+
+        function revealSolution() {
+            document.getElementById('sol-box').style.display = 'block';
+        }
+
+        function goPrevNum() { 
+            if (currentNumIndex > 0) { 
+                currentNumIndex--; 
+                renderNum(); 
+            } 
+        }
+        
+        function goNextNum() { 
+            if (currentNumIndex < numerical_data.length - 1) { 
+                currentNumIndex++; 
+                renderNum(); 
+            } 
+        }
+
+        window.onload = function() {
+            document.getElementById('num-card-count').innerText = numerical_data.length + " Cards";
+        };
+    </script>
+</body>
+</html>

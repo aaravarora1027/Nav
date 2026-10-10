@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 15 | Magnetism</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; border-radius: 8px; }
+        .flashcard-ans-box { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 20px; font-size: 1.15rem; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; margin-top: 25px; margin-bottom: 25px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 15: Magnetism</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startTheory()">
+                    <h3>Theory Engine</h3>
+                    <p id="theory-card-count">Loading MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startPdf()">
+                    <h3>PDF Data</h3>
+                    <p id="pdf-card-count">Loading PDF MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startNumerical()">
+                    <h3>Numericals</h3>
+                    <p id="num-card-count">Loading Flashcards...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
+
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF ENGINE (MCQ) -->
+        <div id="pdf-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="pdf-right" class="score-right">0</span> | 
+                    Wrong: <span id="pdf-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="mcq-options" id="pdf-options"></div>
+
+                <div id="pdf-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="pdf-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="pdf-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+        <!-- NUMERICAL ENGINE (FLASHCARDS) -->
+        <div id="numerical-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="num-counter">Numerical 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Numericals</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="num-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="num-q-text" style="font-size: 1.4rem;">Loading problem...</div>
+                
+                <div class="btn-group">
+                    <button class="btn" onclick="document.getElementById('num-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" onclick="document.getElementById('num-sol-box').style.display='block'">Reveal Solution</button>
+                </div>
+
+                <div id="num-ans-box" class="flashcard-ans-box" style="display:none;"></div>
+                <div id="num-sol-box" class="feedback-solution" style="display:none;"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="num-prev-btn" class="quiz-nav-btn" onclick="goPrevNum()">Previous</button>
+                <button id="num-next-btn" class="quiz-nav-btn" onclick="goNextNum()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAYS (Awaiting Data)
+        // ==========================================
+        const theory_mcqs = [
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+            {
+                q: "The magnetic north pole seems to rotate around the geographical north pole. A complete rotation takes about:",
+                options: ["a) 1 degree each 5.9 year.", "b) 3.37 years.", "c) 1 degree each 2.67 year."],
+                correct: 2, // Key: Q1 = c
+                sol: "<strong>Explanation:</strong> The Earth's magnetic poles continually drift due to fluid motion in the Earth's outer core. Historically, standard DGCA texts state this precession moves roughly 1 degree every 2.67 years."
+            },
+            {
+                q: "In the areas close to the magnetic poles compasses are not to any use in air navigation, mainly because:",
+                options: ["a) the horizontal component of the earths magnetic field is too weak.", "b) the inclination is insufficient in these areas.", "c) the distance from the magnetic equator is too long."],
+                correct: 0, // Key: Q2 = a
+                sol: "<strong>Explanation:</strong> A magnetic compass relies on the horizontal component (H) of Earth's magnetic field to align itself. Near the poles, the field points almost straight down (dip angle approaches 90°), making H too weak to overcome the physical friction of the compass pivot."
+            },
+            {
+                q: "Magnetic dip at 40°, H value = 23 unit, value of Z and T will be.",
+                options: ["a) 30/19", "b) 18/24", "c) 19/30"],
+                correct: 2, // Key: Q3 = '-' (Fallback to option c based on Z=19, T=30)
+                sol: "<strong>Explanation:</strong> Using the magnetic triangle: Vertical component Z = H × tan(Dip) = 23 × tan(40°) ≈ 19. Total field T = H / cos(Dip) = 23 / cos(40°) ≈ 30. Therefore, Z=19 and T=30."
+            },
+            {
+                q: "Given that T = 50 micro-tesla (m T), dip angle = 60°, calculate H and Z.",
+                options: ["a) H = 25 mT; Z = 43.3 mT", "b) H = 43.3 mT; Z = 25 mT", "c) H = 50 mT; Z = 43.3 mT"],
+                correct: 0, // Key: Q4 = '-' (Fabricated options to fit MCQ)
+                sol: "<strong>Explanation:</strong> Horizontal component H = T × cos(Dip) = 50 × cos(60°) = 50 × 0.5 = 25 mT.<br>Vertical component Z = T × sin(Dip) = 50 × sin(60°) = 50 × 0.866 = 43.3 mT."
+            },
+            {
+                q: "In direct reading magnetic compass, the effect of dip is countered by:",
+                options: ["a) powerful magnets.", "b) low center of gravity.", "c) the shape of the casing."],
+                correct: 1, // Key: Q5 = b
+                sol: "<strong>Explanation:</strong> To prevent the compass card from tilting completely into the Earth due to magnetic dip, the pivot is placed above the center of gravity (making it pendulous). Gravity acts on this low CG to pull the card back toward horizontal."
+            },
+            {
+                q: "Compass deviation is caused by:",
+                options: ["a) aircraft magnetism distorting the earths magnetic field.", "b) the angle of magnetic dip.", "c) the angle of inclination."],
+                correct: 0, // Key: Q6 = a
+                sol: "<strong>Explanation:</strong> Variation is caused by the Earth. Deviation is a local error caused by the aircraft's own magnetic fields (from ferrous metal structure and electrical circuits) distorting the Earth's magnetic lines of force at the compass."
+            },
+            {
+                q: "The forces acting upon the compass needle in a stand-by compass in an aircraft, are:",
+                options: ["a) the earths magnetic field, the aircraft magnetic field and the effects of attitude and movement of the aircraft.", "b) the earths magnetic field, the Coriolis effect and aircraft magnetism.", "c) the total magnetic field in the compass location."],
+                correct: 0, // Key: Q7 = a
+                sol: "<strong>Explanation:</strong> The needle aligns with the resultant of Earth's field (directive force) and the aircraft's field (deviation). Because it has a pendulous suspension, it is also heavily affected by physical accelerations and turning (attitude and movement)."
+            },
+            {
+                q: "Magnets in DRC are suspended below to",
+                options: ["a) Improve horizontality", "b) To make DRC aperiodic", "c) Improve sensitivity"],
+                correct: 0, // Key: Q8 = a
+                sol: "<strong>Explanation:</strong> Suspending the magnets below the pivot creates a pendulous system with a low center of gravity. This allows the physical force of gravity to oppose the magnetic pull of dip (Z component), keeping the card horizontal."
+            },
+            {
+                q: "A magnetic compass will show an apparent turn to the north in the southern hemisphere when:",
+                options: ["a) the aircraft accelerates on 090° (C).", "b) the aircraft decelerates on 270° (C).", "c) the aircraft accelerates on 000° (C)."],
+                correct: 1, // Key: Q9 = b
+                sol: "<strong>Explanation:</strong> Memory aid: <strong>SAND</strong> (South Accelerate, North Decelerate) for the Southern Hemisphere. Decelerating on an East (090) or West (270) heading causes the pendulous CG to swing, rotating the card to indicate a false turn to the North."
+            },
+            {
+                q: "Select the correct statement:",
+                options: ["a) DRC with all 3 property can be used any where.", "b) Whatever be the accuracy DRC can not be used beyond 70° N.", "c) Whatever be the efforts made for accuracy, DRC is unreliable beyond 70° N / 70° S."],
+                correct: 2, // Key: Q10 = c
+                sol: "<strong>Explanation:</strong> Above 70° North or South latitude, the horizontal component (H) of the Earth's magnetic field becomes extremely weak compared to the vertical component (Z). The directive force is insufficient, rendering Direct Reading Compasses sluggish and unreliable."
+            },
+            {
+                q: "The type of compass least likely to suffer from parallax is:",
+                options: ["a) a standby compass.", "b) remote reading compass.", "c) direct reading compass."],
+                correct: 1, // Key: Q11 = b
+                sol: "<strong>Explanation:</strong> Direct reading / standby compasses are viewed through a curved glass window at varying angles, causing parallax error. Remote reading compasses (like an HSI) display flat on the instrument panel directly in front of the pilot, eliminating parallax."
+            },
+            {
+                q: "When accelerating on an easterly heading in the Northern hemisphere, the compass card of a direct reading magnetic compass will turn?",
+                options: ["a) Anti-clockwise giving an apparent turn toward the North.", "b) Clockwise giving an apparent turn toward the North.", "c) Clockwise giving an apparent turn toward the South."],
+                correct: 1, // Key: Q12 = b
+                sol: "<strong>Explanation:</strong> Memory aid: <strong>ANDS</strong> (Accelerate North). Accelerating on East causes an apparent turn to North. To show North (360/000) under the lubber line when heading East (090), the card must physically rotate clockwise."
+            },
+            {
+                q: "When turning right from 320° (C) to 050° (C) in the Southern hemisphere, the reading of a direct reading magnetic compass will?",
+                options: ["a) Over - indicate the turn and liquid swirl will decrease the effect.", "b) Under - indicate the turn and liquid swirl will decrease the effect.", "c) Over - indicate the turn and liquid swirl will increase the effect."],
+                correct: 0, // Key: Q13 = a
+                sol: "<strong>Explanation:</strong> Memory aid: <strong>ONUS</strong> (Overshoot North) for Southern Hem. Turning through North means the compass leads (over-reads). Liquid swirl drags the card in the direction of the turn, which physically counters the over-read, thus decreasing the overall error."
+            },
+            {
+                q: "An aircraft is completing a timed turn in the Northern hemisphere from 330°C to 040°C. After the turn has been stopped but before the direct indicating magnetic compass settles down, will the compass (1) over-read or under-read, and (2) is this error increased or decreased by liquid swirl?",
+                options: ["a) (1) over-read (2) increased.", "b) (1) over-read (2) decreased.", "c) (1) under-read (2) decreased."],
+                correct: 2, // Key: Q14 = c
+                sol: "<strong>Explanation:</strong> Memory aid: <strong>UNOS</strong> (Undershoot North). Turning through North means the compass lags (under-reads). Liquid swirl pulls the card with the turn, artificially pulling it closer to the correct heading, thereby decreasing the undershoot error."
+            },
+            {
+                q: "An aircraft in the northern hemisphere makes an accurate rate one turn to the right/starboard. If the initial heading was 330°, after 30 seconds of the turn the direct reading magnetic compass should read?",
+                options: ["a) Less than 060°.", "b) More than 060°.", "c) More or less than 060° depending on the pendulous suspension used."],
+                correct: 0, // Key: Q15 = a
+                sol: "<strong>Explanation:</strong> Rate one turn = 3°/sec. In 30s, the turn is 90°. Actual heading = 330 + 90 = 060°. Because you are turning onto a Northerly/Easterly heading, UNOS (Undershoot North) applies. The compass lags, so it will read less than 060°."
+            },
+            {
+                q: "At the magnetic equator?",
+                options: ["a) Deviation is Zero.", "b) The isogonal is an agonic line.", "c) Dip is Zero."],
+                correct: 2, // Key: Q16 = c
+                sol: "<strong>Explanation:</strong> The magnetic equator (aclinic line) is the point where the Earth's magnetic lines of force run perfectly parallel to the Earth's surface. Because there is no vertical downward or upward pull, the angle of Dip (Z) is zero."
+            },
+            {
+                q: "Which of the following is the correct conversion from True to Compass?",
+                options: ["a) T:130, V:2W, M:128, D:-1, C:127", "b) T:130, V:2E, M:128, D:-1, C:129", "c) T:130, V:2E, M:132, D:-1, C:133"],
+                correct: 1, // Key: Q17 = b
+                sol: "<strong>Explanation:</strong> CADET formula: True -> Mag -> Compass. <strong>Variation East, Magnetic Least:</strong> 130 - 2E = 128M. <strong>Deviation West (-1), Compass Best:</strong> 128 + 1W = 129C."
+            },
+            {
+                q: "The horizontal component of the earth's magnetic field?",
+                options: ["a) Weakens with increasing distance from the magnetic poles.", "b) Weakens with increasing distance from the nearer magnetic poles.", "c) Is approximately the same at magnetic latitude 50° N and 50°S."],
+                correct: 2, // Key: Q18 = c
+                sol: "<strong>Explanation:</strong> The Earth's magnetic field is generally symmetrical north and south. The horizontal directive force (H) is determined by magnetic latitude. At equal distances from the magnetic equator (50°N and 50°S), the H component is approximately the same."
+            },
+            {
+                q: "What is the maximum value of dip that can be caused by the vertical component of terrestrial magnetism?",
+                options: ["a) 45°.", "b) 60°.", "c) 90°."],
+                correct: 2, // Key: Q19 = c
+                sol: "<strong>Explanation:</strong> At the magnetic poles, the Earth's magnetic lines of force plunge straight down into the earth perfectly vertically. The horizontal component is zero, making the angle of dip exactly 90°."
+            },
+            {
+                q: "Which of the following is correct when the variation is West?",
+                options: ["a) True North is East of Magnetic North.", "b) Magnetic North is West of Compass North.", "c) True North is West of Magnetic North."],
+                correct: 0, // Key: Q20 = a
+                sol: "<strong>Explanation:</strong> Variation West means the Magnetic North pole is located to the West of Geographic (True) North. Conversely, this means True North lies to the East of Magnetic North."
+            },
+            {
+                q: "A line drawn on a chart which joins all points where the value of magnetic variation is zero is called an?",
+                options: ["a) Agonic line.", "b) Aclinic line.", "c) Isogonal."],
+                correct: 0, // Key: Q21 = a
+                sol: "<strong>Explanation:</strong> An Agonic line connects points of zero magnetic variation. Isogonals connect points of equal variation, and aclinic lines connect points of zero dip (the magnetic equator)."
+            },
+            {
+                q: "How is the direct reading magnetic compass made aperiodic or dead beat?",
+                options: ["a) Using a pendulous suspension system for the magnetic assembly.", "b) Using the lower possible viscosity liquid in the compass.", "c) Positioning the magnetic assembly mass close to the compass point and using damping wires."],
+                correct: 2, // Key: Q22 = c
+                sol: "<strong>Explanation:</strong> 'Aperiodic' or 'dead beat' means the compass settles quickly onto a heading without oscillating back and forth. This is achieved by concentrating the mass near the pivot to reduce rotational inertia, and using damping wires submerged in fluid to drag and stop oscillations."
+            },
+            {
+                q: "Isogonals converge at the?",
+                options: ["a) Magnetic equator.", "b) North magnetic pole only.", "c) North and South geographic and magnetic poles."],
+                correct: 2, // Key: Q23 = c
+                sol: "<strong>Explanation:</strong> Isogonals represent the angular difference between True North and Magnetic North. Because all True meridians converge at the geographic poles, and all Magnetic meridians converge at the magnetic poles, the lines of variation (isogonals) must converge at all four of these poles."
+            },
+            {
+                q: "Why does the value of magnetic variation on a chart change with time?",
+                options: ["a) Movements of the magnetic poles, cause it to increase.", "b) Movements of the magnetic poles cause it to increase or decrease.", "c) Increases in the magnetic field, cause it to increase."],
+                correct: 1, // Key: Q24 = b
+                sol: "<strong>Explanation:</strong> The molten iron in Earth's outer core shifts, causing the magnetic poles to wander constantly. Depending on your location relative to this movement, the local angle between True and Magnetic North (variation) can either increase or decrease over time."
+            },
+            {
+                q: "At what point on the earth is a magnetic compass most effective?",
+                options: ["a) At the geographic equator.", "b) Close to the magnetic North Pole.", "c) Approximately midway between the magnetic poles."],
+                correct: 2, // Key: Q25 = c
+                sol: "<strong>Explanation:</strong> Approximately midway between the magnetic poles is the magnetic equator (aclinic line). Here, the magnetic lines of force are completely parallel to the ground, meaning the horizontal directive force (H) is at its absolute maximum, providing the strongest pull on the compass."
+            },
+            {
+                q: "An aircraft in the northern hemisphere is making an accurate rate one turn to the right. If the initial heading was 135° after 30 seconds the direct reading magnetic compass should read?",
+                options: ["a) 225°.", "b) Less than 225°.", "c) More than 225°."],
+                correct: 2, // Key: Q26 = c
+                sol: "<strong>Explanation:</strong> Rate 1 turn = 3°/sec. In 30s = 90°. Actual heading = 135 + 90 = 225°. Since 225° is a Southerly heading, UNOS (Overshoot South) applies. The compass leads the turn (over-reads), so it will show a value greater than 225°."
+            },
+            {
+                q: "When using a direct reading magnetic compass in the northern hemisphere:",
+                options: ["a) A longitudinal acceleration on a Westerly heading causes an apparent turn to the South", "b) A longitudinal acceleration of an Easterly heading causes an apparent turn to the North", "c) A longitudinal deceleration of a Westerly heading causes an apparent turn to the North"],
+                correct: 1, // Key: Q27 = b
+                sol: "<strong>Explanation:</strong> Memory aid: <strong>ANDS</strong> (Accelerate North, Decelerate South). A longitudinal acceleration on either an Easterly or Westerly heading pitches the pendulous compass assembly, causing an apparent turn to the North."
+            },
+            {
+                q: "What is the main cause of permanent magnetism in aircraft?",
+                options: ["a) Hammering and the effect of the earth's magnetic field, whilst under construction.", "b) Exposure to the terrestrial magnetic field during normal operation.", "c) The combined effect of aircraft electrical equipment and the terrestrial magnetic field."],
+                correct: 0, // Key: Q28 = a
+                sol: "<strong>Explanation:</strong> Hard iron in the aircraft's structure acts like a magnet being forged. When the metal is subjected to physical shocks (like riveting, hammering, or heavy landings) while aligned with the Earth's magnetic field, it acquires permanent magnetism."
+            },
+            {
+                q: "When accelerating on a westerly heading in the northern hemisphere, the compass card of a direct reading magnetic compass will turn?",
+                options: ["a) Clockwise giving an apparent turn towards the north.", "b) Clockwise giving an apparent turn towards the south.", "c) Anti-clockwise giving an apparent turn towards the north."],
+                correct: 2, // Key: Q29 = c
+                sol: "<strong>Explanation:</strong> <strong>ANDS</strong> (Accelerate North). The compass wants to point North (360/000). If you are heading West (270), to move from 270 toward 360, the numbers under the lubber line must increase. The card itself physically rotates anti-clockwise to bring the 'N' mark into view."
+            },
+            {
+                q: "What is the main advantage of a remote indicating compass compared to a direct reading compass is that it?",
+                options: ["a) It has less moving parts.", "b) It senses, rather than seeks, the magnetic meridian.", "c) It magnifies the earth's magnetic field in order to attain greater accuracy."],
+                correct: 1, // Key: Q30 = b
+                sol: "<strong>Explanation:</strong> A flux valve (remote compass) is a solid-state electronic device that measures (senses) Earth's magnetic flux. Because it does not use a physical, swinging pendulous magnet that seeks North, it is free from the turning and acceleration errors of a direct reading compass."
+            },
+            {
+                q: "When decelerating on a westerly heading in the Northern hemisphere, the compass card of a direct reading magnetic compass will turn?",
+                options: ["a) Anti-clockwise giving an apparent turn towards the north.", "b) Clockwise giving an apparent turn toward the south.", "c) Anti-clockwise giving an apparent turn towards the south."],
+                correct: 1, // Key: Q31 = b
+                sol: "<strong>Explanation:</strong> <strong>ANDS</strong> (Decelerate South). The compass wants to indicate a turn to South (180). If you are heading West (270), to move from 270 down to 180, the numbers must decrease. The card physically rotates clockwise to bring the 'S' mark into view."
+            },
+            {
+                q: "Why are the detector units in slaved gyro compasses usually fitted in or close to the wingtips of an aircraft?",
+                options: ["a) In order to isolate the detector unit form the terrestrial magnetic field.", "b) In order to isolate the detector unit form the aircraft deviation sources.", "c) Having one detector in each wingtip, cancels out compass deviation."],
+                correct: 1, // Key: Q32 = b
+                sol: "<strong>Explanation:</strong> Detector units (flux valves) are placed in the wingtips or tail to distance them as much as possible from the aircraft's engines, heavy avionics, and high-current electrical cables, which are the main sources of magnetic deviation."
+            },
+            {
+                q: "Which of the following statements is true of the Earth's magnetic field?",
+                options: ["a) It may be permanent, temporary, transient.", "b) It does not affect aircraft deviation.", "c) It acts like a large blue magnetic pole in Northern Canada."],
+                correct: 2, // Key: Q33 = c
+                sol: "<strong>Explanation:</strong> Magnetic opposites attract. The \"North-seeking\" (Red) end of a compass needle points toward Northern Canada. Therefore, the magnetic pole located in Northern Canada must physically be a magnetic South (Blue) pole."
+            },
+            {
+                q: "In a remote indicating compass system the amount of deviation caused by aircraft magnetism and electrical circuits may be minimized by?",
+                options: ["a) Positioning the master unit in the center of the aircraft.", "b) Using a vertically mounted gyroscope.", "c) Mounting the detector unit in the wingtip."],
+                correct: 2, // Key: Q34 = c
+                sol: "<strong>Explanation:</strong> Similar to Q32, mounting the detector unit (flux valve) in the wingtip physically isolates it from the dense cluster of ferrous metals and electrical currents located in the fuselage and engine nacelles, minimizing deviation."
+            },
+            {
+                q: "An aircraft using a direct reading magnetic compass in the Northern hemisphere starts a Rate 1 turn to the right from 145°. What will be the indicated heading if it rolls out of the turn after 30 seconds?",
+                options: ["a) It is not possible to answer this question using the information given.", "b) Greater than 235°.", "c) Less than 235°."],
+                correct: 1, // Key: Q35 = b
+                sol: "<strong>Explanation:</strong> A Rate 1 turn is 3°/sec. In 30 seconds, the aircraft turns 90°. Initial heading 145° + 90° = 235°. In the Northern Hemisphere, turning onto a Southerly heading causes the compass to lead (overshoot) the actual turn due to UNOS (Undershoot North, Overshoot South). Thus, the compass will read a value greater than the actual 235° heading."
+            },
+            {
+                q: "The sensitivity of a direct reading compass varies?",
+                options: ["a) Inversely with the vertical component of the earth's magnetic field.", "b) Directly with the horizontal component of the earth's magnetic field.", "c) Directly with the vertical component of the earth's magnetic field."],
+                correct: 1, // Key: Q36 = b
+                sol: "<strong>Explanation:</strong> The horizontal component (H) is the directive force that physically aligns the compass with Magnetic North. A stronger H provides a greater aligning force, making the compass more sensitive and accurate. (H is strongest at the equator and weakest at the poles)."
+            },
+            {
+                q: "An aircraft's compass must be swung?",
+                options: ["a) If the aircraft has been in the hanger for a long time and has been moved several times.", "b) If the aircraft has been subjected to hammering.", "c) Every maintenance inspection."],
+                correct: 1, // Key: Q37 = b
+                sol: "<strong>Explanation:</strong> A compass must be swung (calibrated) whenever the aircraft's internal magnetic signature might have changed. Hammering on the airframe (hard iron) while it sits in the Earth's magnetic field can permanently alter its magnetic signature, requiring a recalibration."
+            },
+            {
+                q: "What is the dip angle at the South Magnetic Pole?",
+                options: ["a) 00°.", "b) 90°.", "c) 180°."],
+                correct: 1, // Key: Q38 = b
+                sol: "<strong>Explanation:</strong> At the exact magnetic poles, the Earth's magnetic lines of force plunge completely vertically (straight up or straight down). Because there is no horizontal pull, the angle of dip is exactly 90°."
+            },
+            {
+                q: "At the magnetic equator, when accelerating after take off on heading West, a direct reading compass?",
+                options: ["a) Under reads.", "b) The heading indicates a turn to the south.", "c) Indicates the correct heading."],
+                correct: 2, // Key: Q39 = c
+                sol: "<strong>Explanation:</strong> Acceleration errors are caused by the compass's pendulous assembly (which exists to counter magnetic dip). At the magnetic equator, dip is zero, meaning the vertical force (Z) is zero. Therefore, acceleration does not cause the card to twist, and it indicates the correct heading."
+            },
+            {
+                q: "What is the name for a line of equal magnetic variation?",
+                options: ["a) An isoclinic.", "b) An isogonal.", "c) An isogriv."],
+                correct: 1, // Key: Q40 = b
+                sol: "<strong>Explanation:</strong> An isogonal line connects points of equal magnetic variation. (For context: Isoclinic lines connect points of equal dip, and isogrivs connect points of equal grivation)."
+            },
+            {
+                q: "Which of the following statements concerning earth magnetism is completely correct?",
+                options: ["a) An isogonal is a line which connects places of equal dip; the aclinic is the line of zero magnetic dip.", "b) An isogonal is a line which connects places with the same magnetic variation; the aclinic connects place with the same magnetic field strength.", "c) An isogonal is a line which connects places with the same magnetic variations; the aclinic is the line of zero magnetic dip."],
+                correct: 2, // Key: Q41 = c
+                sol: "<strong>Explanation:</strong> Isogonals connect points of equal magnetic variation. The aclinic line (the magnetic equator) connects all points where magnetic dip is exactly zero."
+            },
+            {
+                q: "An aircraft is accelerating in the Northern hemisphere heading West. Will a direct reading magnetic compass (1) over-read or under-read and (2) Indicate a turn to the north or to the south?",
+                options: ["a) (1) over-read (2) north", "b) (1) over-read (2) south", "c) (1) under-read (2) north"],
+                correct: 0, // Key: Q42 = a
+                sol: "<strong>Explanation:</strong> Northern Hemisphere memory aid: ANDS (Accelerate North). Accelerating on a West heading causes an apparent turn to the North. Because the heading indicator moves from 270° (W) towards 360° (N), the numerical values increase, meaning the compass over-reads."
+            },
+            {
+                q: "A direct reading compass should be swung when?",
+                options: ["a) The aircraft has made more than a stated number of landings.", "b) There is a large, and permanent, change in magnetic latitude.", "c) The aircraft is stored for a long period and is frequently moved."],
+                correct: 1, // Key: Q43 = b
+                sol: "<strong>Explanation:</strong> A compass swing is required when there is a significant, permanent change in magnetic latitude, as the change in the Earth's H and Z magnetic components will interact differently with the aircraft's internal magnetic fields, changing the deviation."
+            },
+            {
+                q: "The Earth can be considered as being a magnet with the?",
+                options: ["a) Red pole near the north pole of the earth and the direction of the magnetic force pointing straight down to the earth's surface.", "b) Blue pole near the north pole of the earth and the direction of the magnetic force pointing straight up the earth's surface.", "c) Blue pole near the north pole of the earth and the direction of the magnetic force pointing straight down to the earth's surface."],
+                correct: 2, // Key: Q44 = c
+                sol: "<strong>Explanation:</strong> Magnetic opposites attract. The 'North-seeking' (Red) pole of a compass needle points North because the magnetic pole situated in the Northern Hemisphere is physically a South-seeking (Blue) magnetic pole. At this pole, the lines of force point straight down into the Earth."
+            },
+            {
+                q: "Deviation applied to magnetic heading gives?",
+                options: ["a) Magnetic track.", "b) Compass heading.", "c) Magnetic course."],
+                correct: 1, // Key: Q45 = b
+                sol: "<strong>Explanation:</strong> Following the standard CADET rule (Compass -> Deviation -> Magnetic -> Variation -> True), applying deviation to a Magnetic Heading yields the Compass Heading."
+            },
+            {
+                q: "Which of the following is an occasion for carrying out a compass swing on a Direct Reading Compass?",
+                options: ["a) Before an aircraft goes on any flight that involves a large change of magnetic latitude.", "b) After any of the aircraft radio equipment has been changed due to un serviceability.", "c) After an aircraft has passed through a severe electrical storm, or has been struck by lightning."],
+                correct: 2, // Key: Q46 = c
+                sol: "<strong>Explanation:</strong> A severe electrical storm or lightning strike forces massive electrical currents through the airframe, which can instantly alter the permanent magnetic signature of the aircraft's metal, requiring a compass swing to recalibrate the deviation."
+            },
+            {
+                q: "Which of the following statements is correct concerning the effect of turning errors on a direct reading compass?",
+                options: ["a) Turning errors are greatest on east/west headings, and are greatest at high latitudes.", "b) Turning errors are greatest on north/south headings, and are greatest at high latitudes.", "c) Turning errors are greatest on north/south headings, and are least at high latitudes."],
+                correct: 1, // Key: Q47 = b
+                sol: "<strong>Explanation:</strong> Turning errors (UNOS) occur when turning through North or South headings. They are caused by the vertical component (Z) pulling on the tilted compass card. This error is worst at high latitudes (near the poles) where Z is the strongest."
+            },
+            {
+                q: "Complete the following statement regarding magnetic variation. The charted values of magnetic variation on earth normally change annually due to?",
+                options: ["a) Magnetic pole movement causing numerical values at all locations to increase or decrease.", "b) Magnetic pole movement causing numerical values at all locations to increase.", "c) An increasing field strength causing numerical values at all locations to increase."],
+                correct: 0, // Key: Q48 = a
+                sol: "<strong>Explanation:</strong> The Earth's molten core is constantly shifting, causing the magnetic poles to move over time. This 'secular change' causes the numerical value of variation at any given location on Earth to gradually increase or decrease annually, depending on your physical location relative to the pole's movement."
+            },
+            {
+                q: "The north and south magnetic poles are the only positions on the earth's surface where?",
+                options: ["a) The value of magnetic variation equals 90°.", "b) A freely suspended compass needle will stand vertical.", "c) A freely suspended compass needle will stand horizontal."],
+                correct: 1, // Key: Q49 = b
+                sol: "<strong>Explanation:</strong> At the exact North or South magnetic poles, the Earth's magnetic lines of force plunge straight vertically into the ground. A freely suspended needle will follow these lines and point straight down (or up), standing vertical."
+            },
+            {
+                q: "Which of the following statements concerning the earth's magnetic field is completely correct?",
+                options: ["a) Dip is the angle between total magnetic field and vertical field component.", "b) Magnetic North rotates around true North slowly.", "c) Earth's Red Pole is situated in North Canada."],
+                correct: 1, // Key: Q50 = b
+                sol: "<strong>Explanation:</strong> The Earth's magnetic poles are not stationary; they slowly migrate and rotate around the geographic (True) poles over time due to fluid dynamics in the Earth's core."
+            },
+            {
+                q: "Concerning direct reading magnetic compasses, in the northern hemisphere, it can be said that?",
+                options: ["a) On an Easterly heading, a longitudinal acceleration causes an apparent turn to the South.", "b) On a Westerly heading, a longitudinal acceleration causes an apparent turn to the South.", "c) On an Easterly heading, a longitudinal acceleration causes an apparent turn to the North."],
+                correct: 2, // Key: Q51 = c
+                sol: "<strong>Explanation:</strong> Northern Hemisphere memory aid: ANDS (Accelerate North, Decelerate South). Accelerating on either an East or West heading pitches the pendulous compass, causing it to incorrectly indicate a turn toward the North."
+            },
+            {
+                q: "At a specific location the value of magnetic variation?",
+                options: ["a) Varies slowly over time.", "b) Depends on the magnetic heading.", "c) Depends on the true heading."],
+                correct: 0, // Key: Q52 = a
+                sol: "<strong>Explanation:</strong> Magnetic variation is not a fixed number; it undergoes 'secular change,' varying slowly over years due to the continuous shifting of the Earth's magnetic poles."
+            },
+            {
+                q: "In northern hemisphere, during an acceleration in an easterly direction, the magnetic compass will indicate?",
+                options: ["a) A heading of East.", "b) A decrease in heading.", "c) An apparent turn to the South."],
+                correct: 1, // Key: Q53 = b
+                sol: "<strong>Explanation:</strong> ANDS (Accelerate North). Accelerating on East (090°) causes an apparent turn to the North (360°/000°). The compass card rotates to show numbers closer to North, meaning the numerical heading indication decreases."
+            },
+            {
+                q: "The purpose of compass check swing is to?",
+                options: ["a) Cancel out the horizontal component of the earth's magnetic field.", "b) Cancel out the effects of the magnetic field found on board the aero plane.", "c) Measure the angle between Magnetic North and Compass North."],
+                correct: 2, // Key: Q54 = c
+                sol: "<strong>Explanation:</strong> A compass swing is the procedure of physically aligning the aircraft on known magnetic headings (Magnetic North) to measure what the compass indicates (Compass North). The angular difference between the two is the deviation."
+            },
+            {
+                q: "The magnitude of variation?",
+                options: ["a) has a maximum of 90°.", "b) has a maximum of 180°.", "c) has a maximum value of 45° E or 45° W."],
+                correct: 1, // Key: Q55 = b
+                sol: "<strong>Explanation:</strong> Variation is the angle between True North and Magnetic North. Because these are two points on a sphere, if you are standing directly between them, the maximum possible angular difference is 180°."
+            },
+            {
+                q: "At the magnetic equator?",
+                options: ["a) Variation is zero.", "b) Deviation is zero", "c) Dip is zero."],
+                correct: 2, // Key: Q56 = c
+                sol: "<strong>Explanation:</strong> The magnetic equator is the line around the Earth where the magnetic lines of force are perfectly parallel to the surface. Since there is no downward or upward pull, the angle of Dip (Z) is zero."
+            },
+            {
+                q: "The agonic line?",
+                options: ["a) Follows the geographical equator.", "b) Joins places of nil variation.", "c) Is midway between the magnetic north and South Poles."],
+                correct: 1, // Key: Q57 = b
+                sol: "<strong>Explanation:</strong> An agonic line is a specific type of isogonal line that connects all places on Earth where the magnetic variation is nil/zero (meaning True North and Magnetic North align perfectly)."
+            },
+            {
+                q: "Disadvantage of Remote sensing compass over DRC is :",
+                options: ["a) Turning errors are increased.", "b) Detector unit is exposed to high deviation errors.", "c) Susceptible to electrical failure."],
+                correct: 2, // Key: Q58 = c
+                sol: "<strong>Explanation:</strong> A Remote Indicating Compass relies on a flux valve and an intricate electrical system (amplifiers, synchros, and gyros) to operate. Its primary disadvantage is its complete dependence on the aircraft's electrical power."
+            },
+            {
+                q: "What will be the effect on its direct reading compass when an aircraft on the Equator accelerates whilst traveling westwards.",
+                options: ["a) No change.", "b) Indicates a decrease in heading.", "c) Indicates a increase in heading."],
+                correct: 0, // Key: Q59 = a
+                sol: "<strong>Explanation:</strong> Acceleration errors (ANDS) occur because of the pendulous compass assembly, which is designed to counter magnetic dip. At the equator, dip is zero, so acceleration forces do not cause the compass to rotate. It indicates the correct heading (No change)."
+            },
+            {
+                q: "A ground feature appears 30° to the left of the center line of the CRT of an airborne weather radar. If the heading of the aircraft is 175°. (M) and the magnetic variation is 15°. East, the true bearing of the aircraft from the feature is?",
+                options: ["a) 310°.", "b) 130°.", "c) 160°."],
+                correct: 2, // Key: Q60 = c
+                sol: "<strong>Explanation:</strong> Magnetic Bearing to feature = Aircraft Heading (175°) - Relative Bearing (30° Left) = 145°(M). True Bearing = Magnetic Bearing + Variation East (145° + 15° = 160° True)."
+            },
+            {
+                q: "The compass heading can be derived from the magnetic heading by reference to a:",
+                options: ["a) map showing the isoclinic lines", "b) compass swinging curve", "c) deviation correction curve"],
+                correct: 1, // Key: Q61 = b
+                sol: "<strong>Explanation:</strong> A compass swinging curve (or deviation card) provides the specific deviation values for various headings. By applying this deviation to the magnetic heading, you derive the compass heading."
+            },
+            {
+                q: "To minimise error, Magnetic compass should be read only when the aircraft is:",
+                options: ["a) turning with a constant bank", "b) accelerating on a constant heading", "c) flying straight and level with constant speed."],
+                correct: 2, // Key: Q62 = c
+                sol: "<strong>Explanation:</strong> To ensure accuracy and avoid turning errors (UNOS) and acceleration errors (ANDS), a direct reading compass must only be read in unaccelerated, straight, and level flight."
+            },
+            {
+                q: "A pilot wishes to turn right on to a southerly heading with 20° bank at a latitude of 20° North. Using a direct reading compass, in order to achieve this he must stop the turn on an approximate heading of:",
+                options: ["a) 150°", "b) 190°", "c) 210°"],
+                correct: 1, // Key: Q63 = b
+                sol: "<strong>Explanation:</strong> Northern Hemisphere turning South: Overshoot South (UNOS). The compass leads the turn. If you want to roll out accurately on 180°, you must allow the compass to indicate past 180° (to approximately 190°) before stopping the turn."
+            },
+            {
+                q: "Deviation card is used to help pilot in:",
+                options: ["a) maintaining magnetic headings", "b) planning bad weather deviations", "c) maintaining compass headings"],
+                correct: 0, // Key: Q64 = a
+                sol: "<strong>Explanation:</strong> The deviation card lists the specific deviation errors on various headings, allowing the pilot to apply these corrections to their compass reading in order to accurately maintain true magnetic headings."
+            },
+            {
+                q: "The purpose of compass swing is to determine the deviation of a magnetic compass:",
+                options: ["a) on a given heading", "b) at a given latitude", "c) on any heading"],
+                correct: 2, // Key: Q65 = c
+                sol: "<strong>Explanation:</strong> A compass swing is conducted on a compass rose to determine the deviation error of the magnetic compass across multiple different headings (typically every 30 or 45 degrees), creating a comprehensive deviation card."
+            },
+            {
+                q: "In the northern hemisphere, during deceleration following a landing in an Easterly direction, the magnetic compass will indicate:",
+                options: ["a) a heading fluctuating about 090°", "b) a constant heading", "c) an apparent turn to the South"],
+                correct: 2, // Key: Q66 = c
+                sol: "<strong>Explanation:</strong> Northern Hemisphere memory aid: ANDS (Accelerate North, Decelerate South). Decelerating on an Easterly heading causes the pendulous compass card to swing and falsely indicate an apparent turn to the South."
+            },
+            {
+                q: "The magnetic heading can be derived from the true heading by means of a:",
+                options: ["a) map showing the isoclinic lines", "b) map showing the isogonal lines", "c) compass swinging curve"],
+                correct: 1, // Key: Q67 = b
+                sol: "<strong>Explanation:</strong> Isogonal lines on a map show magnetic variation. By applying this variation (using East is Least, West is Best) to a True heading measured on the map, you can calculate the required Magnetic heading."
+            },
+            {
+                q: "When turning onto a northerly heading the rose of a magnetic compass tends to \"undershoot\"; when turning onto a southerly heading it tends to \"overshoot\":<br>1. these compass indications are less reliable in the northern hemisphere than in the southern hemisphere<br>2. these compass oscillations following a lateral gust are not identical if the aircraft is heading north or south<br>3. this behaviour is due to the mechanical construction of the compass<br>4. this behaviour is a symptom of a badly swung compass<br>The combination of correct statements is:",
+                options: ["a) 2, 3, 4", "b) 2, 3", "c) 1, 2, 4"],
+                correct: 1, // Key: Q68 = b
+                sol: "<strong>Explanation:</strong> Turning errors (UNOS) are an inherent design flaw due to the pendulous mechanical construction of the compass (3), which is pulled by the vertical component (Z) of Earth's field when banked. Because Z pulls differently on North vs. South headings, oscillations following gusts are not identical (2)."
+            },
+            {
+                q: "Among the errors of a magnetic compass, are errors:",
+                options: ["a) of parallax, due to oscillations of the compass rose", "b) in North seeking, due to bank angle and magnetic heading", "c) due to Sch, ler type oscillations"],
+                correct: 1, // Key: Q69 = b
+                sol: "<strong>Explanation:</strong> Turning errors occur because the compass card tilts with the aircraft's bank angle, allowing the vertical component (Z) of Earth's magnetic field to pull the needle. This error varies depending on your magnetic heading (e.g., turning through North vs. South)."
+            },
+            {
+                q: "The purpose of a compass swing is to attempt to coincide the indications of:",
+                options: ["a) compass north and magnetic north", "b) true north and magnetic north", "c) compass north and lubber line"],
+                correct: 0, // Key: Q70 = a
+                sol: "<strong>Explanation:</strong> A compass swing is performed to calculate and minimize Deviation. Deviation is defined as the angular difference between Compass North (where the needle actually points) and Magnetic North (where it should point)."
+            },
+            {
+                q: "In a steep turn, the northerly turning error on a magnetic compass on the northern hemisphere is:",
+                options: ["a) equal to 180° on a 270° heading in a right turn", "b) none on a 090° heading in a right turn", "c) equal to 180° on a 090° heading in a right turn"],
+                correct: 2, // Key: Q71 = c
+                sol: "<strong>Explanation:</strong> Derived directly from Option C in the textbook key. In steep turns on specific headings, the vertical pull of the Z component can completely lock or flip the compass card, causing massive momentary errors."
+            },
+            {
+                q: "Magnetic compass swinging is carried out to reduce as much as possible:",
+                options: ["a) deviation", "b) turning error", "c) variation"],
+                correct: 0, // Key: Q72 = a
+                sol: "<strong>Explanation:</strong> Swinging a compass involves physically adjusting small compensator magnets inside the compass housing to counteract the aircraft's internal magnetic fields, thereby reducing Deviation."
+            },
+            {
+                q: "Magnetic compass works by:",
+                options: ["a) Converting earth's magnetic field to electrical field.", "b) Sensing earth's magnetic field and converting it to gyro motion.", "c) Sensing earth's magnetic field and rotating compass card."],
+                correct: 2, // Key: Q73 = c
+                sol: "<strong>Explanation:</strong> A direct reading compass is purely mechanical. It simply senses the Earth's magnetic lines of force (via small magnets attached to the card) and physically rotates to align with them."
+            },
+            {
+                q: "A pilot wishes to turn right on to a northerly heading with 20° bank at a latitude of 40°North. Using a direct reading compass, in order to achieve this he must stop the turn on to an approximate heading of:",
+                options: ["a) 350°", "b) 010°", "c) 330°"],
+                correct: 2, // Key: Q74 = c
+                sol: "<strong>Explanation:</strong> Northern Hemisphere turning North: UNOS (Undershoot North). The compass lags behind the actual turn. To accurately roll out on 360°, you must stop the turn early when the compass is indicating approximately 330°."
+            },
+            {
+                q: "In the Northern hemisphere, during deceleration following a landing in a Westerly direction, the magnetic compass will indicate:",
+                options: ["a) an apparent turn to the North", "b) an apparent turn to the South", "c) a heading fluctuating about 270°"],
+                correct: 1, // Key: Q75 = b
+                sol: "<strong>Explanation:</strong> Northern Hemisphere memory aid: ANDS (Accelerate North, Decelerate South). Decelerating on a West heading pitches the pendulous compass assembly, causing an apparent turn to the South."
+            },
+            {
+                q: "In the Southern hemisphere, during deceleration following a landing in a Westerly direction, the magnetic compass will indicate:",
+                options: ["a) an apparent turn to the South", "b) a heading fluctuating about 270°", "c) an apparent turn to the North"],
+                correct: 2, // Key: Q76 = c
+                sol: "<strong>Explanation:</strong> Southern Hemisphere memory aid: SAND (South Accelerate, North Decelerate). Decelerating on an East or West heading in the Southern Hemisphere causes an apparent turn to the North."
+            },
+            {
+                q: "During deceleration following a landing in Northerly direction, the magnetic compass will indicate:",
+                options: ["a) an apparent turn to the East", "b) an apparent turn to the West", "c) no apparent turn"],
+                correct: 2, // Key: Q77 = c
+                sol: "<strong>Explanation:</strong> Acceleration/Deceleration errors (ANDS/SAND) only manifest when the aircraft is on Easterly or Westerly headings. On North or South headings, deceleration does not cause a turning error."
+            },
+            {
+                q: "The fields affecting a magnetic compass originate from:<br>1. magnetic masses<br>2. ferrous metal masses<br>3. non ferrous metal masses<br>4. electrical currents<br>The combination of correct statements is:",
+                options: ["a) 1, 2, 3", "b) 1, 2, 3, 4", "c) 1, 2, 4"],
+                correct: 2, // Key: Q78 = c
+                sol: "<strong>Explanation:</strong> Non-ferrous metals (like aluminum, which forms most of an aircraft's skin) do not hold magnetic fields and do not affect compasses. Permanent magnets (1), ferrous metals like iron/steel (2), and electrical currents (4) do cause deviation."
+            },
+            {
+                q: "In the Southern hemisphere, during deceleration following a landing in a Easterly direction, the magnetic compass will indicate:",
+                options: ["a) a heading fluctuating about 090°", "b) an apparent turn to the North", "c) no apparent turn"],
+                correct: 1, // Key: Q79 = b
+                sol: "<strong>Explanation:</strong> Southern Hemisphere memory aid: SAND (North Decelerate). Decelerating on an Easterly heading pitches the compass card, causing an apparent turn to the North."
+            },
+            {
+                q: "An aircraft takes-off on a runway with an alignment of 045°. The isogonic line on the area chart indicates 0°. The compass deviation is 0°. On a take-off with zero wind, the northerly turning error:",
+                options: ["a) is such that the compass will indicate a value noticeable above 045°", "b) will be null if the wings are kept level", "c) is such that the compass will indicate a value noticeable below 045°"],
+                correct: 2, // Key: Q80 = c
+                sol: "<strong>Explanation:</strong> Take-off involves acceleration. Accelerating on an Easterly/Northerly heading causes an apparent turn towards North (360/000) due to ANDS. To point from 045 towards 000, the compass must display numbers lower than 045."
+            },
+            {
+                q: "During deceleration following a landing in a Southerly direction, the magnetic compass will indicate:",
+                options: ["a) no apparent turn", "b) a heading fluctuating about 180°", "c) an apparent turn to the East"],
+                correct: 0, // Key: Q81 = a
+                sol: "<strong>Explanation:</strong> Acceleration/Deceleration errors (ANDS/SAND) only affect the compass when flying on East or West headings. Landing on a South heading produces no apparent turn."
+            },
+            {
+                q: "Variation is defined as the angle between:",
+                options: ["a) TN and MN.", "b) TN and CN.", "c) MN and CN."],
+                correct: 0, // Key: Q82 = a
+                sol: "<strong>Explanation:</strong> Variation is the angular difference between True North (TN) and Magnetic North (MN). Deviation is the angle between Magnetic North and Compass North (CN)."
+            },
+            {
+                q: "A compass swing is used to:",
+                options: ["a) align compass north with true north.", "b) align compass north with magnetic north.", "c) get true north and lubber line aligned."],
+                correct: 1, // Key: Q83 = b
+                sol: "<strong>Explanation:</strong> A compass swing calibrates the compass to remove as much deviation as possible, attempting to perfectly align Compass North with Magnetic North."
+            },
+            {
+                q: "In a standby direct reading compass there is:",
+                options: ["a) a low magnetic moment system, either of circular or bar configuration.", "b) a non-pendulously mounted magnet system.", "c) a circular magnet or pair of bar magnets pendulously mounted."],
+                correct: 2, // Key: Q84 = c
+                sol: "<strong>Explanation:</strong> Standby compasses use physical magnets (bar or circular) that are pendulously mounted (hanging with a low center of gravity) to counteract the downward pull of Earth's magnetic dip."
+            },
+            {
+                q: "What should be the indication on the magnetic compass when rolling into a standard rate turn to the right from a south heading in the Northern Hemisphere?",
+                options: ["a) The compass will indicate the approximate correct magnetic heading if the roll into the turn is smooth.", "b) The compass will indicate a turn to the right, but at a faster rate than is actually occurring.", "c) The compass will remain on south for a short time, then gradually catch up to the magnetic heading of the airplane."],
+                correct: 1, // Key: Q85 = b
+                sol: "<strong>Explanation:</strong> Northern Hemisphere turning South: UNOS (Overshoot South). The compass 'leads' the turn. Therefore, it will show the turn happening faster than the aircraft is actually turning."
+            },
+            {
+                q: "Aircraft magnetism:",
+                options: ["a) does not vary with aircraft heading or latitude", "b) varies with aircraft heading and latitude", "c) varies with latitude but does not vary with aircraft heading"],
+                correct: 2, // Key: Q86 = c
+                sol: "<strong>Explanation:</strong> The permanent magnetic signature of the aircraft is fixed within the airframe (does not change when the aircraft changes heading), but the induced magnetism will vary as the aircraft moves to different latitudes with different Earth magnetic field strengths."
+            },
+            {
+                q: "The directive force of the earth's magnetic field:",
+                options: ["a) varies with the heading of the aircraft.", "b) is greatest at the magnetic equator.", "c) increases as the magnetic variation increases."],
+                correct: 1, // Key: Q87 = b
+                sol: "<strong>Explanation:</strong> The directive force (H) is the horizontal component that aligns the compass. It is strongest at the magnetic equator where the magnetic lines of force run completely parallel to the Earth's surface."
+            },
+            {
+                q: "The purpose of the Annunciator unit of the Remote Indicating compass is to:",
+                options: ["a) show whether the compass is operating either in the GYRO or COMPASS mode", "b) display the serviceability of the compass", "c) indicate that the gyro is synchronised with the detector unit"],
+                correct: 2, // Key: Q88 = c
+                sol: "<strong>Explanation:</strong> On a slaved gyro compass system, the annunciator (often a dot/cross or +/- gauge) shows if the Gyro heading is properly synchronized with the magnetic heading provided by the Flux Valve (detector unit)."
+            },
+            {
+                q: "When turning from 060° to 320° in the Northern Hemisphere the direct reading compass will .... (i) causing an .... (ii) indication of the turn. Liquid Swirl will .... (iii) the error:",
+                options: ["a) (i) under read (ii) over (iii) increase", "b) (i) over read (ii) under (iii) decrease", "c) (i) over read (ii) under (iii) increase"],
+                correct: 0, // Key: Q89 = a
+                sol: "<strong>Explanation:</strong> Derived strictly from Option A in the textbook key."
+            },
+            {
+                q: "In the Northern Hemisphere, a magnetic compass will normally indicate a turn towards North if:",
+                options: ["a) a left turn is entered from a west heading.", "b) an aircraft is decelerated while on an east or west heading.", "c) an aircraft is accelerated while on an east or west heading."],
+                correct: 2, // Key: Q90 = c
+                sol: "<strong>Explanation:</strong> Northern Hemisphere memory aid: ANDS (Accelerate North). If you accelerate while flying on either an East or West heading, the compass pitches and indicates a false turn toward North."
+            },
+            {
+                q: "Which of the following statements are correct:",
+                options: ["a) Dip is inversely proportional to H", "b) Dip decreases with increased in latitude", "c) Dip is inversely proportional to Z"],
+                correct: 0, // Key: Q91 = a
+                sol: "<strong>Explanation:</strong> The angle of Dip is highest (90°) at the poles where H is lowest (0). Dip is lowest (0°) at the equator where H is highest. Therefore, Dip is inversely proportional to H."
+            },
+            {
+                q: "An aircraft turns left from 045° to 315° in the Southern Hemisphere. The magnets turn (i) .... and liquid swirls (ii) ... causing an error.",
+                options: ["a) (i) clockwise (ii) clockwise", "b) (i) anti-clockwise (ii) anti-clockwise", "c) (i) clockwise (ii) anti-clockwise"],
+                correct: 2, // Key: Q92 = c
+                sol: "<strong>Explanation:</strong> The aircraft turns left (anti-clockwise). The liquid inside the compass bowl swirls with the turn (anti-clockwise). This fluid drag pulls the magnets, causing the compass card to turn clockwise relative to the housing, exacerbating the turning error."
+            },
+            {
+                q: "If the CH = 220°, var. = E12, dev. = W2, what is the corresponding TH?",
+                options: ["a) TH = 234°.", "b) TH = 206°.", "c) TH = 230°."],
+                correct: 2, // Key: Q93 = c
+                sol: "<strong>Explanation:</strong> Use the CADET rule (Compass to True, add East, subtract West). Compass (220°) - Deviation (2°W) = Magnetic (218°). Magnetic (218°) + Variation (12°E) = True (230°)."
+            },
+            {
+                q: "The deviating effect of vertical soft iron .... (i) with decrease of magnetic latitude, due to the .... (ii) of H and the .... (iii) of Z:",
+                options: ["a) (i) increases (ii) decrease (iii) decrease", "b) (i) decreases (ii) increase (iii) decrease", "c) (i) increases (ii) decrease (iii) increase"],
+                correct: 1, // Key: Q94 = b
+                sol: "<strong>Explanation:</strong> Decreasing latitude means moving toward the equator. At the equator, H (Horizontal) increases and Z (Vertical) decreases. Therefore, the deviating errors caused by vertical soft iron (Z) decrease."
+            },
+            {
+                q: "When accelerating on a westerly heading in the Northern Hemisphere the needle of the DIC will:",
+                options: ["a) Turn clockwise giving an apparent turn towards south", "b) Turn clockwise giving an apparent turn towards north", "c) Turn anti-clockwise giving an apparent turn towards north"],
+                correct: 2, // Key: Q95 = c
+                sol: "<strong>Explanation:</strong> ANDS (Accelerate North). Heading West (270°), the compass will indicate a turn to North (360°/000°). To bring the 'N' mark into view, the compass card must physically rotate anti-clockwise."
+            },
+            {
+                q: "An aircraft is fitted with a direct reading magnetic compass. Upon landing in a northerly direction the compass will indicate:",
+                options: ["a) a turn towards West.", "b) no change.", "c) a turn towards East."],
+                correct: 1, // Key: Q96 = b
+                sol: "<strong>Explanation:</strong> Acceleration and deceleration errors (ANDS/SAND) only occur on Easterly or Westerly headings. Landing (decelerating) on a North heading produces no apparent turn."
+            },
+            {
+                q: "With reference to the flux valve of a remote indicating compass:",
+                options: ["a) the flux valve is pendulously mounted and so it is not subject to or affected by the earth's magnetic field.", "b) the flux valve is fixed to the aircraft and it senses earth's magnetic field.", "c) the flux valve remains in vertical position in order to liest sense earth's magnetic field."],
+                correct: 1, // Key: Q97 = b
+                sol: "<strong>Explanation:</strong> Derived directly from Option B in the textbook key. The flux valve acts as the detector unit, physically mounted to the aircraft (usually in the wingtip) to electronically sense the Earth's magnetic lines of force."
+            },
+            {
+                q: "During a sustained turn... the nearer magnetic pole, the effect of liquid swirl will... compass turning error.",
+                options: ["a) towards; not affect.", "b) towards; increase.", "c) away from; not affect."],
+                correct: 1, // Key: Q98 = b
+                sol: "<strong>Explanation:</strong> In a sustained turn towards the nearest magnetic pole (turning North in the Northern hemisphere), the liquid inside the compass is dragged with the turn, which pulls the card in the direction of the turn and increases the lag (turning error)."
+            },
+            {
+                q: "The principal advantage of a gyro magnetic compass (slaved gyro compass) is:",
+                options: ["a) It does not have to be aligned with the north", "b) It does not precess", "c) It combines the north-seeking ability of the magnetic compass with the stability of the direction indicator"],
+                correct: 2, // Key: Q99 = c
+                sol: "<strong>Explanation:</strong> A slaved gyro system provides the best of both worlds. The flux valve provides long-term magnetic North accuracy, continuously correcting the gyroscope, while the gyroscope provides short-term stability that is completely free of turning and acceleration errors."
+            },
+            {
+                q: "A remote indicating compass has usually less deviation error than a panel mounted compass because:",
+                options: ["a) it is carrying a well damped floating magnet.", "b) it is normally mounted in a part of the airplane where magnetic interference is minimal.", "c) it receives a higher flux-density from the earth's magnetic field."],
+                correct: 1, // Key: Q100 = b
+                sol: "<strong>Explanation:</strong> Remote indicating compasses use a flux valve detector that can be mounted in the wingtips or tail. This puts the sensor far away from the engine mass, electrical wiring, and cockpit radios that cause severe magnetic deviation."
+            }
+        
+        ];
+
+        const pdf_mcqs = [
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+            {
+                q: "Which of the following statements concerning the earth's magnetic field is completely correct?",
+                options: [
+                    "a) Dip is the angle between total magnetic field and vertical field component", 
+                    "b) The blue pole of the earth's magnetic field is situated in North Canada", 
+                    "c) At the earth's magnetic equator, the inclination varies depending on whether the geographic equator is north or south of the magnetic equator", 
+                    "d) The earth's magnetic field can be classified as transient semi-permanent or permanent"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> Magnetic opposites attract. The \"North-seeking\" (Red) pole of a compass needle points towards Northern Canada. Therefore, the Earth's magnetic pole located there must physically be a South-seeking (Blue) magnetic pole."
+            },
+            {
+                q: "What is the dip angle at the South Magnetic Pole?",
+                options: ["a) 0°", "b) 45°", "c) 90°"],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> At the magnetic poles, the Earth's magnetic lines of force plunge perfectly straight down (or straight up) into the ground. Because the pull is entirely vertical, the angle of dip is exactly 90°."
+            },
+            {
+                q: "The horizontal component of the earth's magnetic field:",
+                options: [
+                    "a) is approximately the same at all magnetic latitudes less than 60°", 
+                    "b) weakens with increasing distance from the magnetic poles", 
+                    "c) weakens with increasing distance from the nearer magnetic pole", 
+                    "d) is approximately the same at magnetic latitudes 50°N and 50°S"
+                ],
+                correct: 3, 
+                sol: "<strong>Explanation:</strong> The Earth's magnetic field is roughly symmetrical between the northern and southern hemispheres. At equal distances from the magnetic equator (such as 50°N and 50°S), the horizontal directive force (H) is approximately equal in strength."
+            },
+            {
+                q: "The aclinic is the line of zero magnetic dip.",
+                options: ["a) True", "b) False"],
+                correct: 0, 
+                sol: "<strong>Explanation:</strong> True. The aclinic line is another name for the magnetic equator, which connects all points on the Earth's surface where the magnetic dip is exactly zero."
+            },
+            {
+                q: "The Earth can be considered as being a magnet with the:",
+                options: [
+                    "a) blue pole near the north pole of the earth and the direction of the magnetic force pointing straight up from the earth's surface", 
+                    "b) red pole near the north pole of the earth and the direction of the magnetic force pointing straight down to the earth's surface", 
+                    "c) blue pole near the north pole of the earth and the direction of the magnetic force pointing straight down to the earth's surface", 
+                    "d) red pole near the north pole of the earth and the direction of the magnetic force pointing straight up from the earth's surface"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> The geographic North pole contains a \"Blue\" (South) magnetic pole, which attracts the \"Red\" (North) end of a compass needle. At this northern magnetic pole, the lines of force point straight vertically down into the Earth's surface."
+            },
+            {
+                q: "Where is a compass most effective?",
+                options: [
+                    "a) About midway between the earth's magnetic poles", 
+                    "b) In the region of the magnetic South pole", 
+                    "c) In the region of the magnetic North pole", 
+                    "d) On the geographic equator"
+                ],
+                correct: 0, 
+                sol: "<strong>Explanation:</strong> Midway between the magnetic poles is the magnetic equator (aclinic line). Here, the horizontal component (H) of the Earth's magnetic field is at its absolute maximum, providing the strongest directional pull on the compass needle."
+            },
+            {
+                q: "The force acting on the needle of a direct reading compass varies:",
+                options: [
+                    "a) directly with the horizontal component of the earth's magnetic field", 
+                    "b) directly with the vertical component of the earth's magnetic field", 
+                    "c) inversely with both vertical and horizontal components of the earth's magnetic field"
+                ],
+                correct: 0, 
+                sol: "<strong>Explanation:</strong> The horizontal component (H) provides the directive force that physically turns and aligns the compass needle. Thus, the effectiveness and sensitivity of the compass vary directly with the strength of H."
+            },
+            {
+                q: "The horizontal component of the earth's magnetic field:",
+                options: [
+                    "a) weakens with increasing distance from the nearer magnetic pole", 
+                    "b) weakens with increasing distance from the magnetic poles", 
+                    "c) is stronger closer to the magnetic equator", 
+                    "d) is approximately the same at all magnetic latitudes less than 60°"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> The horizontal component (H) is at its absolute strongest at the magnetic equator (where dip is zero) and weakens as you move closer to the poles (where the field becomes entirely vertical)."
+            },
+            {
+                q: "The lines on a chart joining places of equal magnetic dip are called:",
+                options: [
+                    "a) Aclinic lines (0 dip)", 
+                    "b) Isogonals (equal variation)", 
+                    "c) Isoclinals", 
+                    "d) Agonic lines (0 variation)"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> Isoclinals (or isoclinic lines) connect points of equal magnetic dip. (Aclinic connects zero dip, Isogonals connect equal variation, and Agonic connects zero variation)."
+            },
+            {
+                q: "Permanent magnetism in aircraft arises chiefly from:",
+                options: [
+                    "a) exposure to the earth's magnetic field during normal operation", 
+                    "b) hammering, and the effect of the earth's magnetic field, whilst under construction", 
+                    "c) the combined effect of aircraft electrical equipment and the earth's magnetic field", 
+                    "d) the effect of internal wiring and exposure to electrical storms"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> Hard iron materials inside the aircraft acquire a permanent magnetic signature when they are subjected to physical shocks (such as riveting or hammering during manufacturing) while aligned within the Earth's magnetic field."
+            },
+            {
+                q: "When turning right from 330° (C) to 040° (C) in the northern hemisphere, the reading of a direct reading magnetic compass will:",
+                options: [
+                    "a) over-indicate the turn and liquid swirl will decrease the effect", 
+                    "b) under-indicate the turn and liquid swirl will increase the effect", 
+                    "c) under-indicate the turn and liquid swirl will decrease the effect", 
+                    "d) over-indicate the turn and liquid swirl will increase the effect"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> Northern Hemisphere turning North: UNOS (Undershoot North). The compass lags (under-indicates) the turn. When turning right (clockwise), the liquid in the compass swirls clockwise, dragging the magnets with it. This physical drag rotates the compass card clockwise relative to the housing, which lowers the indicated numbers, thereby <em>increasing</em> the lag (under-indication) error."
+            },{
+                q: "When accelerating on a westerly heading in the northern hemisphere, the compass card of a direct reading magnetic compass will turn:",
+                options: [
+                    "a) clockwise giving an apparent turn towards the north",
+                    "b) clockwise giving an apparent turn towards the south",
+                    "c) anti-clockwise giving an apparent turn towards the north",
+                    "d) anti-clockwise giving an apparent turn towards the south"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> Northern Hemisphere memory aid: ANDS (Accelerate North). Accelerating on a West (270°) heading causes the compass to pitch and indicate a false turn toward North (360°/000°). To bring the 'N' mark into view from the 'W' mark on the compass card, the card itself must physically rotate anti-clockwise against the lubber line."
+            },
+            {
+                q: "When decelerating on a westerly heading in the Northern Hemisphere, the compass card of a direct reading magnetic compass will turn:",
+                options: [
+                    "a) clockwise giving an apparent turn toward the south",
+                    "b) anti-clockwise giving an apparent turn towards the south",
+                    "c) clockwise giving an apparent turn towards the north",
+                    "d) anti-clockwise giving an apparent turn towards the north"
+                ],
+                correct: 0, 
+                sol: "<strong>Explanation:</strong> Northern Hemisphere memory aid: ANDS (Decelerate South). Decelerating on a West (270°) heading causes the compass to pitch and indicate a false turn toward South (180°). To bring the 'S' mark into view from the 'W' mark on the compass card, the card itself must physically rotate clockwise against the lubber line."
+            },
+            {
+                q: "An aircraft is accelerating on a westerly heading in the Northern Hemisphere. The effect on a Direct Reading Magnetic Compass is:",
+                options: [
+                    "a) Underreads North",
+                    "b) Underreads South",
+                    "c) Overreads North",
+                    "d) Overreads South"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> According to the ANDS rule (Accelerate North), accelerating on an East or West heading causes the compass to register an apparent turn toward the North. The compass will indicate a heading closer to North than the actual Westerly heading, effectively \"over-reading\" towards North."
+            },
+            {
+                q: "You are in the Northern hemisphere, heading 135C on a Direct Reading Magnetic Compass. You turn right in a Rate 1 turn for 30 seconds. Do you roll out on an indicated heading of:",
+                options: [
+                    "a) greater than 225",
+                    "b) less than 225",
+                    "c) equal to 225",
+                    "d) not possible to determine"
+                ],
+                correct: 0, 
+                sol: "<strong>Explanation:</strong> A Rate 1 turn is 3 degrees per second. A 30-second turn will result in a 90° heading change (30 x 3 = 90). Turning right from 135° + 90° = 225° (Southwest). In the Northern Hemisphere, turning towards the South brings UNOS into effect (Undershoot North, Overshoot South). Because you must overshoot South, the compass will over-indicate, reading greater than 225° upon roll out."
+            },
+            {
+                q: "At the magnetic equator, when accelerating after take off on heading West, a direct reading compass:",
+                options: [
+                    "a) underreads the heading",
+                    "b) overreads the heading",
+                    "c) indicates the correct heading",
+                    "d) indicates a turn to the south"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> At the magnetic equator, the Earth's magnetic field is entirely horizontal (the Z component is zero). Since the compass card remains perfectly level and there is no vertical pull to dip the card, acceleration/turning errors do not occur. It indicates the correct heading."
+            },
+            {
+                q: "Which of the following statements is correct concerning the effect of turning errors on a direct reading compass?",
+                options: [
+                    "a) Turning errors are greatest on east/west headings, and are greatest at low latitudes",
+                    "b) Turning errors are greatest on north/south headings, and are greatest at high latitudes",
+                    "c) Turning errors are greatest on east/west headings, and are greatest at high latitudes",
+                    "d) Turning errors are greatest on north/south headings, and are greatest at low latitudes"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> Turning errors are caused by the vertical (Z) component of the Earth's magnetic field acting on the dipped compass mechanism during a banked turn. Therefore, they are most pronounced when turning through North/South headings and their effect increases significantly at high latitudes where the Z component is much stronger."
+            },
+            {
+                q: "When should a DRC be 'swung'?",
+                options: [
+                    "a) Every 6 months",
+                    "b) Following a change of magnetic latitude",
+                    "c) For night use",
+                    "d) After flying in an area where lightning is visible"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> A Direct Reading Compass (DRC) must be swung (calibrated) following a major change in magnetic latitude. The varying strengths of the Horizontal and Vertical (Z) components at different latitudes change how the aircraft's internal hard and soft iron magnetism affects the compass."
+            },
+            {
+                q: "A direct reading compass should be swung when:",
+                options: [
+                    "a) There is a large, and permanent, change in magnetic latitude",
+                    "b) After an aircraft has passed through a severe electrical storm, or has been struck by lightning",
+                    "c) If the aircraft has been subjected to hammering",
+                    "d) All of the above"
+                ],
+                correct: 3, 
+                sol: "<strong>Explanation:</strong> A compass must be calibrated (swung) after major magnetic environment changes (like moving to a new magnetic latitude), experiencing severe electrical fields (lightning strikes or severe storms), or undergoing physical shocks (hammering/heavy maintenance) which can alter the aircraft's permanent magnetic signature."
+            },
+            {
+                q: "The purpose of compass check swing is to:",
+                options: [
+                    "a) cancel out the horizontal component of the earth's magnetic field",
+                    "b) cancel out the vertical component of the earth's magnetic field",
+                    "c) measure the angle between Magnetic North and Compass North",
+                    "d) cancel out the effects of the magnetic fields found on board the aeroplane"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> A compass swing is performed to determine the deviation of the compass at various headings. Deviation is strictly defined as the angle between Magnetic North and Compass North."
+            },
+            {
+                q: "One purpose of a compass calibration is to reduce the difference, if any, between:",
+                options: [
+                    "a) compass north and magnetic north",
+                    "b) compass north and the lubber line",
+                    "c) magnetic north and true north",
+                    "d) compass north and true north"
+                ],
+                correct: 0, 
+                sol: "<strong>Explanation:</strong> Compass calibration (swinging) aims to map out and minimize deviation, which is the angular difference between Compass North and Magnetic North caused by the aircraft's internal magnetic fields."
+            },
+            {
+                q: "The direct reading magnetic compass is made aperiodic (dead beat) by:",
+                options: [
+                    "a) using the lowest acceptable viscosity compass liquid",
+                    "b) keeping the magnetic assembly mass close to the compass point and by using damping wires",
+                    "c) using long magnets",
+                    "d) pendulous suspension of the magnetic assembly"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> An \"aperiodic\" compass settles quickly onto its heading without excessive oscillating or hunting. This is achieved by concentrating the mass near the pivot point and attaching damping wires that are submerged in the compass fluid to provide drag against erratic movements."
+            },
+            {
+                q: "The sensitivity of a direct reading magnetic compass is:",
+                options: [
+                    "a) inversely proportional to the horizontal component of the earth's magnetic field",
+                    "b) proportional to the horizontal component of the earth's magnetic field",
+                    "c) inversely proportional to the vertical component of the earth's magnetic field",
+                    "d) proportional to the vertical component of the earth's magnetic field"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> The horizontal directive force (H) is the specific component of the Earth's magnetic field that physically pulls and aligns the compass needles. Therefore, the compass's sensitivity is directly proportional to the strength of this horizontal component."
+            },
+            {
+                q: "In a remote indicating compass system the amount of deviation caused by aircraft magnetism and electrical circuits may be minimised by:",
+                options: [
+                    "a) positioning the master unit in the centre of the aircraft",
+                    "b) the use of repeater cards",
+                    "c) mounting the detector unit in the wingtip",
+                    "d) using a vertically mounted gyroscope"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> Wingtips are located furthest away from the engine blocks, avionics, and heavy electrical circuits found in the fuselage. Mounting the flux valve (detector unit) in the wingtip minimizes interference from the aircraft's own magnetic and electrical fields."
+            },
+            {
+                q: "Why are the detector units of slaved gyro compasses usually located in the aircraft wingtips?",
+                options: [
+                    "a) To expose them to the strongest Earth's magnetic field",
+                    "b) To isolate the detector unit from the aircraft deviation sources",
+                    "c) To allow for easier maintenance during pre-flight checks",
+                    "d) To keep them away from static discharge wicks"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> The flux detector is placed out on the wingtips (or sometimes high up on the vertical stabilizer) specifically to isolate it as much as possible from the magnetic deviation sources inside the main aircraft fuselage (engines, radios, electrical wiring, and metal structures)."
+            },
+            {
+                q: "The main reason for usually mounting the detector unit of a remote indicating compass in the wingtip of an aeroplane is to:",
+                options: [
+                    "a) facilitate easy maintenance of the unit and increase its exposure to the Earth's magnetic field",
+                    "b) reduce the amount of deviation caused by aircraft magnetism and electrical circuits",
+                    "c) place it is a position where there is no electrical wiring to cause deviation errors",
+                    "d) place it where it will not be subjected to electrical or magnetic interference from the aircraft"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> While option (d) sounds appealing, it's impossible to place it where there is absolutely *no* interference. Option (b) correctly states the realistic goal: to *reduce* the amount of deviation caused by the aircraft's internal magnetism and electrical circuits by moving it as far away as structurally possible."
+            },
+            {
+                q: "The main advantage of a remote indicating compass over a direct reading compass is that it:",
+                options: [
+                    "a) is able to magnify the earth's magnetic field in order to attain greater accuracy",
+                    "b) has less moving parts",
+                    "c) requires less maintenance",
+                    "d) senses, rather than seeks, the magnetic meridian"
+                ],
+                correct: 3, 
+                sol: "<strong>Explanation:</strong> A basic direct reading compass relies on physical magnets swinging (seeking) to align with the magnetic field, which makes it highly susceptible to acceleration and turning errors (dip). A remote indicating compass uses a flux valve to electrically *sense* the magnetic field lines without a freely swinging magnetic element."
+            },
+            {
+                q: "The annunciator of a remote indicating compass system is used when:",
+                options: [
+                    "a) synchronising the magnetic and gyro compass elements",
+                    "b) compensating for deviation",
+                    "c) setting local magnetic variation",
+                    "d) setting the heading pointer"
+                ],
+                correct: 0, 
+                sol: "<strong>Explanation:</strong> The annunciator indicates the discrepancy between the gyro heading and the actual magnetic heading sensed by the remote flux valve. It provides visual feedback so the pilot (or automatic slaving system) can correctly synchronise the gyro element with the magnetic element."
+            },
+            {
+                q: "A pilot wishes to turn left on to a southerly heading with 20° bank at a latitude of 20° North. Using a direct reading compass, in order to achieve this he must stop the turn on an approximate heading of:",
+                options: [
+                    "190°",
+                    "200°",
+                    "170°",
+                    "160°"
+                ],
+                correct: 3, 
+                sol: "<strong>Explanation:</strong> Turning through South in the Northern hemisphere, the compass indication will lead the real heading. If the aircraft heading is 180° and the magnet swings clockwise, the compass will show a value less than 180°. A common exam formula is (Bank Angle / 2) + Latitude. The compass leads, meaning the compass heading lags behind the aircraft's actual rotation visually. You must stop on 160° to roll out on 180°."
+            },
+            {
+                q: "An aircraft turns from south-west to south-east when situated at 45°N what heading should you roll out on if using a DRMC?",
+                options: [
+                    "130°",
+                    "115°",
+                    "140°",
+                    "155°"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> Turning from south-west (225°) to south-east (135°) requires rolling through South. In the Northern Hemisphere, the compass leads the actual heading when turning through South (the UNOS rule). Therefore, you must overshoot your rollout on the compass to end up on the correct actual heading. The correct compass indication to roll out on is 115°."
+            },
+            {
+                q: "During deceleration following a landing in a southerly direction, a magnetic compass made for the northern hemisphere indicates:",
+                options: [
+                    "an apparent turn to the west",
+                    "no apparent turn only on northern latitudes",
+                    "no apparent turn",
+                    "an apparent turn to the east"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> Acceleration and deceleration errors (ANDS) are maximum on East and West headings. On North and South headings, the aircraft is aligned with the magnetic meridian, meaning acceleration or deceleration does not cause the compass card to rotate. There is no apparent turn."
+            },
+            {
+                q: "Among the errors of a magnetic compass, are errors:",
+                options: [
+                    "of parallax, due to oscillations of the compass rose",
+                    "due to cross-wind gusts particularly on westerly or easterly headings",
+                    "due to Schuler type oscillations",
+                    "in North seeking, due to bank angle and magnetic heading"
+                ],
+                correct: 3, 
+                sol: "<strong>Explanation:</strong> Turning errors occur in a direct reading compass due to the bank angle of the aircraft, which allows the vertical component of the Earth's magnetic field to pull on the magnetic assembly, negatively affecting its North-seeking capability."
+            },
+            {
+                q: "When turning on to a northerly heading the rose of a magnetic compass tends to \"undershoot\" when turning onto a southerly heading it tends to \"overshoot\".\n\n1) these compass indications are less reliable in the northern hemisphere than in the southern hemisphere\n2) these compass oscillations following a lateral gust are not identical if the aircraft is heading north or south\n3) this behaviour is due to the mechanical construction of the compass\n4) this behaviour is a symptom of a badly swung compass\n\nThe correct statements are:",
+                options: [
+                    "1 and 2",
+                    "2 and 3",
+                    "3 and 4",
+                    "1 and 4"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> Statements 2 and 3 are correct. The mechanical construction (pendulous suspension) allows the compass card to dip, which makes it susceptible to the vertical magnetic component. Additionally, lateral gusts will cause different oscillatory behaviors on North vs South headings due to this same magnetic dip effect."
+            },
+            {
+                q: "In a steep turn, the northerly turning error on a magnetic compass on the northern hemisphere is:",
+                options: [
+                    "none on a 270° heading in a left turn",
+                    "equal to 180° on a 090° heading in a right turn",
+                    "none on a 090° heading in a right turn",
+                    "equal to 180° on a 270° heading in a right turn"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> In a steep right turn passing through East (090°), the compass card can be dipped so severely that the vertical component of the Earth's magnetic field completely overpowers the horizontal component, pulling the north end of the needle downwards and potentially causing a 180° error."
+            },
+            {
+                q: "An aircraft is taking off on a runway heading 045°, in still air, with a compass having 0° deviation. The runway is on an agonic line. What will the compass read if you are in the northern hemisphere?",
+                options: [
+                    "compass moves to less than 045°",
+                    "compass moves to more than 045°",
+                    "compass stays on 045° if wings are kept level",
+                    "compass remains on 045°"
+                ],
+                correct: 0, 
+                sol: "<strong>Explanation:</strong> An agonic line is a line of zero variation, but not zero dip. Because there is still a vertical magnetic component (dip) in the Northern hemisphere, acceleration on a Northerly/Easterly heading (045°) will cause the compass to register a false turn towards the North (ANDS rule). Moving towards North from 045° means the compass reads a value less than 045°."
+            },
+            {
+                q: "A compass swing is used to:",
+                options: [
+                    "align compass north with magnetic north",
+                    "align compass north with true north",
+                    "align magnetic north with true north",
+                    "align compass north with the lubber line"
+                ],
+                correct: 0, 
+                sol: "<strong>Explanation:</strong> The primary purpose of a compass swing is to compensate for the aircraft's internal magnetic fields, thereby aligning Compass North as closely as possible with Magnetic North."
+            },
+            {
+                q: "The purpose of compass swinging is to determine the deviation of a magnetic compass:",
+                options: [
+                    "on a given heading",
+                    "on any heading",
+                    "at any latitude",
+                    "at a given latitude"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> Compass swinging maps out the residual deviation on various headings, allowing the crew to determine the deviation on any heading via the provided deviation card or curve."
+            },
+            {
+                q: "The quadrantal deviation of the magnetic compass is due to the action of:",
+                options: [
+                    "the hard iron ices and the soft iron pieces influenced by the hard iron pieces",
+                    "the soft iron pieces influenced by the geomagnetic field",
+                    "the hard iron pieces influenced by the geomagnetic field",
+                    "the hard iron pieces influenced by the mild iron pieces"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> Quadrantal deviation varies in four quadrants (reaching maximums on intercardinal headings) and is caused by the aircraft's soft iron pieces acquiring temporary magnetism as their orientation to the Earth's geomagnetic field changes during turns."
+            },
+            {
+                q: "The compass heading can be derived from the magnetic heading by reference to a:",
+                options: [
+                    "map showing the isogonic lines",
+                    "map showing the isoclinic lines",
+                    "deviation correction curve",
+                    "compass swinging curve"
+                ],
+                correct: 3, 
+                sol: "<strong>Explanation:</strong> Compass deviation can be displayed in the cockpit as a table or a curve. The compass swinging curve (or deviation card) derived from a compass swing is used to correct magnetic heading to compass heading."
+            },
+            {
+                q: "The fields affecting a magnetic compass originate from:\n1) magnetic masses\n2) ferrous metal masses\n3) non-ferrous metal masses\n4) electrical currents\n\nThe combination of correct statements is:",
+                options: [
+                    "1, 2, 3",
+                    "1, 2, 4",
+                    "2, 3, 4",
+                    "1, 3, 4"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> A magnetic compass is affected by permanent magnets (magnetic masses), soft iron (ferrous metal masses), and electromagnetic fields generated by electrical currents. Non-ferrous metals do not have magnetic properties and do not cause deviation."
+            },
+            {
+                q: "About a magnetic compass:",
+                options: [
+                    "a) errors of parallax are due to the oscillation of the compass rose",
+                    "b) acceleration errors are due to the angle of dip",
+                    "c) acceleration errors are due to Schuler oscillations",
+                    "d) turning error is due to the vertical component of the earth's magnetic field"
+                ],
+                correct: 3, 
+                sol: "<strong>Explanation:</strong> Turning errors are fundamentally caused by the vertical component (Z) of the Earth's magnetic field pulling on the pendulous compass assembly when the aircraft is banked."
+            },
+            {
+                q: "Concerning the direct reading magnetic compass, the turning error:",
+                options: [
+                    "does not depend on the magnetic latitude",
+                    "decreases with the magnetic latitude",
+                    "increases with the magnetic latitude",
+                    "decreases with the magnetic longitude"
+                ],
+                correct: 2, 
+                sol: "<strong>Explanation:</strong> Turning error is caused by the vertical component of the Earth's magnetic field. Since this vertical component (dip) increases as you move towards the magnetic poles (higher magnetic latitudes), the turning error increases accordingly."
+            },
+            {
+                q: "The main cause of error in a DRMC is:",
+                options: [
+                    "parallax in the rose",
+                    "turning",
+                    "acceleration",
+                    "magnetic dip"
+                ],
+                correct: 1, 
+                sol: "<strong>Explanation:</strong> While a direct reading magnetic compass (DRMC) is subject to several errors, turning errors are the most significant and complex to manage dynamically during flight maneuvers."
+            }
+        ];
+
+        const numerical_data = [
+            // Format: { q: "Question?", ans: "Final Answer", sol: "Step-by-step logic" }
+            {
+                q: "Based on a compass swing, the following deviations were recorded: North = +7°, East = 0°, South = +1°, West = +4°. Calculate Coefficient B and Coefficient C.",
+                ans: "Coefficient B = -2°, Coefficient C = +3°",
+                sol: "<strong>Explanation:</strong> Coefficient B = (Deviation East - Deviation West) / 2 = (0° - 4°) / 2 = -2°. Coefficient C = (Deviation North - Deviation South) / 2 = (+7° - 1°) / 2 = +3°."
+            },
+            {
+                q: "With Coefficient B = -2° and Coefficient C = +3°, and initial raw readings of North 353°, South 183°, East 088°, and West 268°, calculate the corrected reading on N, S, E and W headings respectively.",
+                ans: "North = 356°, South = 180°, East = 086°, West = 270°",
+                sol: "<strong>Explanation:</strong> Apply Coefficient B and C to the compass headings. North: 353° + 3° = 356°. South: 183° - 3° = 180°. East: 088° - 2° = 086°. West: 268° + 2° = 270°."
+            },
+            {
+                q: "Given Coefficient B = -2° and Coefficient C = +3°, what is the approximate heading on which deviation will be maximum?",
+                ans: "326°",
+                sol: "<strong>Explanation:</strong> Maximum deviation occurs where tan(Heading) = B / C. Therefore, tan(Heading) = -2° / +3° = -0.666°. The heading is approximately 326°."
+            },
+            {
+                q: "Given Coefficient B = -2° and Coefficient C = +3°, what is the approximate heading on which deviation is zero?",
+                ans: "304°",
+                sol: "<strong>Explanation:</strong> Zero deviation occurs when B sin(Heading) + C cos(Heading) = 0. Therefore, tan(Heading) = -C / B = -(+3) / -2 = -1.5. Heading = -56° (which corresponds to 360° - 56° = 304°)."
+            },
+            {
+                q: "Given Coefficient B = -2°, Coefficient C = +3°, and knowing maximum deviation occurs at a heading of 326°, what is the total deviation on this heading?",
+                ans: "3.61° E",
+                sol: "<strong>Explanation:</strong> Total Deviation = B sin(Heading) + C cos(Heading). Substituting the values: Total Deviation = -2 * sin(326°) + 3 * cos(326°) = -2 * (-0.56) + 3 * (0.83) = 1.12 + 2.49 = 3.61° E."
+            },
+            {
+                q: "Given coefficients A = +3, B = +2, and C = -10. What total deviation would be expected (a) on 222(C) and (b) on 146(C)?",
+                ans: "(a) 9° E, (b) 12° E",
+                sol: "<strong>Explanation:</strong> Total Deviation = A + B sin(Heading) + C cos(Heading). For (a): +3 + 2*sin(222°) - 10*cos(222°) = +3 - 1.338 + 7.431 = 9° E. For (b): +3 + 2*sin(146°) - 10*cos(146°) = +3 + 1.118 + 8.290 = 12° E."
+            }
+        ];
+
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
+        }
+
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
+            
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('theory-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectTheoryOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // PDF ENGINE LOGIC
+        // ==========================================
+        let currentPdfIndex = 0;
+        let pdfAnswers = [];
+        let pdfRightCount = 0;
+        let pdfWrongCount = 0;
+
+        function startPdf() {
+            if (pdf_mcqs.length === 0) { alert("PDF Engine is empty."); return; }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            pdfRightCount = 0;
+            pdfWrongCount = 0;
+            document.getElementById('pdf-right').innerText = "0";
+            document.getElementById('pdf-wrong').innerText = "0";
+            pdfAnswers = new Array(pdf_mcqs.length).fill(null);
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdf_mcqs.length === 0) return;
+            const qData = pdf_mcqs[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Q${currentPdfIndex + 1} of ${pdf_mcqs.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdf_mcqs.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('pdf-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pdfAnswers[currentPdfIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pdfAnswers[currentPdfIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPdfOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('pdf', qData, hasAnswered);
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdf_mcqs.length - 1;
+        }
+
+        function selectPdfOption(selectedIndex) { 
+            pdfAnswers[currentPdfIndex] = selectedIndex;
+            if (selectedIndex === pdf_mcqs[currentPdfIndex].correct) {
+                pdfRightCount++;
+                document.getElementById('pdf-right').innerText = pdfRightCount;
+            } else {
+                pdfWrongCount++;
+                document.getElementById('pdf-wrong').innerText = pdfWrongCount;
+            }
+            renderPdf(); 
+        }
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdf_mcqs.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // NUMERICAL ENGINE LOGIC (Flashcards)
+        // ==========================================
+        let currentNumIndex = 0;
+
+        function startNumerical() {
+            if (numerical_data.length === 0) { alert("Numerical Engine is empty."); return; }
+            switchView('numerical-page');
+            currentNumIndex = 0;
+            renderNumerical();
+        }
+
+        function renderNumerical() {
+            if (numerical_data.length === 0) return;
+            const qData = numerical_data[currentNumIndex];
+            
+            document.getElementById('num-counter').innerText = `Numerical Card ${currentNumIndex + 1} of ${numerical_data.length}`;
+            document.getElementById('num-progress').style.width = `${((currentNumIndex + 1) / numerical_data.length) * 100}%`;
+            
+            // Text ONLY (No numbering)
+            document.getElementById('num-q-text').innerHTML = qData.q;
+            
+            // Reset visibility
+            document.getElementById('num-ans-box').style.display = 'none';
+            document.getElementById('num-sol-box').style.display = 'none';
+            
+            // Populate content
+            document.getElementById('num-ans-box').innerHTML = `<strong>Answer:</strong> ${qData.ans}`;
+            document.getElementById('num-sol-box').innerHTML = qData.sol || "No solution provided.";
+            
+            document.getElementById('num-prev-btn').disabled = currentNumIndex === 0;
+            document.getElementById('num-next-btn').disabled = currentNumIndex === numerical_data.length - 1;
+        }
+
+        function goPrevNum() { if (currentNumIndex > 0) { currentNumIndex--; renderNumerical(); } }
+        function goNextNum() { if (currentNumIndex < numerical_data.length - 1) { currentNumIndex++; renderNumerical(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none';
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none';
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+            document.getElementById('pdf-card-count').innerText = pdf_mcqs.length + " MCQs";
+            document.getElementById('num-card-count').innerText = numerical_data.length + " Cards";
+        };
+    </script>
+</body>
+</html>
+ 

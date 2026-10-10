@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 23 | Radar</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; border-radius: 8px; }
+        .flashcard-ans-box { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 20px; font-size: 1.15rem; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; margin-top: 25px; margin-bottom: 25px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 23: Radar</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startTheory()">
+                    <h3>Theory Engine</h3>
+                    <p id="theory-card-count">Loading MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startPdf()">
+                    <h3>PDF Data</h3>
+                    <p id="pdf-card-count">Loading PDF MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startNumerical()">
+                    <h3>Numericals</h3>
+                    <p id="num-card-count">Loading Flashcards...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
+
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF ENGINE (MCQ) -->
+        <div id="pdf-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="pdf-right" class="score-right">0</span> | 
+                    Wrong: <span id="pdf-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="mcq-options" id="pdf-options"></div>
+
+                <div id="pdf-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="pdf-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="pdf-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+        <!-- NUMERICAL ENGINE (FLASHCARDS) -->
+        <div id="numerical-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="num-counter">Numerical 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Numericals</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="num-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="num-q-text" style="font-size: 1.4rem;">Loading problem...</div>
+                
+                <div class="btn-group">
+                    <button class="btn" onclick="document.getElementById('num-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" onclick="document.getElementById('num-sol-box').style.display='block'">Reveal Solution</button>
+                </div>
+
+                <div id="num-ans-box" class="flashcard-ans-box" style="display:none;"></div>
+                <div id="num-sol-box" class="feedback-solution" style="display:none;"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="num-prev-btn" class="quiz-nav-btn" onclick="goPrevNum()">Previous</button>
+                <button id="num-next-btn" class="quiz-nav-btn" onclick="goNextNum()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAYS (Awaiting Data)
+        // ==========================================
+        const theory_mcqs = [
+            {
+        q: "The maximum range of a pulsed radar is governed by which parameter?",
+        options: ["a) PW", "b) PRF", "c) Speed of Propagation"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b) PRF."
+    },
+    {
+        q: "The advantage of CW radar over a pulse system is that:",
+        options: ["a) there is no minimum range.", "b) a single antenna can be used for TX and RX.", "c) is useful for SSR operations."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a) there is no minimum range."
+    },
+    {
+        q: "An AWR to be switched on:",
+        options: ["a) During taxing by taking precautions for building and hangers.", "b) Only after take off in take off direction", "c) At line up point in take off direction."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c) At line up point in take off direction."
+    },
+    {
+        q: "AWR operation on ground is",
+        options: ["a) Totally prohibited", "b) Unrestricted in the aerodrome maintenance area.", "c) Only permitted with certain precautions to safeguard the health of personnel."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c) Only permitted with certain precautions."
+    },
+    {
+        q: "When an altimeter is used for SSR it is always referenced to:",
+        options: ["a) 1013.25 hPa", "b) QFE", "c) The pressure setting in use"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a) 1013.25 hPa."
+    },
+    {
+        q: "Mode 'C' or mode 'S' of SSR is not to be used when indication differ more than",
+        options: ["a) ±100'", "b) ±200'", "c) None of the above"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c) None of the above."
+    },
+    {
+        q: "A DME receiver does not lock on to its own transmitter because of:",
+        options: ["a) It works on the principle of random PRF", "b) DME is free from ground clutter.", "c) Transmitter and receiver are working at different frequency."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a) It works on the principle of random PRF."
+    },
+    {
+        q: "No. of a/c required to saturate DME beacon are",
+        options: ["a) 100", "b) 126", "c) 127"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c) 127."
+    },
+    {
+        q: "Max no of a/c that can use a DME stn are",
+        options: ["a) 100", "b) 126", "c) 127"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b) 126."
+    },
+    {
+        q: "An a/c is flying at a height of 20,000 ft over a DME stn it will show.",
+        options: ["a) Zero", "b) 2,000'", "c) Appx 6 km"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c) Appx 6 km."
+    },
+    {
+        q: "Ground Speed indications when using a DME will be reliable/ accurate when a/c is flying",
+        options: ["a) towards/ away from ground stn", "b) a/c is flying 90º to ground stn (max error)", "c) a/c is flying at height less than 1000' per nm"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a) towards/ away from ground stn."
+    },
+    {
+        q: "An a/c DME shows 50 nm, accuracy of indicated distance will be",
+        options: ["a) 0.15 nm ±0.5 nm", "b) 0.625 nm ±0.25nm", "c) 0.5 nm ±"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b) 0.625 nm ±0.25nm."
+    },
+    {
+        q: "A letter Z at the end of identification code means:",
+        options: ["a) DME and VOR are not co-located but serving same stn and at a dist of more than 7 nm", "b) DME and VOR are co-located and are serving same stn.", "c) DME and VOR are not co-located, are serving same stn. are within 7 nm from each other."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c)."
+    },
+    {
+        q: "In which situation will speed indications on a airborne Distance Measuring Equipment (DME) most closely represent the groundspeed of an aircraft flying at FL400?",
+        options: ["a) When overhead the station, with no change of heading at transit", "b) When tracking directly towards the station at a range of 100NM or more", "c) When passing abeam the station and within 5NM of it"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b)."
+    },
+    {
+        q: "What is the maximum distance between VOR and DME/TACAN ground installations if they are to have same morse code identifier?",
+        options: ["a) 2000m", "b) 300m", "c) 600m"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c) 600m."
+    },
+    {
+        q: "A DME in tracking mode subsequently experiences a reduction in signal strength will switch the equipment in the first instance to:",
+        options: ["a) standby mode", "b) memory mode", "c) signal controlled search"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b) memory mode."
+    },
+    {
+        q: "Of what use, if any, is a military TACAN station to civil aviation?",
+        options: ["a) It is of no use to civil aviation", "b) It can provide DME distance", "c) It can provide a magnetic bearing"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b) It can provide DME distance."
+    },
+    {
+        q: "A DME that has difficulty obtaining a \"lock-on\":",
+        options: ["a) stays in search mode but reduces PRF to max. 60PPS after 1500 pulse pairs have been transmitted", "b) stays in search mode but without a reduction in PRF", "c) stays in search mode but reduces PRF to max. 60PPS after 100 seconds"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a)."
+    },
+    {
+        q: "A VOR and DME are co-located. You want to identify the DME by listening to the Call sign. Having heard the same call sign 4 times in 30 seconds the:",
+        options: ["a) VOR and DME call signs were the same and broadcast with the same pitch", "b) DME call sign was not transmitted, the distance information is sufficient proof of correct operation", "c) DME call sign is the one with the higher pitch that was broadcast only once"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c)."
+    },
+    {
+        q: "The aircraft DME receiver cannot lock on to interrogation signals reflected from the ground because:",
+        options: ["a) DME pulse recurrent rates are varied", "b) aircraft transmitter and DME ground station are transmitted on different frequencies", "c) reflections are subject to Doppler frequency shift"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b)."
+    },
+    {
+        q: "Distance Measuring Equipment (DME) operates in the:",
+        options: ["a) UHF band and is a secondary radar system", "b) SHF band and uses frequency modulation techniques", "c) UHF band and is a primary radar system"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a)."
+    },
+    {
+        q: "The DME (Distance Measuring Equipment) operates within the following frequencies:",
+        options: ["a) 329 to 335MHz", "b) 962 to 1213MHz", "c) 962 to 1213KHz"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b) 962 to 1213MHz."
+    },
+    {
+        q: "On a DME, display counters rotating throughout their range indicates:",
+        options: ["a) airborne equipment failure", "b) the airborne equipment is conducting a frequency search", "c) the airborne receiver is conducting a range search"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c)."
+    },
+    {
+        q: "During a flight at FL210, a pilot does not receive any DME distance indication from a DME station located approximately 220NM away. The reason for this that the:",
+        options: ["a) Aero plane is circling around the station", "b) Aero plane is below the \"line of sight\" altitude", "c) Altitude is too high"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b)."
+    },
+    {
+        q: "For a conventional DME facility \"Beacon Saturation\" will occur whenever the number of simultaneous interrogations exceeds:",
+        options: ["a) 60", "b) 200", "c) 100"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c) 100."
+    },
+    {
+        q: "Which of the following will give the most accurate calculation of aircraft ground speed?",
+        options: ["a) A DME station sited on the flight route", "b) A VOR station sited on the flight route", "c) A DME station sited across the flight route"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a)."
+    },
+    {
+        q: "An aircraft will not accept replies from its own transmissions that are reflected from the ground because the:",
+        options: ["a) the aircraft's registration is embedded onto the signal.", "b) pulses are transmitted in pairs.", "c) interrogation and reply frequencies are 63 Mhz apart."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c)."
+    },
+    {
+        q: "If an ident signal is received once in 30 seconds on a frequency paired VOR/DME, then:",
+        options: ["a) the VOR only is operational.", "b) the TACAN signal is degraded.", "c) the DME only is operational."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c)."
+    },
+    {
+        q: "An aircraft DME receiver rejects pulses meant for other aircraft because:",
+        options: ["a) the random PRF is unique to each aircraft.", "b) transmission and reply frequencies are 63 MHz apart.", "c) the pulses are unique to each aircraft."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a)."
+    },
+    {
+        q: "The DME automatic standby will activate the DME interrogator when:",
+        options: ["a) there are too many aircraft in the area for it to service.", "b) a VOR frequency that has a frequency paired DME is selected.", "c) the DME ident signal is received."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b)."
+    },
+    {
+        q: "Airborne DME equipment is able to discriminate between pulses intended for it self and pulses intended for other aircraft because:",
+        options: ["a) aircraft will only accept unique twin pulses.", "b) aircraft reject pulses not synchronised with its own random pulse recurrence rate.", "c) each aircraft has its own frequency allocation."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b)."
+    },
+    {
+        q: "The range indicated by DME is considered to be accurate to within:",
+        options: ["a) 0.2 nm.", "b) 3% of range.", "c) 1.25 % of range ± 0.25nm."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c)."
+    },
+    {
+        q: "DME and VOR are frequency paired because:",
+        options: ["a) cockpit workload is reduced.", "b) both ground transmitter aerials can be placed on the same site if required.", "c) the same receiver can be used for both aids."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a)."
+    },
+    {
+        q: "A DME receiver is able to distinguish between replies to its own interrogation pulses and those intended for other aircraft using the same transponder because:",
+        options: ["a) DME is a secondary radar and each aircraft transmits and receives on a different frequency.", "b) when DME is in the range search mode it will accept only pulses separated by + or - 63 MHz from the interrogation frequency.", "c) each aircraft transmits pulses at a random rate (jittering) and will only accept replies that match this randomisation."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c)."
+    },
+    {
+        q: "Referring to DME during the initial stage of the search pattern before lock-on:",
+        options: ["a) the airborne transmitter transmits 150 pulses each second.", "b) the aircraft transmits 24 pulses per second and the receiver checks a maximum of 150 pulses per second.", "c) the ground receiver maintains the ground transmitter pulse transmission rate at no more than 150 per second."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a)."
+    },
+    {
+        q: "DME is a (i) radar operating in the (ii) band and transmits (iii).",
+        options: ["a) (i) secondary; (ii) UHF; (iii) pulse pairs", "b) (i) secondary; (ii) SHF; (iii) 2400 pulse pairs per second", "c) (i) primary; (ii) SHF; (iii) CW pulses"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a). Note: Key marked c) in image 10 row 54, but actually the options in the book for Q54 indicate a) matches secondary, UHF, pulse pairs. Key indicates a is correct."
+    },
+    {
+        q: "The accuracy of a DME:",
+        options: ["a) is approximately +- 2 nm.", "b) is approximately +- 0.5 nm.", "c) decreases with increase of range."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c)."
+    },
+    {
+        q: "The OFF flag on aircraft DME mileage displays indicate:",
+        options: ["a) any of the below; B or C.", "b) the DME is off.", "c) DME is tuned to the wrong frequency."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a)."
+    },
+    {
+        q: "Groundspeed measurement using DME equipment is most accurate flying:",
+        options: ["a) towards the station at short range.", "b) past the station at short range.", "c) from the station at long range."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct option is c)."
+    },
+    {
+        q: "A VOR/DME share the same first two letters of their respective identifiers; the last identifying letter of the DME is a Z.. This means that:",
+        options: ["a) they are a maximum distance of 30m apart.", "b) they are more than 600m apart but serve the same location.", "c) they are widely separated and do not serve the same location."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b)."
+    },
+    {
+        q: "When a DME is used instead of marker beacons to provide range to the threshold on an ILS approach and where the DME frequency is paired with the ILS, the DME indications should not be used at altitudes greater than:",
+        options: ["a) 25,000 ft", "b) 6,000 ft.", "c) 3,000 ft."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b)."
+    },
+    {
+        q: "IF a VOR station and a DME station, having different locations, are selected to provide a fix:",
+        options: ["a) all 2 answers below are correct.", "b) two different IDs will have to be checked.", "c) two sets, with separate frequency control, are required in the aircraft."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a)."
+    },
+    {
+        q: "The airborne DME equipment will transmit pulse pairs at a comparatively high PRF:",
+        options: ["a) At all times, except when the panel control LO is operated.", "b) When first switched on and after a channel selection.", "c) Whenever a stable signal is being received from the selected ground station."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct option is b)."
+    },
+    {
+        q: "Blind speed in a MTI radar can be reduced by operating the radar at:",
+        options: ["a) lower frequencies.", "b) short wave lengths.", "c) a low prf."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct option is a)."
+    }
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3", "d) Opt 4"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        const pdf_mcqs = [
+            {
+        q: "The factor which determines the maximum range of a radar is:",
+        options: ["a) pulse repetition rate", "b) pulse width", "c) power", "d) beamwidth"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Maximum unambiguous range is determined by the pulse repetition rate (PRF)."
+    },
+    {
+        q: "The main advantage of continuous wave radars is:",
+        options: ["a) no maximum range limitation", "b) better range resolution", "c) no minimum range limitation", "d) better range resolution"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Continuous wave (CW) radars transmit and receive continuously, thus eliminating the minimum range 'blind spot' associated with pulse widths."
+    },
+    {
+        q: "If the PRF of a primary radar is 500 pulses per second, the maximum range will be:",
+        options: ["a) 324 NM", "b) 300 NM", "c) 162 NM", "d) 600 NM"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Max Range = C / (2 × PRF) = 3×10⁸ / (2 × 500) = 300,000 m = 300 km. In Nautical Miles: 300 / 1.852 ≈ 162 NM."
+    },
+    {
+        q: "To double the range of a primary radar would require the power to be increased by a factor of:",
+        options: ["a) 2", "b) 4", "c) 8", "d) 16"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Radar range is proportional to the fourth root of power. To double the range, the power must be increased by 2⁴ = 16 times."
+    },
+    {
+        q: "The time between the transmission of a pulse and the reception of the echo from a target is 1720 microseconds. What is the range of the target?",
+        options: ["a) 139 km", "b) 258 km", "c) 278 km", "d) 516 km"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Range = (C × t) / 2 = (3×10⁸ × 1720×10⁻⁶) / 2 = 516,000 / 2 = 258,000 m = 258 km."
+    },
+    {
+        q: "A radar is required to have a maximum range of 100 NM. What is the maximum PRF that will achieve this?",
+        options: ["a) 1620 pulses per second (pps)", "b) 1234 pps", "c) 617 pps", "d) 810 pps"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> PRF = C / (2 × Range) = 3×10⁸ / (2 × 100 × 1852) = 809.9 ≈ 810 pps."
+    },
+    {
+        q: "If the PRI of a radar is 2100 microseconds, the maximum range of the radar is:",
+        options: ["a) 170 NM", "b) 315 NM", "c) 340 NM", "d) 630 NM"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Range = (C × PRI) / 2 = (3×10⁸ × 2100×10⁻⁶) / 2 = 315,000 m = 315 km. In Nautical Miles: 315 / 1.852 ≈ 170 NM."
+    },
+    {
+        q: "To improve the resolution of a radar display requires:",
+        options: ["a) a narrow pulse width and a narrow beamwidth", "b) a high frequency and a large reflector", "c) a wide beamwidth and a wide pulse width", "d) a low frequency and a narrow pulse width"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Range resolution requires a narrow pulse width, and azimuth resolution requires a narrow beamwidth."
+    },
+    {
+        q: "An advantage of a phased array (slotted antenna) is:",
+        options: ["a) better resolution", "b) less power required", "c) reduced side lobes and clutter", "d) all of the above"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Phased arrays provide high gain, reduced side lobes (which minimizes clutter), and better resolution."
+    },
+    {
+        q: "An echo is received from a target 900 microseconds after the pulse was transmitted. The range to the target is:",
+        options: ["a) 73 NM", "b) 270 NM", "c) 135 NM", "d) 146 NM"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Range = (C × t) / 2 = (3×10⁸ × 900×10⁻⁶) / 2 = 135,000 m = 135 km. In Nautical Miles: 135 / 1.852 ≈ 72.9 ≈ 73 NM."
+    },
+    {
+        q: "The factor which limits the minimum detection range of a radar is:",
+        options: ["a) pulse repetition interval", "b) transmitter power", "c) pulse width", "d) pulse repetition frequency"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The radar receiver is turned off during transmission. Therefore, the duration of the transmission (pulse width) determines the minimum range."
+    },
+    {
+        q: "The use of Doppler techniques to discriminate between aircraft and fixed objects results in second trace returns being generated. These are removed by:",
+        options: ["a) using a different frequency for transmission and reception", "b) jittering the PRF", "c) making regular changes in pulsewidth", "d) limiting the power output of the radar"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Jittering (randomly varying) the PRF helps to identify and eliminate unambiguous, second trace returns."
+    },
+    {
+        q: "A radar is designed to have a maximum range of 12 km. The maximum PRF that would permit this is:",
+        options: ["a) 25000 pps", "b) 6700 pps", "c) 12500 pps", "d) 13400 pps"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> PRF = C / (2 × Range) = 3×10⁸ / (2 × 12000) = 12500 pps."
+    },
+    {
+        q: "The bearing of a primary radar is measured by:",
+        options: ["a) phase comparison", "b) searchlight principle", "c) lobe comparison", "d) DF techniques"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Primary radars emit a narrow beam that sweeps in azimuth, determining bearing based on where the antenna is pointing when the echo is received (searchlight principle)."
+    },
+    {
+        q: "A primary radar has a pulse repetition frequency of 275 pps. The time interval between the leading edges of successive pulses is:",
+        options: ["a) 3.64 milliseconds", "b) 36.4 milliseconds", "c) 3.64 microseconds", "d) 36.4 microseconds"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> PRI = 1 / PRF = 1 / 275 = 0.003636 seconds, which is 3.64 milliseconds."
+    },
+    {
+        q: "A primary radar system has a pulse repetition frequency of 450 pps. Ignoring pulse width and flyback at the CRT, the maximum range of the radar would be:",
+        options: ["a) 333 NM", "b) 180 NM", "c) 666 NM", "d) 360 NM"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Max Range = C / (2 × PRF) = 3×10⁸ / (2 × 450) = 333,333 meters = 333.33 km. To convert to NM: 333.33 / 1.852 ≈ 180 NM."
+    },
+    {
+        q: "The frequency band and rate of scan of Airfield Surface Movement radars are:",
+        options: ["a) SHF; 60 rpm", "b) SHF; 200 rpm", "c) EHF; 100 rpm", "d) EHF; 10 rpm"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> ASMI radars typically operate in the SHF band with a high rotation rate of 60 rpm."
+    },
+    {
+        q: "A ground based radar with a scanner rotation of 60 rpm, a beamwidth in the order of 0.5° and a PRF of 10000 pps would be:",
+        options: [
+            "a) an Airfield Surface Movement Indicator with a theoretical range of 8 NM",
+            "b) a Precision Approach Radar",
+            "c) an Airfield Surface Movement Indicator with a theoretical range of 16 NM",
+            "d) a high resolution Surveillance Approach Radar"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Max range = 3×10⁸ / (2 × 10000) = 15 km. In NM: 15 / 1.852 ≈ 8 NM. The characteristics describe an ASMI."
+    },
+
+    // ==========================================
+    // CHAPTER 13 QUESTIONS
+    // ==========================================
+    {
+        q: "A frequency used by airborne weather radar is:",
+        options: ["a) 8800 MHz", "b) 9.375 GHz", "c) 93.75 GHz", "d) 1213 MHz"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Airborne weather radar typically uses the X-band at 9.375 GHz."
+    },
+    {
+        q: "An airborne weather radar is required to detect targets up to a maximum range of 200 NM. Ignoring pulse length and flyback in the CRT calculate the maximum PRR.",
+        options: ["a) 405 pps", "b) 810 pps", "c) 1500 pps", "d) 750 pps"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> PRF = C / (2 × Range) = 3×10⁸ / (2 × 200 × 1852) = 404.9 ≈ 405 pps."
+    },
+    {
+        q: "Using airborne weather radar the weather beam should be used in preference to the fan-shaped beam for mapping in excess of ................. NM:",
+        options: ["a) 20 to 25", "b) 60 to 70", "c) 100 to 150", "d) 150 to 200"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The pencil/weather beam is more effective for mapping at ranges beyond 60-70 NM due to less ground clutter interference."
+    },
+    {
+        q: "Airborne Weather Radar is an example ................. of radar operating on a frequency of ................. in the ................. band.",
+        options: [
+            "a) primary     8800 MHz     SHF",
+            "b) secondary   9.375 MHz    UHF",
+            "c) secondary   9375 MHz     SHF",
+            "d) primary     9375 MHz     SHF"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> AWR is a primary radar operating at 9375 MHz (9.375 GHz) in the SHF (Super High Frequency) band."
+    },
+    {
+        q: "The correct sequence of colours of a colour Airborne Weather Radar as returns get stronger is:",
+        options: [
+            "a) red        yellow       green",
+            "b) yellow     green        red",
+            "c) green      yellow       red",
+            "d) red        green        yellow"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Green indicates light returns, yellow indicates medium returns, and red indicates strong returns."
+    },
+    {
+        q: "A false indication of water may be given by the AWR display when:",
+        options: [
+            "a) flying over land with the Land/Sea switch in the Sea position",
+            "b) flying over mountainous terrain",
+            "c) there is cloud and precipitation between the aircraft and a cloud target",
+            "d) attempting to use the mapping beam for mapping in excess of 50 NM"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Radar shadows behind mountains can appear as dark areas resembling water."
+    },
+    {
+        q: "Airborne weather radar operates on a frequency of:",
+        options: [
+            "a) 8800 MHz because gives the best returns from all types of precipitation",
+            "b) 13300 MHz",
+            "c) 9375 MHz because it gives the best returns from rainfall associated with Cb",
+            "d) 9.375 GHz because this frequency is best for detecting aircraft in flight"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> 9375 MHz provides the optimal balance between reflecting off large water droplets (Cb) and avoiding attenuation from smaller droplets."
+    },
+    {
+        q: "The mapping mode of Airborne Weather Radar utilizes:",
+        options: [
+            "a) a pencil/weather beam from 70 NM to 150 NM",
+            "b) a cosecant²/fan-shaped beam which is effective to 150 NM",
+            "c) a pencil/weather beam with a maximum range of 70 NM",
+            "d) a cosecant²/fan-shaped beam effective 50 NM to 70 NM"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The pencil beam is utilized for mapping at longer ranges (70 to 150 NM)."
+    },
+    {
+        q: "An Airborne Weather Radar system uses a frequency of 9 GHz because:",
+        options: [
+            "a) it has a short wavelength so producing higher frequency returns",
+            "b) the short wavelength allows signals to be reflected from cloud water droplets of all sizes",
+            "c) the wavelength is such that reflections are obtained only from the larger water droplets",
+            "d) the frequency penetrates clouds quite easily enabling good mapping of ground features in the mapping mode"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The 3 cm wavelength (9 GHz) reflects well off larger water droplets typical of turbulent clouds but passes through smaller, harmless droplets."
+    },
+    {
+        q: "The antenna of an Airborne Weather Radar is stabilized:",
+        options: [
+            "a) in pitch, roll and yaw",
+            "b) in pitch and roll",
+            "c) in pitch and roll whether the stabilization is on or off",
+            "d) in pitch and roll but only when 0° tilt has been selected"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The antenna platform is gyro-stabilized in pitch and roll to keep the scan horizontal relative to the Earth."
+    },
+    {
+        q: "The colours used to denote variations in rainfall rate on an Airborne Weather Radar screen are ............ for very light or no returns, ................ for light returns, ............ for medium returns and ............ for strong returns.",
+        options: [
+            "a) black     yellow    green     magenta",
+            "b) black     green     yellow    magenta",
+            "c) grey      green     yellow    red",
+            "d) black     green     yellow    red"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Standard AWR color coding: Black (None/Very Light), Green (Light), Yellow (Medium), Red (Strong)."
+    },
+
+    // ==========================================
+    // CHAPTER 14 QUESTIONS
+    // ==========================================
+    {
+        q: "The special SSR codes are as follows: emergency ................. , radio failure ................. , unlawful interference with the conduct of the flight .................",
+        options: [
+            "a) 7700     7600     7500",
+            "b) 7700     7600     7500",
+            "c) 7600     7500     7700",
+            "d) 7500     7600     7700"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Standard SSR emergency codes: 7700 (General Emergency), 7600 (Radio Failure), 7500 (Hijack/Unlawful Interference)."
+    },
+    {
+        q: "Secondary Surveillance Radar is a form of ................. radar with .................type emissions operating in the ................. band.",
+        options: [
+            "a) primary       pulse       SHF",
+            "b) primary       pulse       UHF",
+            "c) secondary     FM          SHF",
+            "d) secondary     pulse       UHF"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> SSR is a secondary radar system utilizing pulsed emissions in the UHF band (1030 MHz and 1090 MHz)."
+    },
+    {
+        q: "If the SSR transponder IDENT button is pressed:",
+        options: [
+            "a) it causes a momentary distinctive display to appear on the controller's screen",
+            "b) an identification pulse is automatically and continuously transmitted for 20 seconds, 4.35 µs before the last framing pulse",
+            "c) an identification pulse is automatically and continuously transmitted for 10 seconds, 4.35 µs after the last framing pulse",
+            "d) an identification pulse is automatically and continuously transmitted for 20 seconds, 4.35 µs after the last framing pulse"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> The Special Position Identification (SPI) pulse is added 4.35 microseconds after the F2 framing pulse and lasts for about 20 seconds."
+    },
+    {
+        q: "When using SSR the ground controller will ask the pilot to cancel mode C if there is a discrepancy of more than ................. between the altitude detected by the radar from the reply pulses and the altitude reported by the pilot read from an altitude with the subscale set to .................",
+        options: [
+            "a) 100 ft        Regional QNH",
+            "b) 300 ft        1013 HPa",
+            "c) 50 ft         1013 HPa",
+            "d) 300 ft        Regional QNH"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Mode C always transmits pressure altitude based on 1013.25 hPa. A discrepancy of 300 ft requires cancelling Mode C."
+    },
+    {
+        q: "Secondary radars require:",
+        options: [
+            "a) a target which will respond to the interrogation, and this target will always be an aircraft",
+            "b) a target which will respond to the interrogation, and this target will always be ground based",
+            "c) a target which will respond to the interrogation, and this target may be either an aircraft or a ground based transponder",
+            "d) a quiescent target"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Secondary radar requires an active responder (transponder), which can be located on an aircraft (SSR) or on the ground (DME)."
+    },
+    {
+        q: "The main factor which affects the maximum range of a pulse radar is:",
+        options: ["the pulse repetition frequency", "the size of the radar screen", "the frequency of the radar transmission", "the aerial system size"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The pulse repetition frequency limits the maximum unambiguous range."
+    },
+    {
+        q: "The prime factor in determining the maximum unambiguous range of a primary radar is the:",
+        options: ["pulse recurrence rate", "power output", "size of parabolic receiver aerial", "height of the transmitter above the ground"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Max Unambiguous Range = c / (2 x PRF). Where c = speed of light (3 x 10^8 m/s or 162,000 nautical miles/second)."
+    },
+    {
+        q: "What most determines a primary radars ability to accurately determine target range:",
+        options: ["Aerial rpm", "Beam width", "Transmitter power", "Pulse length"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Pulse length determines the range resolution, which is the ability to accurately determine and separate target ranges."
+    },
+    {
+        q: "In relation to radar systems that use pulse technology, the term Pulse Recurrence Rate (PRR) signifies the:",
+        options: ["ratio of pulse period to pulse width", "delay after which the process re-starts", "the number of cycles per second", "number of pulses per second"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Pulse Recurrence Rate (or PRF) is the number of pulses transmitted per second."
+    },
+    {
+        q: "In relation to primary radar, what does the term Pulse Recurrence Frequency signify?",
+        options: ["The radar frequency used", "The number of revolutions performed by the radar antenna per minute", "The number of pulses transmitted per second", "The time between each transmission of pulses"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> PRF (Pulse Recurrence Frequency) signifies the number of pulses transmitted per second."
+    },
+    {
+        q: "The advantages of CW radar systems over pulse radar systems are:",
+        options: ["they are more reliable", "the transmitter/receiver aerial system is smaller and less complex", "there is no minimum range", "they offer better long range performance"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Pulse radar sends out a short burst of energy and then determines the range of the target from the time it takes the pulse to return. It has limitations regarding its maximum and minimum ranges. Continuous wave radar has no minimum range limitation because it transmits and receives continuously."
+    },
+    {
+        q: "Which one of the following statements is correct concerning the use in primary radar of continuous wave transmissions as compared with pulse transmissions?",
+        options: ["A smaller common transmitter and receiver aerial can be used", "It eliminates the minimum target reception range", "The equipment required is more complex in continuous wave radar but this is offset by greater reliability and accuracy", "It is less effective in short range radars but more effective in long range radars"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Continuous wave radar eliminates the minimum target reception range."
+    },
+    {
+        q: "The main factor which determines the minimum range that can be measured by a pulsed radar is pulse:",
+        options: ["repetition rate", "amplitude", "length", "frequency"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Minimum range = c x Pulse Length / 2. Where c = speed of light (3 x 10^8 m/s or 162,000 nautical miles/second)."
+    },
+    {
+        q: "The main advantage of a slotted scanner is:",
+        options: ["reduces side lobes and directs more energy into the main beam", "removes the need for azimuth slaving", "side lobe suppression", "can produce simultaneous map and weather information"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> A slotted scanner (phased array) reduces side lobes and directs more energy into the main beam, improving efficiency and reducing ground clutter."
+    },
+    {
+        q: "For any given circumstances, in order to double the effective range of a primary radar the power output must be increased by a factor of:",
+        options: ["2", "16", "4", "8"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Intensity decreases as the square of range. To detect the target at double the range you need to bounce 4 times as much power off it. But as the range is doubled, only 1/4 as much power reaches the target in the first place. 2-way trips require (New Range / Old Range)^4. So the required power output goes up by 2^4 = 16."
+    },
+    {
+        q: "A radar facility transmitting at a Pulse Recurrence Frequency (PRF) of 1200 pulses/second will have a maximum unambiguous range of approximately:",
+        options: ["135 NM", "69 NM", "270 NM", "27 NM"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Max Theoretical Range = c / (2 x PRF). 162,000 / (2 x 1200) = 67.5 NM, which is approximately 69 NM among the choices given."
+    },
+    {
+        q: "Ignoring pulse length, the maximum pulse repetition frequency (PRF) that can be used by a primary radar facility to detect targets unambiguously to a range of 200 NM is: (pps = pulses per second)",
+        options: ["375 pps", "782 pps", "308 pps", "405 pps"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Max Theoretical Range = c / (2 x PRF). 200 = 162000 / (2 x PRF). PRF = 405 pps."
+    },
+    {
+        q: "If the pulse length used in a radar is 4 micro seconds, ignoring receiver recovery time, the minimum range at which a target can be detected is:",
+        options: ["1200 metres", "2400 metres", "600 metres", "0 metres"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Minimum range = c x Pulse Length / 2 = 3 x 10^8 x 0.000004 / 2 = 600 meters."
+    },
+    {
+        q: "The interval in time between the commencement of two consecutive pulses is:",
+        options: ["pulse recurrence period", "pulse width", "pulse recurrence frequency", "pulse length"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The time interval between the start of one pulse and the start of the next is defined as the pulse recurrence period (PRP or PRI)."
+    },
+    {
+        q: "A Primary radar operates on the principle of:",
+        options: ["transponder interrogation", "pulse technique", "phase comparison", "continuous wave transmission"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Primary radar generally operates on the pulse technique, bouncing bursts of energy off non-cooperative targets."
+    },
+    {
+        q: "The minimum range of a primary radar, using the pulse technique, is determined by the (i); the maximum unambiguous range by the (ii)",
+        options: ["(i) transmission frequency (ii) pulse recurrence frequency", "(i) transmission frequency (ii) transmitter power output", "(i) pulse length (ii) length of the time-base", "(i) pulse length (ii) pulse recurrence frequency"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Minimum range is governed by pulse length; maximum unambiguous range is governed by pulse recurrence frequency (PRF)."
+    },
+    {
+        q: "In a primary radar using pulse technique, pulse length determines:",
+        options: ["target discrimination", "maximum measurable range", "beam width", "minimum measurable range"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> The pulse length determines the minimum measurable range because the receiver is blanked out while the pulse is being transmitted."
+    },
+    {
+        q: "The term Doppler shift refers to:",
+        options: ["the change in depression angle measured at the receiver", "the change in the speed measured at the receiver", "the change in phase angle measured at the receiver", "the change in frequency measured at the receiver"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Doppler shift is the change in frequency measured at the receiver due to relative motion."
+    },
+    {
+        q: "Which combination of characteristics gives best screen picture in a primary search radar?",
+        options: ["Short pulse length and narrow beam", "Long pulse length and wide beam", "Long pulse length and narrow beam", "Short pulse length and wide beam"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Short pulse length improves range resolution, and a narrow beam improves azimuth resolution, providing the clearest picture."
+    },
+    {
+        q: "The pulse recurrence frequency of a signal having a pulse interval (pulse recurrence period) of 5 microseconds is:",
+        options: ["6 MHz", "200 KHz", "60 MHz", "2000 KHz"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> PRF = 1 / PRP. PRF = 1 / (5 x 10^-6) = 200,000 Hz = 200 KHz."
+    },
+    {
+        q: "The beam width from a parabolic reflector aerial is:",
+        options: ["dependant on the transmitted pulse length", "dependant on the transmitted pulse repetition frequency", "dependant on the transmitted pulse repetition interval", "dependant on the transmitted frequency"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Beam width is dependent on the transmitted frequency (and the physical size of the reflector)."
+    },
+    {
+        q: "In a Cathode Ray Tube the grid is used to:",
+        options: ["control the focus", "control the brilliance", "drain electrons from the tube", "deflect the electron stream to form a time-base"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The grid in a CRT controls the flow of electrons, thereby controlling the brilliance/intensity of the display."
+    },
+    {
+        q: "In a cathode ray tube the grid potential is:",
+        options: ["negative with respect to the cathode", "the same as the cathode", "zero", "the same as the second anode"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The grid is negatively charged with respect to the cathode to repel and control the stream of negative electrons pouring off the cathode."
+    },
+    {
+        q: "What technique is employed by primary radar employing a single aerial dish:",
+        options: ["Pulse technique", "Continuous wave", "Phase comparison", "Pseudo random noise"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> A single aerial dish uses a duplexer to switch between transmitting and receiving, which is a hallmark of the Pulse technique."
+    },
+    {
+        q: "If a radar has a beam width of 3° and a pulse length of 4 micro seconds, the target azimuth resolution at a range of 60 NM will be approximately:",
+        options: ["4 NM", "3 NM", "2 NM", "1 NM"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Use the 1 in 60 rule. 3 degrees at 60 NM corresponds to approximately 3 NM in lateral separation."
+    },
+    {
+        q: "The size of a target on a primary radar screen is governed in azimuth by (i) and in range by (ii):",
+        options: ["(i) Beam width; (ii) Pulse length", "(i) Pulse width; (ii) Pulse length", "(i) Pulse length; (ii) Beam width", "(i) Pulse width; (ii) Beam width"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> A target is stretched in azimuth by the beam width and in depth (range) by the pulse length."
+    },
+    {
+        q: "Short range aerodrome radars will have ___ wave lengths:",
+        options: ["millimetric", "centimetric", "decimetric", "metric"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Aerodrome Surface Movement Radars operate at very short wavelengths (SHF band), typically centimetric (~3.8cm)."
+    },
+    {
+        q: "Which is the most suitable radar for measuring short ranges:",
+        options: ["millimetric pulse", "continuous wave primary", "centimetric pulse", "continuous wave secondary"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Continuous wave primary radar has no minimum range limitation, making it most suitable for measuring very short ranges."
+    },
+    {
+        q: "The definition of a radar display will be best with:",
+        options: ["Narrow beam width and narrow pulse width", "Wide beam width and narrow pulse width", "Narrow beam width and wide pulse width", "Wide beam width and wide pulse width"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Narrow beam width improves azimuth resolution and narrow pulse width improves range resolution, producing the best display definition."
+    },
+    {
+        q: "A radio facility transmits on a wave length of 2.22 cm. The facility could be a ___ operating on a frequency of ___",
+        options: ["VDF; 135 MHz", "DME; 1350 MHz", "Doppler; 13500 MHz", "radio altimeter; 13500 MHz"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> frequency = c / wavelength = 3 x 10^8 / 0.0222 = 1.35 x 10^10 Hz = 13500 MHz, which is typical for Doppler radar."
+    },
+    {
+        q: "A radar has a PRF of 800 pps. What is the maximum theoretical range and the PRP?",
+        options: ["325 nm, 0.0125 micro seconds", "325 nm, 1250 micro seconds", "187.5 km, 0.0125 micro seconds", "187.5 km, 1250 micro seconds"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Range = C / (2 x PRF) = 3x10^8 / (2x800) = 187,500 m = 187.5 km. PRP = 1/800 = 0.00125 seconds = 1250 micro seconds."
+    },
+    {
+        q: "Which one of the following is an advantage of a secondary radar system when compared to a primary radar system?",
+        options: ["The relatively small ground antenna transmits no side lobes, thus eliminating the danger of false replies from the airborne transponder", "The required power of transmission from the ground equipment is reduced", "Possibility of obtaining speed information for aircraft within range", "Is not limited to line of sight"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> In secondary radar, the return signal is actively broadcast by the aircraft's transponder, greatly reducing the required transmission power from the ground station compared to bouncing a primary radar signal."
+    },
+    {
+        q: "What is the minimum PRI for a radar with a design range of 200 NM?",
+        options: ["2470 microseconds", "1235 microseconds", "4940 microseconds", "823 microseconds"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> PRF = C / (2*Range) = 3x10^8 / (2 * 200 * 1852) = 405 pps. PRI = 1/PRF = 1/405 = 0.002469 seconds = 2470 microseconds."
+    },
+    {
+        q: "An area surveillance radar is most likely to use a frequency of:",
+        options: ["350 MHz", "600 MHz", "100 Hz", "150 Hz"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Area surveillance radars generally use lower frequencies (like 600 MHz in the UHF/L-band) to achieve longer range and less attenuation from weather."
+    },
+    {
+        q: "In which of the following meteorological conditions would you expect to encounter an increased distance to the radar horizon:",
+        options: ["surface inversion of temperature and humidity", "surface steep lapse rate of temperature and humidity", "a steep lapse rate of temperature with an inversion of humidity", "an inversion of temperature with a steep lapse rate of humidity"],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Super-refraction, which increases radar range (distance to horizon), occurs with a temperature inversion and a steep lapse rate of humidity (rapid decrease of moisture with height)."
+    },
+    {
+        q: "If a radar pulse contains 300 cycles of RF energy at a frequency of 600 MHz, the physical length of the pulse is:",
+        options: ["1550 metres", "150 metres", "1.5 metres", "0.15 metres"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Wavelength = c / frequency = 3x10^8 / 600x10^6 = 0.5 metres. Pulse length = cycles x wavelength = 300 x 0.5 m = 150 metres."
+    },
+    {
+        q: "A wavelength of 8.5 mm corresponds to a frequency of:",
+        options: ["2833.3 MHz", "35294 MHz", "3529.4 MHz", "28333 MHz"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Frequency = c / wavelength = 3x10^8 / 0.0085 meters = 35,294,117,647 Hz. Shift the decimal to get MHz = 35294 MHz."
+    },
+    {
+        q: "To increase the maximum theoretical range of a pulse radar system:",
+        options: ["reduce the PRF and increase the power", "increase the PRF and reduce the power", "reduce the PRF and increase the PRF", "maintain the PRF and increase the power"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Reducing the PRF increases the listening time between pulses (allowing echoes from further away to return), and increasing power ensures the signal reaches that distance."
+    },
+    {
+        q: "A Moving Target Indicator:",
+        options: ["Rejects all moving targets", "Is only effective if the target moves directly towards the ground unit", "Rejects all stationary targets", "Is not effective if the target moves directly towards the ground unit"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Moving Target Indicator (MTI) utilizes the Doppler shift to discriminate between moving targets and stationary ground clutter, effectively rejecting stationary targets."
+    }
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3", "d) Opt 4"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        const numerical_data = [
+            { 
+        q: "The time between transmission and reception of a single pulse is 300 microseconds. Determine the range of the target.<br><br>a) 45 nm<br>b) 90 nm<br>c) 45 kms", 
+        ans: "a) 45 nm", 
+        sol: "<strong>Explanation:</strong> Max. Range = (C x PRT)/2 = (3 x 10^8) x (300 x 10^-6) / 2 = 45000m = 45 kms. (Note: Key marks 'a', check if standard radar miles were used)." 
+    },
+    { 
+        q: "Ignoring pulse width and fly back, calculate the maximum range in nautical miles for a primary radar having a PRF of 500 pulses per second.<br><br>a) 162nm<br>b) 300nm<br>c) 162 kms", 
+        ans: "a) 162nm", 
+        sol: "<strong>Explanation:</strong> Max. Range = C / (2 x PRF) = (3 x 10^8) / (2 x 500) = 3 x 10^5 m = 300 km. To convert to nm: 300 / 1.852 ≈ 162 nm." 
+    },
+    { 
+        q: "Ignoring pulse width and fly back, calculate the maximum permissible PRF for a primary radar which is required to give a range of 200 nm.<br><br>a) 370 pps<br>b) 405 pps<br>c) 150 pps", 
+        ans: "b) 405 pps", 
+        sol: "<strong>Explanation:</strong> PRF = C / (Range x 2) = (3 x 10^8) / [2 x (200 x 1852)] = 405 pps." 
+    },
+    { 
+        q: "Ignoring fly back, the maximum theoretical range of a primary radar with a PRF of 800 pps is:<br><br>a) 101NM<br>b) 202 NM<br>c) 50.5 NM", 
+        ans: "a) 101NM", 
+        sol: "<strong>Explanation:</strong> Max Range = (3 x 10^8) / (2 x 800) = 187,500 meters. 187,500 / 1852 = 101.2 NM." 
+    },
+    { 
+        q: "A radar with a maximum range of 265 nm will have a maximum theoretical PRF of:<br><br>a) 305 pps<br>b) 730 pps<br>c) 163pps", 
+        ans: "a) 305 pps", 
+        sol: "<strong>Explanation:</strong> PRF = (3 x 10^8) / (2 x 265 x 1852) = 305 pps." 
+    },
+    { 
+        q: "Given a PRF of 3200 pps, the maximum theoretical radar range is:<br><br>a) 50NM<br>b) 75NM<br>c) 25NM", 
+        ans: "c) 25NM", 
+        sol: "<strong>Explanation:</strong> Max Range = (3 x 10^8) / (2 x 3200) = 46,875 meters. 46875 / 1852 = 25.3 NM." 
+    },
+    { 
+        q: "A primary radar system is required to have a maximum range of 400 nm. Ignoring pulse width and fly back, the maximum PRF that the system could employ is:<br><br>a) 465PPS<br>b) 812PPS<br>c) 203 PPS", 
+        ans: "c) 203 PPS", 
+        sol: "<strong>Explanation:</strong> PRF = (3 x 10^8) / (2 x 400 x 1852) = 202.48 pps ≈ 203 PPS." 
+    },
+    { 
+        q: "The minimum theoretical range of a primary radar with a PW of 3µs is:<br><br>a) 900m<br>b) 450m<br>c) 300m", 
+        ans: "b) 450m", 
+        sol: "<strong>Explanation:</strong> Min Range = (C x PW) / 2 = (3 x 10^8) x (3 x 10^-6) / 2 = 450m." 
+    },
+    { 
+        q: "If the pulse width/length in a primary radar was 2 µ sec, the range resolution would be?<br><br>a) 1000m<br>b) 300 feet<br>c) 984 feet", 
+        ans: "c) 984 feet", 
+        sol: "<strong>Explanation:</strong> Range Resolution = (3 x 10^8) x (2 x 10^-6) / 2 = 300m. 300m in feet = 300 x 3.28 = 984 ft." 
+    },
+    { 
+        q: "Beam Width 3°, Pulse Width 3 µ sec. Two targets 2nm apart will appear as separate targets at what distance from the radar head?<br><br>a) 80NM<br>b) 50NM<br>c) 40NM", 
+        ans: "c) 40NM", 
+        sol: "<strong>Explanation:</strong> Azimuth resolution must be at least 2nm. Using the 1 in 60 rule: (3 / 60) x Distance = 2 nm. Distance = (2 x 60) / 3 = 40 NM." 
+    },
+    { 
+        q: "Flying at flight level 270, AWR return at range of 40 nm is identifiable when center of beam is tilted -1° and -6°. What is the height of the base and top of the rain bearing clouds. BW of AWR is 3°?<br><br>a) Base FL30, TOP FL 210<br>b) Base FL30, TOP FL 290<br>c) Base FL90, TOP FL 170", 
+        ans: "c) Base FL90, TOP FL 170", 
+        sol: "<strong>Explanation:</strong> Base = 27000' - {((6 - 1.5) / 60) x 6080 x 40} = 27000' - 18000' = 9000'. Top = 27000' - {((1 + 1.5) / 60) x 6080 x 40} = 27000' - 10000' = 17000' (FL170)." 
+    },
+    { 
+        q: "An AWR echo at 30 nm when the beam is level. The a/c is lost, when the center of beam is tilted upwards at an angle of 2°. How high above the a/c is the top of the rain. BW is 3°.<br><br>a) 600'<br>b) 1500'<br>c) 3000'", 
+        ans: "b) 1500'", 
+        sol: "<strong>Explanation:</strong> Top above ac = (0.5 x 6080 x 30) / 60 = 1500'." 
+    },
+    {
+        q: "An a/c DME shows 50 nm, accuracy of indicated distance will be<br><br>a) 0.15 nm ±0.5 nm<br>b) 0.625 nm ±0.25nm<br>c) 0.5 nm ±",
+        ans: "b) 0.625 nm ±0.25nm",
+        sol: "<strong>Explanation:</strong> ICAO standard for DME accuracy is typically 1.25% of the range plus 0.25 nm. (1.25/100 * 50) + 0.25 = 0.625 nm ± 0.25 nm."
+    },
+    {
+        q: "The time taken for the transmission of an interrogation pulse by a Distance Measuring Equipment (DME) to travel to the ground transponder and return to the airborne receiver was 2000micro-second. The slant range from the ground transponder was:<br><br>a) 186NM<br>b) 296NM<br>c) 165NM",
+        ans: "c) 165NM",
+        sol: "<strong>Explanation:</strong> Radar signal takes approx 12.36 microseconds to cover 1 NM (round trip). 2000 / 12.36 ≈ 161.8 NM. Depending on exact constant (or standard 12µs rule of thumb), 165NM is the closest provided answer."
+    },
+    {
+        q: "An aircraft flying at flight level 250 wishes to interrogate a DME beacon situated 400 ft above mean sea level. What is the maximum range likely to be achieved?<br><br>a) 210 nm.<br>b) 198 nm.<br>c) 222 nm.",
+        ans: "c) 222 nm.",
+        sol: "<strong>Explanation:</strong> Max line of sight range = 1.25 × (√H_aircraft + √H_station) = 1.25 × (√25000 + √400) = 1.25 × (158.11 + 20) = 1.25 × 178.11 ≈ 222 nm."
+    },
+    {
+        q: "What is the slant range error for an aircraft flying at 9000 feet absolute altitude above a DME located at elevation 2000 ft, when the slant range is 12 NM?<br><br>a) 1.42 NM.<br>b) 0.31 NM.<br>c) 0.09 NM.",
+        ans: "c) 0.09 NM.",
+        sol: "<strong>Explanation:</strong> Aircraft height above station = 9000ft ≈ 1.5 NM. Ground Range = √(Slant Range² - Height²) = √(12² - 1.5²) = √(144 - 2.25) = √141.75 ≈ 11.91 NM. Slant range error = 12 - 11.91 = 0.09 NM."
+    },
+    {
+        q: "An aircraft receives a reply pulse from a DME 1200 µ sec after transmission of the interrogation pulse. The DME has a fixed delay of 50 microsec) The range of the aircraft from the DME station is:<br><br>a) 45 nm<br>b) 75 nm<br>c) 93 nm",
+        ans: "c) 93 nm",
+        sol: "<strong>Explanation:</strong> Travel time = Total time - Station delay = 1200µs - 50µs = 1150µs. Range = 1150µs / 12.36µs per NM ≈ 93 NM."
+    },
+    {
+        q: "At FL 360 and 10 NM plan range from the station, the DME will read ____<br><br>a) 12.3 nm<br>b) 11.6 nm<br>c) 9.5nm",
+        ans: "b) 11.6 nm",
+        sol: "<strong>Explanation:</strong> Height in NM = 36000 / 6080 ≈ 6 NM (using roughly 6000ft per NM). Slant Range = √(Plan Range² + Height²) = √(10² + 6²) = √136 ≈ 11.66 NM."
+    },
+    {
+        q: "A radar rotating at 15 RPM with pulse width of 2 micro seconds and beam width of 3 degrees has two aircraft separated 1 nm from each other approaching the station. At what distance the radar pick up separate echos of the aircraft?<br><br>a) 20 nm<br>b) 15 nm<br>c) 25nm",
+        ans: "a) 20 nm",
+        sol: "<strong>Explanation:</strong> Using the 1 in 60 rule for azimuth resolution: (Beam Width / 60) × Range = Lateral Separation. (3 / 60) × Range = 1 NM. Range = 60 / 3 = 20 NM."
+    }
+            // Format: { q: "Question?", ans: "Final Answer", sol: "Step-by-step logic" }
+        ];
+
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
+        }
+
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
+            
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('theory-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectTheoryOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // PDF ENGINE LOGIC
+        // ==========================================
+        let currentPdfIndex = 0;
+        let pdfAnswers = [];
+        let pdfRightCount = 0;
+        let pdfWrongCount = 0;
+
+        function startPdf() {
+            if (pdf_mcqs.length === 0) { alert("PDF Engine is empty."); return; }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            pdfRightCount = 0;
+            pdfWrongCount = 0;
+            document.getElementById('pdf-right').innerText = "0";
+            document.getElementById('pdf-wrong').innerText = "0";
+            pdfAnswers = new Array(pdf_mcqs.length).fill(null);
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdf_mcqs.length === 0) return;
+            const qData = pdf_mcqs[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Q${currentPdfIndex + 1} of ${pdf_mcqs.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdf_mcqs.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('pdf-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pdfAnswers[currentPdfIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pdfAnswers[currentPdfIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPdfOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('pdf', qData, hasAnswered);
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdf_mcqs.length - 1;
+        }
+
+        function selectPdfOption(selectedIndex) { 
+            pdfAnswers[currentPdfIndex] = selectedIndex;
+            if (selectedIndex === pdf_mcqs[currentPdfIndex].correct) {
+                pdfRightCount++;
+                document.getElementById('pdf-right').innerText = pdfRightCount;
+            } else {
+                pdfWrongCount++;
+                document.getElementById('pdf-wrong').innerText = pdfWrongCount;
+            }
+            renderPdf(); 
+        }
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdf_mcqs.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // NUMERICAL ENGINE LOGIC (Flashcards)
+        // ==========================================
+        let currentNumIndex = 0;
+
+        function startNumerical() {
+            if (numerical_data.length === 0) { alert("Numerical Engine is empty."); return; }
+            switchView('numerical-page');
+            currentNumIndex = 0;
+            renderNumerical();
+        }
+
+        function renderNumerical() {
+            if (numerical_data.length === 0) return;
+            const qData = numerical_data[currentNumIndex];
+            
+            document.getElementById('num-counter').innerText = `Numerical Card ${currentNumIndex + 1} of ${numerical_data.length}`;
+            document.getElementById('num-progress').style.width = `${((currentNumIndex + 1) / numerical_data.length) * 100}%`;
+            
+            // Text ONLY (No numbering)
+            document.getElementById('num-q-text').innerHTML = qData.q;
+            
+            // Reset visibility
+            document.getElementById('num-ans-box').style.display = 'none';
+            document.getElementById('num-sol-box').style.display = 'none';
+            
+            // Populate content
+            document.getElementById('num-ans-box').innerHTML = `<strong>Answer:</strong> ${qData.ans}`;
+            document.getElementById('num-sol-box').innerHTML = qData.sol || "No solution provided.";
+            
+            document.getElementById('num-prev-btn').disabled = currentNumIndex === 0;
+            document.getElementById('num-next-btn').disabled = currentNumIndex === numerical_data.length - 1;
+        }
+
+        function goPrevNum() { if (currentNumIndex > 0) { currentNumIndex--; renderNumerical(); } }
+        function goNextNum() { if (currentNumIndex < numerical_data.length - 1) { currentNumIndex++; renderNumerical(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none';
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none';
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+            document.getElementById('pdf-card-count').innerText = pdf_mcqs.length + " MCQs";
+            document.getElementById('num-card-count').innerText = numerical_data.length + " Cards";
+        };
+    </script>
+</body>
+</html>

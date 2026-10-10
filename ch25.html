@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 25 | GNSS</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; border-radius: 8px; }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 25: GNSS</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startTheory()">
+                    <h3>Theory Engine</h3>
+                    <p id="theory-card-count">Loading MCQs...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
+
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAYS (Awaiting Data)
+        // ==========================================
+        const theory_mcqs = [
+            {
+        q: "Position fixing by satellite is by means of:",
+        options: [
+            "a) simultaneous bearings from a number of satellites",
+            "b) range and bearing from each known satellite's position",
+            "c) simultaneous ranges from a number of satellites."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> GNSS receivers calculate position by measuring the time delay of signals from multiple satellites, effectively determining simultaneous ranges (trilateration)."
+    },
+    {
+        q: "The DGPS is:",
+        options: [
+            "a) the time difference between the transmission of the satellite's coded signal and the time that it is received at the aircraft",
+            "b) the time difference between the satellite and the aircraft GPS unit transmitting the same code point on the signal",
+            "c) the correction applied to the 'raw' GPS position to obtain a more precise position."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Differential GPS (DGPS) involves ground-based reference stations that calculate errors in the GPS signal and broadcast a correction to receivers to improve accuracy."
+    },
+    {
+        q: "The reason that the satellites of GPS and GLONASS do not collide is:",
+        options: [
+            "a) the GPS orbit is at 55° to the equator while the GLONASS is at 60°",
+            "b) the GPS satellite orbits are 1200 km higher than the GLONASS orbits",
+            "c) GLONASS has only three orbital planes while GPS has six orbital planes."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> GPS satellites orbit at an altitude of approximately 20,200 km, whereas GLONASS satellites orbit at approximately 19,100 km (roughly a 1,100 - 1,200 km difference), preventing physical collision."
+    },
+    {
+        q: "The GPS can:",
+        options: [
+            "a) provide two-dimension and three-dimension positions",
+            "b) only provide position in latitude and longitude",
+            "c) indicate two-dimension positions or position lines in the horizontal plane."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> GPS can provide a 2D fix (latitude and longitude) with 3 satellites and a 3D fix (latitude, longitude, and altitude) with 4 or more satellites."
+    },
+    {
+        q: "The GPS transmission frequency which can be used by civil aircraft is:",
+        options: [
+            "a) 1575.42 MHz in the L-band",
+            "b) 2227.5 MHz in the S-band",
+            "c) 1227.6.5MHz in the L-band."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Civil aircraft use the L1 frequency at 1575.42 MHz in the UHF/L-band, which carries the coarse acquisition (C/A) code."
+    },
+    {
+        q: "The US DoD degrades GPS accuracy:",
+        options: [
+            "a) to protect US national security",
+            "b) to protect the DoD copyright",
+            "c) to prevent 100% reliance on a system which may have to be interrupted for military purposes at a moment's notice."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> According to the provided answer key, the primary operational reason noted for degrading (or having the capability to degrade) accuracy is to prevent total reliance on a military system that could be interrupted."
+    },
+    {
+        q: "The accuracy of range measurement of satellite to GPS receiver is:",
+        options: [
+            "a) seriously reduced during periods of sunspot activity",
+            "b) seriously eroded during periods of anomalous propagation in an inversion",
+            "c) derived from accurate timepieces in the satellite and the aircraft's GPS receiver."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The system relies entirely on measuring the precise time a signal takes to travel from the satellite to the receiver, requiring highly accurate atomic clocks in the satellites and synchronized clocks in the receivers."
+    },
+    {
+        q: "Satellites used in GNSS, orbit the earth:",
+        options: [
+            "a) once in twelve hours",
+            "b) once in eight hours",
+            "c) once in 24 hours."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> GPS satellites are in Medium Earth Orbit (MEO) and complete one orbit approximately every 12 hours (11 hours and 58 minutes)."
+    },
+    {
+        q: "Satellite geometry error is greatest when:",
+        options: [
+            "a) satellites are closest together",
+            "b) satellites are spaced well apart",
+            "c) satellites are nearest the horizon."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> When satellites are grouped closely together in the sky, the Dilution of Precision (DOP) is high, resulting in greater positional errors."
+    },
+    {
+        q: "It may be claimed that GNSS has the advantage over other air navigation systems in that it:",
+        options: [
+            "a) is basically a military-based system made available to civil users with solar-powered satellites which have an infinite life",
+            "b) has no possible input by the pilot",
+            "c) is entirely space-based."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Unlike VOR, NDB, or ILS, GNSS doesn't require localized ground stations along the route, as it relies entirely on a space-based constellation."
+    },
+    {
+        q: "NAVSTAR/GPS operates in the ........ band and the receiver determines position by............",
+        options: [
+            "a) UHF, range position line",
+            "b) UHF, secondary radar principles",
+            "c) SHF, secondary radar principles"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> GPS operates in the L-band (a subset of UHF) and determines position by calculating pseudo-ranges (range position lines) from multiple satellites."
+    },
+    {
+        q: "The orbital height and inclination of the NAVSTAR/GPS constellation are:",
+        options: [
+            "a) 20180 km, 65°",
+            "b) 20180 km, 55°",
+            "c) 19099 km, 65°"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The GPS constellation is positioned at an altitude of approximately 20,200 km (20,180 km) with an orbital inclination of 55 degrees to the equator."
+    },
+    {
+        q: "The model of the earth used for NAVSTAR/GPS is:",
+        options: [
+            "a) WGS90",
+            "b) PZ90",
+            "c) WGS84"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> GPS uses the World Geodetic System 1984 (WGS84) as its reference ellipsoid."
+    },
+    {
+        q: "The minimum number of satellites required for a 3D fix is:",
+        options: [
+            "a) 3",
+            "b) 4",
+            "c) 5"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> A 3D fix requires determining 4 variables: Latitude, Longitude, Altitude, and Receiver Clock Error, which necessitates signals from at least 4 satellites."
+    },
+    {
+        q: "The NAVSTAR/GPS operational constellation comprises ............satellites",
+        options: [
+            "a) 12",
+            "b) 21",
+            "c) 24"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The baseline fully operational GPS constellation is designed around 24 satellites (though more are often active to provide redundancy)."
+    },
+    {
+        q: "NAVSTAR/GPS operates in the ........ band the receiver determines position by ........:",
+        options: [
+            "a) UHF, range position lines",
+            "b) UHF, secondary radar principles",
+            "c) SHF, secondary radar principles",
+            "d) SHF, range position lines"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> GPS operates in the UHF (L-band) frequency range and determines position using range position lines (pseudo-ranges)."
+    },
+    {
+        q: "The NAVSTAR/ GPS control segment comprises:",
+        options: [
+            "a) the space segment, the user segment and the ground segment",
+            "b) a ground segment and the INMARSAT geostationary satellites",
+            "c) a master control station, a back-up control station and five monitoring stations",
+            "d) a master control station, a back-up control station, five monitoring stations and the INMARSAT geostationary satellites"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The control segment consists of a master control station, an alternate (back-up) master control station, and multiple dedicated monitoring stations around the globe."
+    },
+    {
+        q: "The orbital height and inclination of the NAVSTAR/GPS constellation are:",
+        options: [
+            "a) 20 180 km, 65°",
+            "b) 20 180 km, 55°",
+            "c) 19 099 km, 65°",
+            "d) 19 099 km, 55°"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> GPS satellites orbit at an altitude of approximately 20,180 km (about 10,900 NM) with an orbital inclination of 55 degrees."
+    },
+    {
+        q: "The model of the earth used for NAVSTAR/GPS is:",
+        options: [
+            "a) WGS90",
+            "b) PZ90",
+            "c) WGS84",
+            "d) PZ84"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The World Geodetic System 1984 (WGS84) is the standard reference frame used by GPS."
+    },
+    {
+        q: "The minimum number of satellites required for a 3D fix is:",
+        options: [
+            "a) 3",
+            "b) 4",
+            "c) 5",
+            "d) 6"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> A 3D fix requires solving for four variables (latitude, longitude, altitude, and receiver clock time offset), which requires a minimum of 4 satellites."
+    },
+    {
+        q: "The NAVSTAR/GPS operational constellation comprises how many satellites?",
+        options: [
+            "a) 12",
+            "b) 21",
+            "c) 24",
+            "d) 30"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The baseline fully operational GPS constellation is designed around 24 satellites."
+    },
+    {
+        q: "The most accurate fixing information will be obtained from:",
+        options: [
+            "a) four satellites spaced 90° apart at 30° above the visual horizon",
+            "b) one satellite close to the horizon and 3 equally at 60° above the horizon",
+            "c) one satellite directly overhead and 3 equally spaced at 60° above the horizon",
+            "d) one satellite directly overhead and 3 spaced 120° apart close to the horizon"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> The best geometry (lowest GDOP) occurs with one satellite directly overhead and the others spread out evenly near the horizon."
+    },
+    {
+        q: "The most significant error of GNSS is:",
+        options: [
+            "a) PDOP",
+            "b) receiver clock",
+            "c) ionospheric propagation",
+            "d) ephemeris"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Ionospheric propagation delay is generally the largest source of error in single-frequency GPS receivers."
+    },
+    {
+        q: "The frequency available to non-authorized users of NAVSTAR/GPS is:",
+        options: [
+            "a) 1227.6 MHz",
+            "b) 1575.42 MHz",
+            "c) 1602 MHz",
+            "d) 1246 MHz"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Non-authorized (civilian) users access the L1 frequency at 1575.42 MHz which carries the C/A code."
+    },
+    {
+        q: "The purpose of the pseudo-random noise codes in NAVSTAR/GPS is to:",
+        options: [
+            "a) identify the satellites",
+            "b) pass the almanac data",
+            "c) pass the navigation and system data",
+            "d) pass the ephemeris and time information"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Each satellite transmits a unique Pseudo-Random Noise (PRN) code, allowing the receiver to distinguish which satellite the signal is coming from."
+    },
+    {
+        q: "The minimum number of satellites required for receiver autonomous integrity monitoring is:",
+        options: [
+            "a) 3",
+            "b) 4",
+            "c) 5",
+            "d) 6"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> RAIM requires a minimum of 5 satellites to detect an anomaly (fault detection). (Note: 6 are required to isolate and exclude the faulty satellite)."
+    },
+    {
+        q: "If a receiver has to download the almanac, the time to do this will be:",
+        options: [
+            "a) 2.5 minutes",
+            "b) 12.5 minutes",
+            "c) 25 minutes",
+            "d) 15 minutes"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The entire navigation message, which includes the almanac, takes 12.5 minutes to download at a data rate of 50 bps."
+    },
+    {
+        q: "The use of LAAS and WAAS remove the errors caused by:",
+        options: [
+            "a) propagation, selective availability, satellite ephemeris and clock",
+            "b) selective availability, satellite ephemeris and clock",
+            "c) PDOP, selective availability and propagation",
+            "d) receiver clock, PDOP, satellite ephemeris and clock"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Augmentation systems provide corrections for satellite clock errors, ephemeris errors, and selective availability (when it was active)."
+    },
+    {
+        q: "The most accurate satellite fixing information will be obtained from:",
+        options: [
+            "a) NAVSTAR/GPS & GLONASS",
+            "b) TRANSIT & NAVSTAR/GPS",
+            "c) COSPAS/SARSAT & GLONASS",
+            "d) NAVSTAR/GPS & COSPAS/SARSAT"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Using a combination of GPS and GLONASS constellations provides the receiver with the most satellites in view, optimizing geometry and accuracy."
+    },
+    {
+        q: "A LAAS requires:",
+        options: [
+            "a) an accurately surveyed site on the aerodrome and a link through the INMARSAT geostationary satellites to pass corrections to X, Y & Z coordinates to aircraft",
+            "b) an accurately surveyed site on the aerodrome and a link through the INMARSAT geostationary satellites to pass satellite range corrections to aircraft",
+            "c) an accurately surveyed site on the aerodrome and a system known as a pseudolite to pass satellite range corrections to aircraft",
+            "d) an accurately surveyed site on the aerodrome and system known as a pseudolite to pass corrections to X, Y & Z coordinates to aircraft"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Local Area Augmentation System (LAAS/GBAS) utilizes highly accurate surveyed ground stations near the aerodrome (pseudolites) to transmit specific coordinate corrections directly to aircraft via VHF data link."
+    },
+    {
+        q: "The position derived from NAVSTAR/GPS satellites may be subject to the following errors:",
+        options: [
+            "a) selective availability, sky wave interference, PDOP",
+            "b) propagation, selective availability, ephemeris",
+            "c) PDOP, static interference, instrument",
+            "d) ephemeris, PDOP, siting"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Primary GPS errors include ionospheric/tropospheric propagation delays, selective availability (historically), and ephemeris (orbital) data inaccuracies."
+    },
+    {
+        q: "EGNOS is:",
+        options: [
+            "a) the proposed European satellite navigation system",
+            "b) a LAAS",
+            "c) a WAAS",
+            "d) a system to remove errors caused by the difference between the model of the earth and the actual shape of the earth"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> EGNOS (European Geostationary Navigation Overlay Service) is a satellite-based augmentation system (SBAS), effectively Europe's equivalent to the American WAAS."
+    },
+    {
+        q: "The PRN codes are used to:",
+        options: [
+            "a) determine the time interval between the satellite transmission and receipt of the signal at the receiver",
+            "b) pass ephemeris and clock data to the receivers",
+            "c) synchronize the receiver clocks with the satellites clocks",
+            "d) determine the range of the satellites from the receiver"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The receiver matches the incoming PRN code with its own internally generated code to determine the exact time delay, which translates to distance."
+    },
+    {
+        q: "The availability of two frequencies in GNSS:",
+        options: [
+            "a) removes SV ephemeris and clock errors",
+            "b) reduces propagation errors",
+            "c) reduces errors caused by PDOP",
+            "d) removes receiver clock errors"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Dual-frequency receivers can compare the different speeds of the two frequencies as they pass through the ionosphere, allowing them to calculate and significantly reduce propagation errors."
+    },
+    {
+        q: "The NAVSTAR/GPS reference system is:",
+        options: [
+            "a) A geo-centred 3D Cartesian coordinate system fixed with reference to the sun",
+            "b) A geo-centred 3D Cartesian coordinate system fixed with reference to the prime meridian, equator and pole",
+            "c) A geo-centred 3D Cartesian coordinate system fixed with reference to space",
+            "d) A geo-centred 3D system based on latitude, longitude and altitude"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> WGS84 is a geo-centric (Earth-centered), Earth-Fixed 3D Cartesian coordinate system based on the Prime Meridian, Equator, and the poles."
+    },
+    {
+        q: "The initial range calculation at the receiver is known as a pseudo-range, because it is not yet corrected for:",
+        options: [
+            "a) receiver clock errors",
+            "b) receiver and satellite clock errors",
+            "c) receiver and satellite clock errors and propagation errors",
+            "d) receiver and satellite clock errors and ephemeris errors"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The initial measurement is a 'pseudo-range' primarily because the receiver's relatively inexpensive quartz clock is not perfectly synchronized with the satellites' atomic clocks."
+    },
+    {
+        q: "The navigation and system data message is transmitted through the:",
+        options: [
+            "a) 50 Hz modulation",
+            "b) the C/A and P PRN codes",
+            "c) the C/A code",
+            "d) the P code"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The Navigation Message (containing ephemeris, almanac, clock corrections) is superimposed on both the C/A and P codes at a very low data rate of 50 Hz (50 bits per second)."
+    },
+    {
+        q: "An all in view receiver:",
+        options: [
+            "a) informs the operator that all the satellites required for fixing and RAIM are in available",
+            "b) checks all the satellites in view and selects the 4 with the best geometry for fixing",
+            "c) requires 5 satellites to produce a 4D fix",
+            "d) uses all the satellites in view for fixing"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> An 'all-in-view' receiver tracks all visible satellites but typically selects the combination offering the best geometry (lowest GDOP) to compute the fix."
+    },
+    {
+        q: "When using GNSS to carry out a non-precision approach the MDA will be determined using:",
+        options: [
+            "a) barometric altitude",
+            "b) GPS altitude",
+            "c) radio altimeter height",
+            "d) either barometric or radio altimeter altitude"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Minimum Descent Altitude (MDA) for non-precision approaches is always based on the aircraft's barometric altimeter, not the GPS-derived altitude."
+    },
+    {
+        q: "If an aircraft manoeuvre puts a satellite being used for fixing into the wing shadow then:",
+        options: [
+            "a) the accuracy will be unaffected",
+            "b) the accuracy will be temporarily downgraded",
+            "c) the receiver will automatically select another satellite with no degradation in positional accuracy",
+            "d) the receiver will maintain lock using signals reflected from other parts of the aircraft with a small degrading of positional accuracy"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> If a satellite signal is blocked by the airframe (wing shadow), the receiver loses that signal, temporarily degrading the GDOP and accuracy until it locks onto an alternative satellite or the maneuver ends."
+    },
+    {
+        q: "Which of the following statements concerning NAVSTAR/GPS time is correct?",
+        options: [
+            "a) Satellite time is the same as UTC",
+            "b) The satellite runs its own time based on seconds and weeks which is independent of UTC",
+            "c) The satellite runs its own time based on seconds and weeks which is correlated with UTC",
+            "d) Satellite time is based on sidereal time"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> GPS time is continuous and not adjusted for leap seconds like UTC, but the navigation message contains the correlation data so the receiver can compute exact UTC."
+    }
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3", "d) Opt 4"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
+        }
+
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
+            
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('theory-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectTheoryOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none';
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none';
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+        };
+    </script>
+</body>
+</html>

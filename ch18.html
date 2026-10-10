@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 18 | Basic Radio Theory</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; border-radius: 8px; }
+        .flashcard-ans-box { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 20px; font-size: 1.15rem; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; margin-top: 25px; margin-bottom: 25px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 18: Basic Radio Theory</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startTheory()">
+                    <h3>Theory Engine</h3>
+                    <p id="theory-card-count">Loading MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startPdf()">
+                    <h3>PDF Data</h3>
+                    <p id="pdf-card-count">Loading PDF MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startNumerical()">
+                    <h3>Numericals</h3>
+                    <p id="num-card-count">Loading Flashcards...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
+
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF ENGINE (MCQ) -->
+        <div id="pdf-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="pdf-right" class="score-right">0</span> | 
+                    Wrong: <span id="pdf-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="mcq-options" id="pdf-options"></div>
+
+                <div id="pdf-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="pdf-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="pdf-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+        <!-- NUMERICAL ENGINE (FLASHCARDS) -->
+        <div id="numerical-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="num-counter">Numerical 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Numericals</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="num-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="num-q-text" style="font-size: 1.4rem;">Loading problem...</div>
+                
+                <div class="btn-group">
+                    <button class="btn" onclick="document.getElementById('num-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" onclick="document.getElementById('num-sol-box').style.display='block'">Reveal Solution</button>
+                </div>
+
+                <div id="num-ans-box" class="flashcard-ans-box" style="display:none;"></div>
+                <div id="num-sol-box" class="feedback-solution" style="display:none;"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="num-prev-btn" class="quiz-nav-btn" onclick="goPrevNum()">Previous</button>
+                <button id="num-next-btn" class="quiz-nav-btn" onclick="goNextNum()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAYS (Awaiting Data)
+        // ==========================================
+        const theory_mcqs = [
+            {
+        q: "In an amplitude modulated signal, the amplitude of the carrier wave will:",
+        options: [
+            "a) remain constant, and the frequency will vary according to the amplitude of the modulating signal.",
+            "b) vary according to the amplitude of the modulating signal.",
+            "c) vary according to the frequency of the modulating signal."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) vary according to the amplitude of the modulating signal."
+    },
+    {
+        q: "To establish and maintain effective HF communications the frequency used at a given range:",
+        options: [
+            "a) should remain constant.",
+            "b) should only be varied by season, decreased in summer and increased in winter.",
+            "c) should be decreased at night."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is (c) should be decreased at night."
+    },
+    {
+        q: "For a given set of ionosphere conditions, as the frequency of an HF signal is increased:",
+        options: [
+            "a) the size of the dead space increases due solely to the decreasing minimum skip distance.",
+            "b) the size of the dead space increases due solely to the increasing minimum skip distance.",
+            "c) the size of the dead space decreases because the surface wave coverage decreases, and the minimum skip distance decreases."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) the size of the dead space increases due solely to the increasing minimum skip distance."
+    },
+    {
+        q: "Around a radiating transmitter aerial there is:",
+        options: [
+            "a) a magnetic field.",
+            "b) an electrical field.",
+            "c) an electrical and magnetic field."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is (c) an electrical and magnetic field."
+    },
+    {
+        q: "The rate of attenuation of a radio wave which occurs when the wave travels close to the Earths surface.",
+        options: [
+            "a) decreases as the frequency of the wave increases, and is greater over the land than the sea.",
+            "b) increases as the frequency of the wave increases, and is greater over the land than the sea.",
+            "c) decreases as the frequency of the wave increases, and is greater over the sea than the land."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) increases as the frequency of the wave increases, and is greater over the land than the sea."
+    },
+    {
+        q: "For a given HF frequency skip distance will normally:",
+        options: [
+            "a) be greater by day than by night.",
+            "b) be greater by night than by day.",
+            "c) be less by night than by day."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) be greater by night than by day."
+    },
+    {
+        q: "The rate of refraction of a radio wave which occurs within the ionosphere:",
+        options: [
+            "a) decreases as the frequency of the radio wave increases.",
+            "b) increases as the frequency of the radio wave increases.",
+            "c) is greater at night."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) increases as the frequency of the radio wave increases."
+    },
+    {
+        q: "In sky wave propagation the distance between the end of the surface wave and the first returning sky wave is called the:",
+        options: [
+            "a) maximum usable range.",
+            "b) dead space.",
+            "c) skip distance."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) dead space."
+    },
+    {
+        q: "A frequency of 295 KHz would be described as:",
+        options: [
+            "a) LF.",
+            "b) short wave.",
+            "c) MF."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is (a) LF."
+    },
+    {
+        q: "As a radio signal increases in frequency, ionospheric refraction ... and atmospheric attenuation...",
+        options: [
+            "a) decreases; decreases.",
+            "b) increases; decreases.",
+            "c) increases; increases."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is (a) decreases; decreases."
+    },
+    {
+        q: "Sky waves are not likely to occur by day or night in which of the following frequency bands:",
+        options: [
+            "a) VHF.",
+            "b) HF",
+            "c) MF"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is (a) VHF."
+    },
+    {
+        q: "What is the first returning sky wave called?",
+        options: [
+            "a) The critical ray.",
+            "b) The sky ray",
+            "c) The space wave."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is (a) The critical ray."
+    },
+    {
+        q: "What is the metric distance of an NDB wavelength?",
+        options: [
+            "a) Decimetric.",
+            "b) Centimetric.",
+            "c) Metric of Kilometric."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is (c) Metric of Kilometric."
+    },
+    {
+        q: "Which radio frequency employs the refraction properties of the ionosphere?",
+        options: [
+            "a) EHF.",
+            "b) HF",
+            "c) VHF."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) HF."
+    },
+    {
+        q: "VOR wavelength is?",
+        options: [
+            "a) Millimetric.",
+            "b) Centimetric",
+            "c) Metric."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is (c) Metric."
+    },
+    {
+        q: "When is fading in the medium frequency band most likely to occur",
+        options: [
+            "a) During the day with ground and sky waves.",
+            "b) During the night with ground and sky waves.",
+            "c) During rainy nights"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) During the night with ground and sky waves."
+    },
+    {
+        q: "What is skip distance?",
+        options: [
+            "a) The distance between a receiver and the first and second fundamentals.",
+            "b) The distance between the transmitter and the first returning sky wave.",
+            "c) The distance between the first fundamental returning to the ground, and the receiver."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) The distance between the transmitter and the first returning sky wave."
+    },
+    {
+        q: "Weather radar is?",
+        options: [
+            "a) Centimetric",
+            "b) Metric.",
+            "c) Kilometric"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is (a) Centimetric."
+    },
+    {
+        q: "The wavelength of VHF radio signal is?",
+        options: [
+            "a) Millimetric.",
+            "b) Centimetric",
+            "c) Metric."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is (c) Metric."
+    },
+    {
+        q: "The wavelength of I L S localizer is.",
+        options: [
+            "a) Millimetric.",
+            "b) Centimetric.",
+            "c) Metric."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is (c) Metric."
+    },
+    {
+        q: "Atmospheric ducting close to the earth, is most likely?",
+        options: [
+            "a) In an inversion with constant humidity at all altitudes.",
+            "b) In an inversion with humidity decreasing with increasing altitude.",
+            "c) Over land."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is (b) In an inversion with humidity decreasing with increasing altitude."
+    }
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        const pdf_mcqs = [
+            {
+        q: "A radio wave is:",
+        options: [
+            "a. an energy wave comprising an electrical field in the same plane as a magnetic field",
+            "b. an electrical field alternating with a magnetic field",
+            "c. an energy wave where there is an electrical field perpendicular to a magnetic field",
+            "d. an energy field with an electrical component"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "The speed of radio waves is:",
+        options: [
+            "a. 300 km per second",
+            "b. 300 million metres per second",
+            "c. 162 NM per second",
+            "d. 162 million NM per second"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The plane of polarization of an electromagnetic wave is:",
+        options: [
+            "a. the plane of the magnetic field",
+            "b. the plane of the electrical field",
+            "c. the plane of the electrical or magnetic field dependent on the plane of the aerial",
+            "d. none of the above"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "If the wavelength of a radio wave is 3.75 metres, the frequency is:",
+        options: [
+            "a. 80 kHz",
+            "b. 8 MHz",
+            "c. 80 MHz",
+            "d. 800 kHz"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "The wavelength corresponding to a frequency of 125 MHz is:",
+        options: [
+            "a. 2.4 m",
+            "b. 24 m",
+            "c. 24 cm",
+            "d. 24 mm"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "The frequency which corresponds to a wavelength of 6.98 cm is:",
+        options: [
+            "a. 4298 GHz",
+            "b. 4.298 GHz",
+            "c. 429.8 GHz",
+            "d. 42.98 GHz"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The frequency band containing the frequency corresponding to 29.1 cm is:",
+        options: [
+            "a. HF",
+            "b. VHF",
+            "c. SHF",
+            "d. UHF"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Correct answer is d."
+    },
+    {
+        q: "To carry out a phase comparison between two electromagnetic waves:",
+        options: [
+            "a. both waves must have the same amplitude",
+            "b. both waves must have the same frequency",
+            "c. both waves must have the same amplitude and frequency",
+            "d. both waves must have the same phase"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The phase of the reference wave is 110&deg; as the phase of the variable wave is 315&deg;. What is the phase difference?",
+        options: [
+            "a. 205&deg;",
+            "b. 025&deg;",
+            "c. 155&deg;",
+            "d. 335&deg;"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "Determine the approximate phase difference between the reference wave and the variable wave:<br><em>(The reference wave is the solid line and the variable wave is the dashed line - refer to source diagram)</em>",
+        options: [
+            "a. 045&deg;",
+            "b. 135&deg;",
+            "c. 225&deg;",
+            "d. 315&deg;"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "The wavelength corresponding to a frequency of 15 625 MHz is:",
+        options: [
+            "a. 1.92 m",
+            "b. 19.2 m",
+            "c. 1.92 cm",
+            "d. 19.2 cm"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "Which frequency band is a wavelength of 1200 m?",
+        options: [
+            "a. UHF",
+            "b. LF",
+            "c. HF",
+            "d. MF"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The process which causes the reduction in signal strength as range from a transmitter increases is known as:",
+        options: [
+            "a. absorption",
+            "b. diffraction",
+            "c. attenuation",
+            "d. ionisation"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "Which of the following will give the greatest surface wave range?",
+        options: [
+            "a. 243 MHz",
+            "b. 500 kHz",
+            "c. 2182 kHz",
+            "d. 15 MHz"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "It is intended to increase the range of a VHF transmitter from 50 NM to 100 NM. This will be achieved by increasing the power output by a factor of:",
+        options: [
+            "a. 2",
+            "b. 8",
+            "c. 16",
+            "d. 4"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Correct answer is d."
+    },
+    {
+        q: "The maximum range an aircraft at 2500 ft can communicate with a VHF station at 196 ft is:",
+        options: [
+            "a. 79 NM",
+            "b. 64 NM",
+            "c. 52 NM",
+            "d. 51 NM"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "What is the minimum height for an aircraft at a range of 200 NM to be detected by a radar at 1700 ft AMSL?",
+        options: [
+            "a. 25 500 ft",
+            "b. 15 000 ft",
+            "c. 40 000 ft",
+            "d. 57 500 ft"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "Determine which of the following statements concerning atmospheric ionization are correct:<br>1. The highest levels of ionization will be experienced in low latitudes<br>2. Ionization levels increase linearly with increasing altitude<br>3. The lowest levels of ionization occur about midnight<br>4. The E-layer is higher by night than by day because the ionization levels are lower at night",
+        options: [
+            "a. statements 1, 2 and 3 are correct",
+            "b. statements 1, 3 and 4 are correct",
+            "c. statements 2 and 4 are correct",
+            "d. statements 1 and 4 are correct"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Correct answer is d."
+    },
+    {
+        q: "The average height of the E-layer is ...... and the maximum range for sky wave will be ......",
+        options: [
+            "a. 60 km, 1350 NM",
+            "b. 125 km, 2200 km",
+            "c. 225 km, 2200 km",
+            "d. 125 km, 1350 NM"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Correct answer is d."
+    },
+    {
+        q: "Concerning HF communications, which of the following is correct?",
+        options: [
+            "a. The frequency required in low latitudes is less than the frequency required in high latitudes",
+            "b. At night a higher frequency is required than by day",
+            "c. The frequency required is dependent on time of day but not the season",
+            "d. The frequency required for short ranges will be less than the frequency required for long ranges"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Correct answer is d."
+    },
+    {
+        q: "The bandwidth produced when a radio frequency (RF) of 4716 kHz is amplitude modulated with an audio frequency (AF) of 6 kHz is:",
+        options: [
+            "a. 6 kHz",
+            "b. 3 kHz",
+            "c. 12 kHz",
+            "d. 9 kHz"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "Which of the following statements concerning AM is correct?",
+        options: [
+            "a. The amplitude of the RF is modified by the frequency of the AF",
+            "b. The amplitude of the RF is modified by the amplitude of the AF",
+            "c. The frequency of the RF is modified by the frequency of the AF",
+            "d. The frequency of the RF is modified by the amplitude of the AF"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "Which of the following is an advantage of single sideband (SSB) emissions?",
+        options: [
+            "a. More frequencies available",
+            "b. Reduced power requirement",
+            "c. Better signal/noise ratio",
+            "d. All of the above"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Correct answer is d."
+    },
+    {
+        q: "Which of the following statements concerning FM is correct?",
+        options: [
+            "a. The amplitude of the RF is modified by the frequency of the AF",
+            "b. The amplitude of the RF is modified by the amplitude of the AF",
+            "c. The frequency of the RF is modified by the frequency of the AF",
+            "d. The frequency of the RF is modified by the amplitude of the AF"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Correct answer is d."
+    }
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        const numerical_data = [
+        {
+        q: "Frequency = 0.02 GHZ. Find wavelength in Km.",
+        ans: "0.015 km",
+        sol: "<strong>Explanation:</strong> Frequency = 0.02 &times; 10<sup>9</sup> HZ<br>&lambda; = c / f<br>= (3 &times; 10<sup>8</sup>) / (2 &times; 10<sup>7</sup>) = 15m<br>= 0.015 km"
+    },
+    {
+        q: "&lambda; = 0.007 nm. Find f in MHz.",
+        ans: "23.166023 MHZ",
+        sol: "<strong>Explanation:</strong> <em>Note: The solution assumes &lambda; = 12.95m</em><br>f = (3 &times; 10<sup>8</sup>) / 12.95<br>f = 23.166023 MHZ"
+    },
+    {
+        q: "The frequency which corresponds to a wavelength of 12 mm is:",
+        ans: "25 GHz",
+        sol: "<strong>Explanation:</strong> &lambda; = 12 mm = 0.012 m.<br>f = c / &lambda; = (3 &times; 10<sup>8</sup>) / 0.012 = 25 &times; 10<sup>9</sup> Hz = 25 GHz."
+    },
+    {
+        q: "The frequency corresponding to a wavelength of 3.5 cm is:",
+        ans: "8.57 GHz",
+        sol: "<strong>Explanation:</strong> &lambda; = 3.5 cm = 0.035 m.<br>f = c / &lambda; = (3 &times; 10<sup>8</sup>) / 0.035 &approx; 8.57 &times; 10<sup>9</sup> Hz = 8.57 GHz."
+    },
+    {
+        q: "The maximum theoretical range at which an aircraft at FL80 can obtain bearings from a ground VDF facility sited 325 FT above MSL is:",
+        ans: "134 NM",
+        sol: "<strong>Explanation:</strong> Max Range = 1.25 &times; (&radic;H<sub>tx</sub> + &radic;H<sub>rx</sub>)<br>Range = 1.25 &times; (&radic;325 + &radic;8000)<br>Range = 1.25 &times; (18.02 + 89.44) = 1.25 &times; 107.46 &approx; 134 NM."
+    },
+    {
+        q: "What is the minimum level that an aircraft, at a range of 113 NM, must fly in order to contact the tower on R/T for a VDF bearing from an airport sited 169 FT above MSL?",
+        ans: "FL60",
+        sol: "<strong>Explanation:</strong> Range = 1.25 &times; (&radic;H<sub>tx</sub> + &radic;H<sub>rx</sub>)<br>113 = 1.25 &times; (&radic;169 + &radic;H<sub>rx</sub>)<br>113 = 1.25 &times; (13 + &radic;H<sub>rx</sub>)<br>90.4 = 13 + &radic;H<sub>rx</sub><br>&radic;H<sub>rx</sub> = 77.4<br>H<sub>rx</sub> &approx; 5990 FT.<br>Minimum level is FL60."
+    },
+    {
+        q: "VOR wavelength is?",
+        ans: "2.46m.",
+        sol: "<strong>Explanation:</strong> VOR operates in the VHF band (108 - 117.95 MHz). Using an average/example frequency to calculate &lambda; = c / f, it falls in the metric band, specifically around 2.46m for ~121.95 MHz as often used in these basic theory examples."
+    },
+    {
+        q: "What is the wavelength and waveband of a radio aid that uses a frequency of 19 cm.",
+        ans: "1.579 Ghz UHF",
+        sol: "<strong>Explanation:</strong> <em>Note: The question says 'frequency of 19 cm', which implies &lambda; = 19 cm.</em><br>&lambda; = 19 cm = 0.19 m.<br>f = c / &lambda; = (3 &times; 10<sup>8</sup>) / 0.19 = 1.5789 &times; 10<sup>9</sup> Hz &approx; 1.579 GHz. This falls in the UHF band."
+    },
+    {
+        q: "The wavelength of a 121.95 MHz signal is?",
+        ans: "2.46 m.",
+        sol: "<strong>Explanation:</strong> &lambda; = c / f = (3 &times; 10<sup>8</sup>) / (121.95 &times; 10<sup>6</sup>) &approx; 2.46 m."
+    },
+    {
+        q: "Frequency of a wave length of 3.5 cms is:",
+        ans: "8.57 Ghz.",
+        sol: "<strong>Explanation:</strong> &lambda; = 3.5 cm = 0.035 m.<br>f = c / &lambda; = (3 &times; 10<sup>8</sup>) / 0.035 &approx; 8.57 &times; 10<sup>9</sup> Hz = 8.57 GHz."
+    }   
+        // Format: { q: "Question?", ans: "Final Answer", sol: "Step-by-step logic" }
+        ];
+
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
+        }
+
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
+            
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('theory-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectTheoryOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // PDF ENGINE LOGIC
+        // ==========================================
+        let currentPdfIndex = 0;
+        let pdfAnswers = [];
+        let pdfRightCount = 0;
+        let pdfWrongCount = 0;
+
+        function startPdf() {
+            if (pdf_mcqs.length === 0) { alert("PDF Engine is empty."); return; }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            pdfRightCount = 0;
+            pdfWrongCount = 0;
+            document.getElementById('pdf-right').innerText = "0";
+            document.getElementById('pdf-wrong').innerText = "0";
+            pdfAnswers = new Array(pdf_mcqs.length).fill(null);
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdf_mcqs.length === 0) return;
+            const qData = pdf_mcqs[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Q${currentPdfIndex + 1} of ${pdf_mcqs.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdf_mcqs.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('pdf-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pdfAnswers[currentPdfIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pdfAnswers[currentPdfIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPdfOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('pdf', qData, hasAnswered);
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdf_mcqs.length - 1;
+        }
+
+        function selectPdfOption(selectedIndex) { 
+            pdfAnswers[currentPdfIndex] = selectedIndex;
+            if (selectedIndex === pdf_mcqs[currentPdfIndex].correct) {
+                pdfRightCount++;
+                document.getElementById('pdf-right').innerText = pdfRightCount;
+            } else {
+                pdfWrongCount++;
+                document.getElementById('pdf-wrong').innerText = pdfWrongCount;
+            }
+            renderPdf(); 
+        }
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdf_mcqs.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // NUMERICAL ENGINE LOGIC (Flashcards)
+        // ==========================================
+        let currentNumIndex = 0;
+
+        function startNumerical() {
+            if (numerical_data.length === 0) { alert("Numerical Engine is empty."); return; }
+            switchView('numerical-page');
+            currentNumIndex = 0;
+            renderNumerical();
+        }
+
+        function renderNumerical() {
+            if (numerical_data.length === 0) return;
+            const qData = numerical_data[currentNumIndex];
+            
+            document.getElementById('num-counter').innerText = `Numerical Card ${currentNumIndex + 1} of ${numerical_data.length}`;
+            document.getElementById('num-progress').style.width = `${((currentNumIndex + 1) / numerical_data.length) * 100}%`;
+            
+            // Text ONLY (No numbering)
+            document.getElementById('num-q-text').innerHTML = qData.q;
+            
+            // Reset visibility
+            document.getElementById('num-ans-box').style.display = 'none';
+            document.getElementById('num-sol-box').style.display = 'none';
+            
+            // Populate content
+            document.getElementById('num-ans-box').innerHTML = `<strong>Answer:</strong> ${qData.ans}`;
+            document.getElementById('num-sol-box').innerHTML = qData.sol || "No solution provided.";
+            
+            document.getElementById('num-prev-btn').disabled = currentNumIndex === 0;
+            document.getElementById('num-next-btn').disabled = currentNumIndex === numerical_data.length - 1;
+        }
+
+        function goPrevNum() { if (currentNumIndex > 0) { currentNumIndex--; renderNumerical(); } }
+        function goNextNum() { if (currentNumIndex < numerical_data.length - 1) { currentNumIndex++; renderNumerical(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none';
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none';
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+            document.getElementById('pdf-card-count').innerText = pdf_mcqs.length + " MCQs";
+            document.getElementById('num-card-count').innerText = numerical_data.length + " Cards";
+        };
+    </script>
+</body>
+</html>

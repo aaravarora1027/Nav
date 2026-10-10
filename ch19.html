@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 19 | ADF/NDB</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; justify-content: center; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; max-width: 400px; margin: 0 auto; width: 100%; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; border-radius: 8px; }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 19: ADF/NDB</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startTheory()">
+                    <h3>Theory Engine</h3>
+                    <p id="theory-card-count">Loading MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startPdf()">
+                    <h3>PDF Data</h3>
+                    <p id="pdf-card-count">Loading PDF MCQs...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
+
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF ENGINE (MCQ) -->
+        <div id="pdf-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="pdf-right" class="score-right">0</span> | 
+                    Wrong: <span id="pdf-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="mcq-options" id="pdf-options"></div>
+
+                <div id="pdf-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="pdf-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="pdf-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAYS (Awaiting Data)
+        // ==========================================
+        const theory_mcqs = [
+            {
+        q: "Direction property error is known as?",
+        options: [
+            "a) 180° ambiguity",
+            "b) 90° ambiguity",
+            "c) quadrantal error"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Direction property error is inherently known as 180° ambiguity because a simple loop aerial cannot distinguish whether the signal is coming from a specific direction or its exact reciprocal (180° away)."
+    },
+    {
+        q: "What is used to resolve 180° ambiguity?",
+        options: [
+            "a) Align radio compass to True North",
+            "b) Sense Aerial",
+            "c) Loop Aerial."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> A sense aerial (omnidirectional) is combined with the loop aerial (figure-of-eight polar diagram) to produce a cardioid polar diagram, which resolves the 180° ambiguity."
+    },
+    {
+        q: "An A/C is flying on HDG of 315°, which of the following signal will cause maximum quadrantal error.",
+        options: [
+            "a) 360°",
+            "b) 225°",
+            "c) 135°"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Quadrantal error is maximum on relative bearings of 045°, 135°, 225°, and 315°. If the aircraft heading is 315°, a signal coming from 360° True represents a relative bearing of 045° (360° - 315°), where the error is maximum."
+    },
+    {
+        q: "Variations of signal in NDB receivers due skywaves indicates the presence of:",
+        options: [
+            "a) night effect.",
+            "b) coastal refraction.",
+            "c) mountain or terrain effect."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Night effect is caused by the interference between the ground wave and the skywave (which reflects off the ionosphere at night), leading to signal fading and bearing fluctuations."
+    },
+    {
+        q: "The BFO selector on an ADF receiver is used to:",
+        options: [
+            "a) find the loop \"null\" position",
+            "b) stop loop rotation",
+            "c) hear the IDENT of some NDB stations radiating a continuous wave signal"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The Beat Frequency Oscillator (BFO) produces an audible tone allowing the pilot to hear the unmodulated carrier wave (NON/A1A) Morse code identification of the NDB."
+    },
+    {
+        q: "Which one of the following disturbances is most likely to cause the greatest inaccuracy in ADF bearings?",
+        options: [
+            "a) Quadrantal error",
+            "b) Local thunderstorm activity",
+            "c) Coastal effect"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Thunderstorms emit strong Low Frequency (LF) signals (static crashes). The ADF needle will often point towards nearby lightning instead of the tuned NDB station."
+    },
+    {
+        q: "Factors liable to affect most NDB/ADF system performance and reliability include:",
+        options: [
+            "a) static interference- night effect- absence of failure warning system",
+            "b) static interference- station interference- latitude error",
+            "c) height error- station interference- mountain effect"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The ADF system is heavily susceptible to static (thunderstorms), night effect (skywaves), and critically lacks a built-in failure warning system (flag) if the signal is lost."
+    },
+    {
+        q: "There are two NDBs, one 20NM inland, and the other 50NM inland from the coast. Assuming that the error caused by coastal refraction is the same for both propagations, the extent of the error in a position line plotted by an aircraft that is over water will be:",
+        options: [
+            "a) greater from the beacon that is 20NM inland",
+            "b) the same from both beacons when the aircraft is on a relative bearing of 180° and 360°",
+            "c) greater from the beacon that is 50NM inland"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Even if the angular refraction error at the coastline is the same, the lateral displacement (position line error) increases with distance. The NDB further inland (50NM) will result in a greater position error when plotted."
+    },
+    {
+        q: "What is the wavelength of an NDB transmitting on 373 kHz?",
+        options: [
+            "a) 800m",
+            "b) 80m",
+            "c) 8000m"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Wavelength (λ) = Speed of Light (c) / Frequency (f). λ = 300,000,000 m/s / 373,000 Hz ≈ 804 meters, rounded to 800m."
+    },
+    {
+        q: "An aircraft is \"homing\" to a radio beacon whilst maintaining a relative bearing of zero. If the magnetic heading decreases, the aircraft is experiencing:",
+        options: [
+            "a) zero drift",
+            "b) right drift",
+            "c) left drift"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> If maintaining a relative bearing of zero and the magnetic heading decreases, the aircraft is turning left into the wind to maintain the station on the nose, indicating it is experiencing right drift."
+    },
+    {
+        q: "Errors caused by the effect of coastal refraction on bearings at lower altitudes are maximum when the NDB is:",
+        options: [
+            "a) inland and the bearing crosses the coast at an acute angle",
+            "b) inland and the bearing crosses the coast at right angles",
+            "c) near the coast and the bearing crosses the coast at right angles"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Coastal refraction is worst when the radio wave crosses the coastline at a sharp/acute angle from an inland station due to the change in propagation speed between land and water."
+    },
+    {
+        q: "Quadrantal errors associated with aircraft Automatic Direction Finding (ADF) equipment are caused by:",
+        options: [
+            "a) skywave/ground wave contamination",
+            "b) signal bending by the aircraft metallic surfaces",
+            "c) signal bending caused by electrical interference from aircraft wiring"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The aircraft's metallic airframe re-radiates the incoming signal, causing it to bend. This is most pronounced in the quadrants (045°, 135°, etc.) relative to the aircraft's longitudinal axis."
+    },
+    {
+        q: "\"Night Effect\" which causes loss of signal and fading, resulting in bearing errors from transmissions, is due to:",
+        options: [
+            "a) interference from other transmissions and is maximum at dusk when east of the NDB",
+            "b) static activity increasing at night particularly in the lower frequency band",
+            "c) skywave distortion of the null position and is maximum at dawn and dusk"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Night effect is caused by ground waves mixing with returning skywaves that refract off the shifting ionosphere, particularly unstable during the twilight hours of dawn and dusk."
+    },
+    {
+        q: "Which of the following is likely to have the greatest effect on ADF accuracy?",
+        options: [
+            "a) Mutual interference between aircraft aerials",
+            "b) Frequency drift at the ground station",
+            "c) Interference from other NDBs, particularly at night"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Station interference (co-channel interference) is significantly worse at night because skywaves allow distant NDBs sharing the same frequency to be received, interfering with the local NDB."
+    },
+    {
+        q: "An aircraft is maintaining track outbound from an NDB with a constant relative bearing of 184°. To return to the NDB the relative bearing to maintain is:",
+        options: [
+            "a) 184°",
+            "b) 004°",
+            "c) 356°"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Since the outbound RB is 184°, the aircraft is tracking with 4° of right drift (180°+4°). To fly inbound, the wind must be kept on the same side, requiring a heading alteration into the wind. The reciprocal track requires maintaining an RB of 356° (360°-4°)."
+    },
+    {
+        q: "Consider the following statements on the NDB transmitter:",
+        options: [
+            "a) It is operating in the HF/VHF band.",
+            "b) It is very simple, being required to transmit only a carrier wave and identification.",
+            "c) In India, most NDBs operate in the frequency band 455 - 1750 kHz."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> NDBs are simple, low-cost beacons that continuously broadcast a non-directional carrier wave superimposed with a Morse code identifier (usually in the LF/MF bands, 190-1750 kHz)."
+    },
+    {
+        q: "The purpose of the BFO switch on the ADF receiver is to:",
+        options: [
+            "a) cut out the static noise.",
+            "b) improve the strength of the received signal.",
+            "c) make the signal audible."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Unmodulated (NON/A1A) signals carry no audio tone on their own. The BFO generates a tone inside the receiver to make the Morse code carrier interruptions audible to the human ear."
+    },
+    {
+        q: "When using NDBs night effect is most likely to be greatest at:",
+        options: [
+            "a) dusk.",
+            "b) dawn or dusk.",
+            "c) dawn."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The ionosphere is rapidly changing its height and composition during the transition between day and night (twilight hours of dawn and dusk), causing the most severe skywave interference."
+    },
+    {
+        q: "With regard to the following types of NDB which statements is correct?",
+        options: [
+            "a) Locators have 200 W power, 50 nm range and are NON A2A.",
+            "b) Locators have 5000 W power, 50 nm range and are NON A1A.",
+            "c) Locators have 15 W power, 10-25 nm range and are NON A2A."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Locator beacons (L) are low-powered NDBs, usually around 15 watts, providing a short operational range of 10 to 25 NM, primarily used for approach procedures (NON A2A/A2)."
+    },
+    {
+        q: "The D layer of the ionosphere affects the accuracy of NDB bearings:",
+        options: [
+            "a) never.",
+            "b) by day and night.",
+            "c) by night only."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Wait, the D layer absorbs LF/MF frequencies during the day, preventing skywaves. At night, the D layer disappears, allowing signals to reach the E layer, reflect back, and cause 'night effect' inaccuracies."
+    },
+    {
+        q: "An ADF uses a sense aerial to:",
+        options: [
+            "a) transmit the beacon ident.",
+            "b) determine the null position.",
+            "c) resolve ambiguous bearings."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The loop aerial alone has 180° ambiguity. The sense aerial resolves this by combining its omnidirectional signal with the loop's signal to definitively identify the direction of the station."
+    },
+    {
+        q: "Which of the following equipments does not have a system to warn the pilot that it is inoperative:",
+        options: [
+            "a) ADF",
+            "b) ILS",
+            "c) VOR"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Unlike VOR or ILS which have failure flags, the ADF does not have a built-in warning flag to indicate a loss of signal. The pilot must continuously monitor the audio IDENT."
+    },
+    {
+        q: "The BFO:",
+        options: [
+            "a) is used to make the ident from an A1A NDB audible.",
+            "b) is used to determine the signal strength of an NDB.",
+            "c) creates the audio ident for an NDB."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> A1A (or NON) emissions only interrupt the carrier wave for Morse code without adding an audio tone. The BFO (Beat Frequency Oscillator) mixes with the carrier to produce an audible beat frequency."
+    },
+    {
+        q: "An NDB signal crossing from land to sea will ... speed and bend ... the normal.",
+        options: [
+            "a) decrease, away from",
+            "b) increase, towards.",
+            "c) increase, away from."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Radio waves travel slightly faster over water (less surface attenuation) than over land. As they speed up upon hitting the coastline, they bend away from the normal."
+    },
+    {
+        q: "Long range NDBs normally employ:",
+        options: [
+            "a) A3W",
+            "b) A9E",
+            "c) NON/A1A"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Long-range NDBs typically use unmodulated (NON/A1A) carrier waves for better range and efficiency, requiring the receiver's BFO to hear the identifier."
+    },
+    {
+        q: "When using a N0N A2A NDB the BFO should be:",
+        options: [
+            "a) off for tuning and on for identification.",
+            "b) off for tuning and off for identification.",
+            "c) on for tuning and off for identification."
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> For N0N A2A, the carrier is unmodulated (N0N) but the ident is modulated (A2A). BFO should be ON to find the unmodulated carrier during tuning, but OFF to clearly hear the A2A modulated identification."
+    },
+    {
+        q: "What is the approved frequency band assigned to aeronautical ADFs?",
+        options: [
+            "a) 190-1750 kHz",
+            "b) 190-1750 Hz",
+            "c) 190-1750 GHz"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The standard aeronautical frequency band allocated for NDBs and ADF equipment is in the Low and Medium Frequency (LF/MF) range, specifically 190 to 1750 kHz."
+    },
+    {
+        q: "The promulgated range for an NDB is applicable:",
+        options: [
+            "a) during daytime only.",
+            "b) throughout 24 hours, but is most prone to error around dusk and dawn.",
+            "c) during night time only."
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The rated coverage (promulgated range) of an NDB is based strictly on daytime ground wave propagation, where skywave interference is absorbed by the D layer."
+    },
+    {
+        q: "An aero plane is flying parallel to a coast. Which of the following NDBs will give the greatest coastal refraction LOP error?",
+        options: [
+            "a) NDB sited on the coast-RBI 300° .",
+            "b) NDB sited 30 nm inland-RBI 330° .",
+            "c) NDB sited on the coast-RBI 330° ."
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Coastal refraction is most severe when the signal travels a significant distance inland and crosses the coastline at an acute angle (e.g., RBI 330°). Thus, the station 30 NM inland yields the highest error."
+    },
+    {
+        q: "A radio beacon has an operational range of 10 NM. By what factor should the transmitter power be increased in order to achieve an operational range of 20 NM?",
+        options: [
+            "a) Eight",
+            "b) Four",
+            "c) Two"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Range is proportional to the square root of power. To double the range (10 NM to 20 NM, a factor of 2), the transmission power must be quadrupled (2² = 4)."
+    }
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        const pdf_mcqs = [
+            {
+        q: "The ideal length for a Marconi aerial for a frequency of 406 MHz is:",
+        options: [
+            "a. 36.9 cm",
+            "b. 35.1 cm",
+            "c. 17.5 cm",
+            "d. 18.5 cm"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> A Marconi aerial is a quarter-wave (λ/4) antenna. Wavelength λ = c/f. Using the effective propagation speed in a wire (approx 95% of c): λ = (300,000,000 * 0.95) / 406,000,000 ≈ 0.701 m. A quarter of this is ≈ 0.175 m or 17.5 cm."
+    },
+    {
+        q: "A disadvantage of directivity is:",
+        options: [
+            "a. reduced range",
+            "b. side lobes",
+            "c. phase distortion",
+            "d. ambiguity"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Highly directive antennas often produce unwanted \"side lobes\" of radiation in addition to the main lobe, which can cause interference or false returns in systems like radar."
+    },
+    {
+        q: "Which of the following is not an advantage of a slotted antenna (phase array)?",
+        options: [
+            "a. Reduced side lobes",
+            "b. Improved resolution",
+            "c. Reduced power",
+            "d. Directivity"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Directivity is a characteristic of slotted antennas, but when listed among these options in this context, the primary advantages sought are reduced side lobes, better resolution, and efficient power use. (As per standard examination keys, Directivity is considered the odd one out as an 'advantage')."
+    },
+    {
+        q: "The ideal length of a half-wave dipole for a frequency of 75 MHz is:",
+        options: [
+            "a. 1.9 m",
+            "b. 95 cm",
+            "c. 3.8 m",
+            "d. 47.5 cm"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> A half-wave dipole is λ/2. Wavelength λ = c/f = 300 / 75 = 4 meters. Taking into account the 95% velocity factor in standard aerial wire: 4 m * 0.95 = 3.8 m. Half of that is 1.9 meters."
+    },
+    {
+        q: "Doppler operates on the principle that ...... between a transmitter and receiver will cause the received frequency to ....... if the transmitter and receiver are moving ....... .",
+        options: [
+            "a. apparent motion, decrease, together",
+            "b. relative motion, decrease, apart",
+            "c. the distance, increase, at the same speed",
+            "d. relative motion, increase, apart"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Doppler effect relies on *relative motion*. If the transmitter and receiver move *apart*, the waves are stretched, causing the received frequency to *decrease*."
+    },
+    {
+        q: "Due to 'Doppler' effect an apparent decrease in the transmitted frequency, which is proportional to the transmitter's velocity, will occur when:",
+        options: [
+            "a. the transmitter and receiver move towards each other",
+            "b. the transmitter moves away from the receiver",
+            "c. the transmitter moves towards the receiver",
+            "d. both transmitter and receiver move away from each other"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> A decrease in received frequency occurs when the distance between the source and observer is increasing (moving away from each other)."
+    },
+    {
+        q: "The change in frequency measured in an aircraft from a radio transmission reflected from the ground is used to determine:",
+        options: [
+            "a. the drift and ground speed of the aircraft",
+            "b. the aircraft's track and speed",
+            "c. the across track wind component and heading",
+            "d. track error and ground speed"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Airborne Doppler navigation systems use multiple beams bounced off the ground to measure frequency shifts. These shifts are resolved to calculate the aircraft's ground speed and drift angle."
+    },
+    {
+        q: "An aircraft has to communicate with a VHF station at a range of 300 NM, if the ground station is situated 2500 ft AMSL which of the following is the lowest altitude at which contact is likely to be made?",
+        options: [
+            "a. 190 ft",
+            "b. 1378 ft",
+            "c. 36100 ft",
+            "d. 84100 ft"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Max VHF Range = 1.23 * (√h_tx + √h_rx). 300 = 1.23 * (√2500 + √h_rx). 300 = 1.23 * (50 + √h_rx) -> 243.9 = 50 + √h_rx -> √h_rx = 193.9. Squaring this gives approximately 37,597 ft. The closest valid lowest altitude from the options to ensure contact is 36,100 ft (using the 1.25 formula gives √h = 190 -> h = 36100 ft)."
+    },
+    {
+        q: "Class 'B' VHF DF bearings are accurate to within:",
+        options: [
+            "a. ± 1°",
+            "b. ± 5°",
+            "c. ± 2°",
+            "d. ± 10°"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> VDF bearing classifications are: Class A (±2°), Class B (±5°), Class C (±10°), and Class D (worse than ±10°)."
+    },
+    {
+        q: "A VDF QDM given without an accuracy classification may be assumed to be accurate to within:",
+        options: [
+            "a. 2 degrees",
+            "b. 5 degrees",
+            "c. 7.5 degrees",
+            "d. 10 degrees"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> If no accuracy class is given for a VDF bearing, it is conventionally assumed to be Class B, which has an accuracy of ±5 degrees."
+    },
+    {
+        q: "An aircraft at altitude 9000 ft wishes to communicate with a VHF/DF station that is situated at 400 ft AMSL. What is the maximum range at which contact is likely to be made?",
+        options: [
+            "a. 115 NM",
+            "b. 400 NM",
+            "c. 143 NM",
+            "d. 63.5 NM"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Range = 1.25 * (√9000 + √400) = 1.25 * (94.86 + 20) = 1.25 * 114.86 ≈ 143.5 NM."
+    },
+    {
+    q: "The phenomenon of coastal refraction which affects the accuracy of ADF bearings:",
+    options: [
+      "a) is most marked at night",
+      "b) can be minimized by using beacons situated well inland",
+      "c) can be minimized by taking bearings where the signal crosses the coastline at right angles",
+      "d) is most marked one hour before to one hour after sunrise and sunset"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Coastal refraction is minimized when the radio signal crosses the coastline at 90 degrees (right angles)."
+  },
+  {
+    q: "An aircraft is intending to track from NDB 'A' to NDB 'B' on a track of 050°(T), heading 060°(T). If the RBI shows the relative bearing of 'A' to be 180° and the relative bearing of 'B' to be 330° then the aircraft is:",
+    options: [
+      "a) port of track and nearer 'A'",
+      "b) port of track and nearer 'B'",
+      "c) starboard of track and nearer 'A'",
+      "d) starboard of track and nearer 'B'"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Evaluating the aircraft's heading against the relative bearings shows it is physically to the right (starboard) of the intended track and closer to station B."
+  },
+  {
+    q: "ADF quadrantal error is caused by:",
+    options: [
+      "a) static build up on the airframe and St. Elmo's Fire",
+      "b) the aircraft's major electrical axis, the fuselage, reflecting and re-radiating the incoming NDB transmissions",
+      "c) station interference and/or night effect",
+      "d) NDB signals speeding up and bending as they cross from a land to water propagation path"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> The metal structure of the aircraft re-radiates the incoming signal, causing the greatest interference when the signal arrives from the quadrants (45°, 135°, 225°, 315° relative)."
+  },
+  {
+    q: "The overall accuracy of ADF bearings by day within the promulgated range (DOC) is:",
+    options: [
+      "a) ± 3°",
+      "b) ± 5°",
+      "c) ± 6°",
+      "d) ± 10°"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> The standard guaranteed accuracy for NDB/ADF equipment during the day within the Designated Operational Coverage is ± 5°."
+  },
+  {
+    q: "In order to Tune, Identify and Monitor N0NA1A NDB emissions the BFO should be used as follows:",
+    options: [
+      "a) Tune: On, Identify: On, Monitor: Off",
+      "b) Tune: On, Identify: On, Monitor: On",
+      "c) Tune: On, Identify: Off, Monitor: Off",
+      "d) Tune: Off, Identify: Off, Monitor: Off"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> N0NA1A emissions are unmodulated continuous wave signals, meaning the Beat Frequency Oscillator (BFO) must be ON to produce an audible tone for all phases of use."
+  },
+  {
+    q: "The magnitude of the error in position lines derived from ADF bearings that are affected by coastal refraction may be reduced by:",
+    options: [
+      "a) selecting beacons situated well inland",
+      "b) only using beacons within the designated operational coverage",
+      "c) choosing N0NA2A beacons",
+      "d) choosing beacons on or near the coast"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Beacons located directly on or near the coast minimize the distance the signal travels over land before crossing the coastline, reducing the refraction effect."
+  },
+  {
+    q: "The BFO facility on ADF equipment should be used as follows when an NDB having N0NA1A type emission is to be used:",
+    options: [
+      "a) BFO on for tuning and identification but may be turned off for monitoring",
+      "b) BFO on for tuning but can be turned off for monitoring and identification purpose",
+      "c) BFO off during tuning, identification and monitoring because this type of emission is not modulated",
+      "d) BFO should be switched on for tuning, ident and monitoring"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Because N0NA1A is unmodulated, you will hear nothing unless the BFO is switched on to create the beat frequency."
+  },
+  {
+    q: "The protection ratio of 3:1 that is provided within the promulgated range/designated operational coverage of an NDB by day cannot be guaranteed at night because of:",
+    options: [
+      "a) long range sky wave interference from other transmitters",
+      "b) sky wave signals from the NDB to which you are tuned",
+      "c) the increased skip distance that occurs at night",
+      "d) the possibility of sporadic E returns occurring at night"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> At night, the attenuation of the D layer disappears, allowing LF/MF sky waves from distant co-channel NDBs to propagate and cause interference."
+  },
+  {
+    q: "Each NDB has a range promulgated in the COMM section of the AIP. Within this range interference from other NDBs should not cause bearing errors in excess of:",
+    options: [
+      "a) day ± 5°",
+      "b) night ± 10°",
+      "c) day ± 6°",
+      "d) night ± 5°"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> The DOC guarantees that bearing errors from co-channel interference will not exceed ± 5° during daylight hours."
+  },
+  {
+    q: "The range promulgated in the AIP and flight guides for all NDBs in the UK is the range:",
+    options: [
+      "a) within which a protection ratio of 3:1 is guaranteed by day and night",
+      "b) up to which bearings can be obtained on 95% of occasions",
+      "c) within which bearings obtained by day should be accurate to within 5°",
+      "d) within which protection from sky wave protection is guaranteed"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Promulgated range provides a guaranteed day accuracy of ± 5°."
+  },
+  {
+    q: "In order to resolve the 180° directional ambiguity of a directional LOOP aerial its polar diagram is combined with that of a SENSE aerial .................................... to produce a .................... whose single null ensures the ADF needle moves the shortest distance to indicate the correct....................",
+    options: [
+      "a) at the aircraft, cardioid, radial",
+      "b) at the transmitter, limacon, bearing",
+      "c) at the aircraft, limacon, bearing",
+      "d) at the aircraft, cardioid, bearing"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> The loop (figure-of-eight) and sense (circular) antennas combine at the aircraft to form a cardioid polar diagram, which has a single null used to determine the correct bearing."
+  },
+  {
+    q: "The protection ratio afforded to NDBs in the UK within the promulgated range (DOC) applies:",
+    options: [
+      "a) by day only",
+      "b) by night only",
+      "c) both day and night",
+      "d) at dawn and dusk"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> DOC protection is only guaranteed during the day because of night effect and skywave interference from distant stations."
+  },
+  {
+    q: "The phenomena of coastal refraction affecting ADF bearings is caused by the signal .................... when it reaches the coastline and bending .................... the normal to the coast:",
+    options: [
+      "a) accelerating towards",
+      "b) decelerating towards",
+      "c) accelerating away from",
+      "d) decelerating away from"
+    ],
+    correct: 2,
+    sol: "<strong>Explanation:</strong> Radio waves speed up (accelerate) as they cross from land (higher attenuation) to water (lower attenuation), causing the wavefront to bend away from the normal."
+  },
+  {
+    q: "In an ADF system, night effect is most pronounced:",
+    options: [
+      "a) during long winter nights",
+      "b) when the aircraft is at low altitude",
+      "c) when the aircraft is at high altitude",
+      "d) at dusk and dawn"
+    ],
+    correct: 3,
+    sol: "<strong>Explanation:</strong> Night effect is most severe during twilight (dusk and dawn) because the ionosphere is rapidly changing its height and composition."
+  },
+  {
+    q: "When the induced signals from the loop and the sense antenna are combined in an ADF receiver, the resultant polar diagram is:",
+    options: [
+      "a) a limacon",
+      "b) a cardioid",
+      "c) figure of eight shaped",
+      "d) circular"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> The combination of the figure-of-eight and circular reception patterns yields a heart-shaped cardioid pattern."
+  },
+  {
+    q: "When flying over the sea and using an inland NDB to fix position with a series of position lines, the plotted position in relation to the aircraft's actual position will be:",
+    options: [
+      "a) further from the coast",
+      "b) closer to the coast",
+      "c) co-incident",
+      "d) inaccurate due to the transmitted wave front decelerating"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> Because the signal bends away from the normal as it leaves the coast, the bearing drawn from the aircraft back to the station will plot a position closer to the coast than the aircraft's true location."
+  },
+  {
+    q: "An aircraft on a heading of 235°(M) shows an RMI reading of 090° with respect to an NDB. Any quadrantal error which is affecting the accuracy of this bearing is likely to be:",
+    options: [
+      "a) a maximum value",
+      "b) a very small value",
+      "c) zero, since quadrantal error affects only the RBI",
+      "d) zero, since quadrantal error affects only the VOR"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Relative Bearing = RMI(QDM) - Heading = 090° - 235° + 360° = 215°. Quadrantal error is maximized at relative bearings of 045°, 135°, 225°, and 315°. 215° is close to 225°, meaning the error is near its maximum value."
+  },
+  {
+    q: "The principal propagation path employed in an NDB/ADF system is:",
+    options: [
+      "a) sky wave",
+      "b) surface wave",
+      "c) direct wave",
+      "d) ducted wave"
+    ],
+    correct: 1,
+    sol: "<strong>Explanation:</strong> NDBs operate in the LF and MF bands, which primarily utilize surface wave propagation to reach the aircraft."
+  },
+  {
+    q: "The ADF of an aircraft on a heading of 189°(T) will experience the greatest effect due to quadrantal error if the NDB bears:",
+    options: [
+      "a) 234°(T)",
+      "b) 279°(T)",
+      "c) 225°(T)",
+      "d) 145°(T)"
+    ],
+    correct: 0,
+    sol: "<strong>Explanation:</strong> Max quadrantal error occurs when the relative bearing is 045°, 135°, 225°, or 315°. 234°(T) - 189°(T) = 045° Relative Bearing, representing the maximum error quadrant."
+  },
+    {
+        q: "An aircraft is passed a true bearing from a VDF station of 353°. If variation is 8°E and the bearing is classified as 'B' then the:",
+        options: [
+            "a. QDM is 345° ± 5°",
+            "b. QDR is 345° ± 2°",
+            "c. QTE is 353° ± 5°",
+            "d. QUJ is 353° ± 2°"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> A true bearing *from* the station is a QTE. The given QTE is 353°. Class 'B' means the accuracy is ± 5°. Therefore, QTE is 353° ± 5°."
+    },
+    {
+        q: "An aircraft at 19000 ft wishes to communicate with a VDF station at 1400 ft AMSL. What is the maximum range at which contact is likely ?",
+        options: [
+            "a. 175 NM",
+            "b. 400.0 NM",
+            "c. 62.5 NM",
+            "d. 219 NM"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Range = 1.25 * (√19000 + √1400) = 1.25 * (137.84 + 37.41) = 1.25 * 175.25 ≈ 219 NM."
+    },
+    {
+        q: "An aircraft is HOMING to a radio beacon whilst maintaining a relative bearing of zero. If the magnetic heading decreases, the aircraft is experiencing:",
+        options: [
+            "a) left drift",
+            "b) right drift",
+            "c) a wind from the west",
+            "d) zero drift"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> If heading decreases while maintaining a zero relative bearing, it means the aircraft is turning left into the wind to keep the beacon on the nose, indicating a drift to the right."
+    },
+    {
+        q: "An NDB transmits a signal pattern in the horizontal plane which is:",
+        options: [
+            "a) a beam rotating at 20 Hz",
+            "b) bi-local circular",
+            "c) a cardioid balanced at 30 Hz",
+            "d) omnidirectional"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Non-Directional Beacons (NDB) broadcast their signal uniformly in all directions in the horizontal plane (omnidirectional)."
+    },
+    {
+        q: "Using an NDB it is possible to experience which of the following errors or limitations?",
+        options: [
+            "a) Coastal refraction, timing error and night effect",
+            "b) Night effect, station interference and latitude error",
+            "c) Night effect, station interference and lack of a failure warning system",
+            "d) Coastal refraction, timing error and lack of a failure warning system"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The most significant operational limitations of an NDB are its susceptibility to night effect (skywaves), station interference, and the dangerous fact that it does not have an automatic failure warning flag."
+    },
+    {
+        q: "Factors liable to affect most NDB/ADF system performance and reliability include:",
+        options: [
+            "a) height error - station interference - mountain effect",
+            "b) static interference - station interference - latitude error",
+            "c) static interference - night effect - absence of failure warning system",
+            "d) coastal refraction - lane slip - mountain effect"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Performance and reliability are most affected by static interference (e.g., thunderstorms), night effect, and the absence of a failure warning system."
+    },
+    {
+        q: "Which of the following are all errors associated with ADF:",
+        options: [
+            "a) selective availability, coastal refraction, night effect",
+            "b) night effect, quadrantal error, lane slip",
+            "c) mountain effect, station interference, static interference",
+            "d) selective availability, coastal refraction, quadrantal error"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Mountain effect, station interference, and static interference are all classic errors directly associated with the NDB/ADF system."
+    },
+    {
+        q: "Which of the following factors could cause an error of an ADF bearing of an NDB?",
+        options: [
+            "a) Scalloping",
+            "b) Atmospheric scatter",
+            "c) Phase interference",
+            "d) Night effect"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Night effect caused by ionospheric refraction of skywaves is a primary source of bearing errors in ADFs."
+    },
+    {
+        q: "Which of the following is likely to have the greatest effect on ADF accuracy?",
+        options: [
+            "a) Interference from other NDBs, particularly during the day",
+            "b) Frequency drift at the ground station",
+            "c) Interference from other NDBs, particularly at night",
+            "d) Mutual interference between aircraft aerials"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Because skywaves travel significantly further at night, NDBs sharing the same frequency can interfere with each other over long distances, degrading accuracy."
+    },
+    {
+        q: "What gives the greatest error in ADF:",
+        options: [
+            "a) Coastal effect",
+            "b) Night effect",
+            "c) Static interference from thunderstorms",
+            "d) Quadrantal error"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Static interference from severe weather like thunderstorms can cause the ADF needle to point entirely towards the lightning source rather than the NDB, producing massive errors."
+    },
+    {
+        q: "Which combination gives the greatest reduction in reliability of ADF:",
+        options: [
+            "a) Station interference; Static interference; Lane slip",
+            "b) Mountain effect; Station interference; site error",
+            "c) Night effect; Static interference; Quadrantal error",
+            "d) Night effect; Quadrantal error; Station interference"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Night effect, static interference, and quadrantal error collectively represent the most significant consistent errors degrading ADF reliability."
+    },
+    {
+        q: "Which of the following may cause inaccuracies in ADF bearings?",
+        options: [
+            "a) static interference, height effect, lack of failure warning",
+            "b) station interference, mountain effect, selective availability",
+            "c) coastal refraction, slant range, night effect",
+            "d) lack of failure warning, station interference, static interference"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> A lack of failure warning can lead to using a false bearing, while station and static interference actively distort the bearing."
+    },
+    {
+        q: "With a transmission from an NDB aerial, the ___ component travels in the ___ plane and the signal is ___ polarised.",
+        options: [
+            "a) magnetic; horizontal; vertically",
+            "b) electrical; horizontal; vertically",
+            "c) electrical; vertical; horizontally",
+            "d) magnetic; vertical; horizontally"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> NDB transmissions are vertically polarised, meaning the electrical component is vertical, and the magnetic component travels in the horizontal plane."
+    },
+    {
+        q: "The BFO selector on an ADF receiver is used to:",
+        options: [
+            "a) find the loop NULL position",
+            "b) stop loop rotation",
+            "c) hear the IDENT and must always be switched ON",
+            "d) hear the IDENT of some NDB stations radiating a continuous wave signal"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> The Beat Frequency Oscillator (BFO) is required to hear the identification code on NDBs that radiate unmodulated continuous waves (NON A1A)."
+    },
+    {
+        q: "When receiving an NDB signal on an ADF receiver the BFO can be selected OFF for the:",
+        options: [
+            "a) tone signal on NONA1A",
+            "b) ident signal on NONA1A",
+            "c) tone signal on NONA2A",
+            "d) ident signal on NONA2A"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> For a NONA2A emission, the identification signal is already amplitude modulated with an audio tone, so the BFO can remain OFF for identification."
+    },
+    {
+        q: "When considering the propagation of ADF transmissions night effect is most pronounced:",
+        options: [
+            "a) at dusk and dawn",
+            "b) during the long winter nights",
+            "c) at or near the coast",
+            "d) when flying at low altitude"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The ionosphere is shifting most rapidly during the transition periods of dusk and dawn, causing the most severe skywave distortions (twilight effect)."
+    },
+    {
+        q: "In order to obtain an ADF bearing the:",
+        options: [
+            "a) signal must be received by the loop aerial only",
+            "b) signal must be received by the sense aerial only",
+            "c) signal must be received by both the sense and loop aerials",
+            "d) signal must be received by a dipole aerial"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> An accurate, unambiguous bearing requires the combined inputs of both the directional loop aerial and the omnidirectional sense aerial."
+    },
+    {
+        q: "An ADF uses a sense aerial to:",
+        options: [
+            "a) determine the null position",
+            "b) resolve ambiguous bearings",
+            "c) transmit the beacon ident",
+            "d) improve signal strength"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The sense aerial creates a cardioid polar diagram when combined with the loop aerial, which removes the 180-degree ambiguity of the loop aerial alone."
+    },
+    {
+        q: "An NDB signal crossing from land to sea will ___ speed and bend ___ the normal.",
+        options: [
+            "a) decrease, towards",
+            "b) increase, towards",
+            "c) decrease, away from",
+            "d) increase, away from"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Radio waves travel faster over the sea due to lower surface attenuation. Because they speed up upon hitting the coast, they bend away from the normal."
+    },
+    {
+        q: "Errors caused by the effect of coastal refraction on bearings at lower altitudes are maximum when the NDB is:",
+        options: [
+            "a) inland and the bearing crosses the coast at an acute angle",
+            "b) inland and the bearing crosses the coast at right angles",
+            "c) on the coast and the bearing crosses at an acute angle",
+            "d) on the coast and the bearing crosses at right angles"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Coastal refraction errors are worst when the beacon is situated far inland and the signal crosses the coastline at a sharp (acute) angle."
+    },
+    {
+        q: "When ADF equipment which incorporates a sense aerial and a loop aerial is tuned to a NDB and the loop aerial is rotated so that a sharp null is found the aerial is:",
+        options: [
+            "a) either at right angles or in line with the incoming signals",
+            "b) in line with the incoming signals",
+            "c) at right angles to the incoming signals",
+            "d) aligned with the aircraft nose"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The combination of the sense and loop aerials creates a cardioid pattern where the single sharp null is directly in line with the incoming signal's path."
+    },
+    {
+        q: "Quadrantal errors associated with aircraft Automatic Direction Finding (ADF) equipment are caused by:",
+        options: [
+            "a) misalignment of the loop aerial",
+            "b) signal bending caused by electrical interference from aircraft wing",
+            "c) signal bending by the aircraft metallic surfaces",
+            "d) sky wave/ground wave contamination"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The aircraft's metallic airframe re-radiates incoming signals. This bends the incoming waves, primarily affecting bearings in the four quadrants relative to the nose."
+    },
+    {
+        q: "Which one of the following disturbances is most likely to cause the greatest inaccuracy in ADF bearings?",
+        options: [
+            "a) Coastal effect",
+            "b) Local thunderstorm activity",
+            "c) Quadrantal error",
+            "d) Precipitation interference"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Thunderstorms emit powerful Low Frequency (LF) static that the ADF receiver tracks instead of the NDB station."
+    },
+    {
+        q: "ICAO allocated frequency band for ADF receivers is",
+        options: [
+            "a) 190 - 1750 MHz",
+            "b) 190 - 1750 kHz",
+            "c) 108 - 112 MHz",
+            "d) 962 - 1213 MHz"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The aeronautical NDB frequency band spans the Low and Medium Frequency ranges from 190 to 1750 kHz."
+    },
+    {
+        q: "The D layer of the ionosphere affects the accuracy of NDB bearings:",
+        options: [
+            "a) by day and night",
+            "b) by day only",
+            "c) by night only",
+            "d) never"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The D layer dissipates at night, allowing signals to travel higher and reflect off the E layer, causing 'night effect' skywave inaccuracies."
+    },
+    {
+        q: "Night Effect which causes loss of signal and fading, resulting in bearing errors from NDB transmissions, is due to:",
+        options: [
+            "a) sky wave distortion of the null position and is maximum at dawn and dusk",
+            "b) static activity increasing at night particularly in the lower frequency band",
+            "c) interference from other NDB stations",
+            "d) coastal refraction being stronger at night"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Returning skywaves mix with the ground wave, shifting the apparent null position. This is heavily magnified during the twilight hours of dawn and dusk."
+    },
+    {
+        q: "The accuracy of ADF within the DOC (designated OP coverage) by day is:",
+        options: [
+            "a) +/- 2 deg",
+            "b) +/- 5 deg",
+            "c) +/- 10 deg",
+            "d) +/- 7 deg"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Standard daytime tracking accuracy within the Designated Operational Coverage of an NDB is expected to be +/- 5 degrees."
+    },
+    {
+        q: "The signal to noise ratio for an NDB is ___ allowing a maximum error of ___ on 95% of occasions during ___",
+        options: [
+            "a) 3/1, ±5 degrees, daylight hours only",
+            "b) 3/1, ±5 degrees, 24 hours",
+            "c) 5/1, ±3 degrees, daylight hours only",
+            "d) 3/1, ±10 degrees, night hours only"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> The promulgated accuracy standard requires a 3:1 signal-to-noise ratio yielding a maximum error of ±5 degrees during daytime."
+    },
+    {
+        q: "In accordance with Doc 8168, a pilot flying an NDB approach must achieve a tracking accuracy within ___ of the published approach track.",
+        options: [
+            "a) +/- 10°",
+            "b) +/- 5°",
+            "c) +/- 2.5°",
+            "d) +/- 2°"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> According to PANS-OPS (Doc 8168), the tracking accuracy required to stay within protected airspace on an NDB approach is +/- 5°."
+    },
+    {
+        q: "An aircraft heading 315oM shows an NDB bearing 180o on the RMI. Any quadrantal error affecting the accuracy of this bearing is likely to be:",
+        options: [
+            "a) zero, as quadrantal errors are not found on the RMI",
+            "b) at a maximum",
+            "c) at a minimum",
+            "d) zero, as quadrantal errors affect only the VOR"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The relative bearing is 180° - 315° = -135° (or 225°). Quadrantal error peaks at relative bearings of 045°, 135°, 225°, and 315°. Therefore, the error is at a maximum."
+    },
+    {
+        q: "There are two NDBs, one 20 NM inland, and the other 50 NM inland from the coast. Assuming that the error caused by coastal refraction is the same for both propagations, the extend of the error is a position line plotted by an aircraft that is over water will be:",
+        options: [
+            "a) the same from both beacons when the aircraft is on a relative bearing of 180o and 360o",
+            "b) greater from the beacon that is 20 NM inland",
+            "c) the same from both beacons when the aircraft is on a relative bearing of 090o and 270o",
+            "d) greater from the beacon that is 50 NM inland"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> Because the position line diverges from its true path as it travels, the beacon located further away from the coastline (50 NM inland) will yield a greater lateral distance error over the water."
+    },
+    {
+        q: "An aircraft 10 nm from a north-south coastline takes two three-position line fixes from an inland NDB. The aircraft's indicated position is:",
+        options: [
+            "a) Nearer to the coastline than its actual position",
+            "b) Further from the coastline than its actual position",
+            "c) Correct because the coastal refraction errors will cancel out because two fixes have been taken",
+            "d) Correct in azimuth but false in range"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> When radio waves speed up over water, they bend away from the normal (the normal being perpendicular to the coast). When a receiver traces this bent signal backward, it plots the position closer to the coast than reality."
+    },
+    {
+        q: "The BFO:",
+        options: [
+            "a) creates the audio ident for an NDB",
+            "b) is used to make the ident from an A2A NDB audible",
+            "c) is used to make the ident from an A1A NDB audible",
+            "d) is used to determine the signal strength of an NDB"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The Beat Frequency Oscillator is specifically required to synthesize an audio tone for A1A (or NON A1A) unmodulated continuous wave identifications."
+    },
+    {
+        q: "What actually happens in the ADF receiver when the BFO position is selected?",
+        options: [
+            "a) The BFO circuit is activated, and the receiver accepts only A1A modulated signals",
+            "b) The BFO circuit oscillates at an increased frequency in order to allow identification of A2A NDBs",
+            "c) The BFO circuit is de-activated",
+            "d) The BFO circuit imposes a tone onto the carrier wave to make the NDB's ident audible"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> The BFO generates a separate frequency inside the receiver that 'beats' against the incoming unmodulated carrier wave, creating an audible tone."
+    },
+    {
+        q: "The nominal maximum range of an NDB with a transmitter power is 200 watts is:",
+        options: [
+            "a) 50 to 60 nm",
+            "b) 100 to 120 nm",
+            "c) 150 to 170 nm",
+            "d) 200 to 200 nm"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> A standard 200-watt NDB provides a typical reliable daylight ground wave coverage of approximately 50 to 60 nautical miles."
+    },
+    {
+        q: "With regard to the following types of NDB which statements is correct?",
+        options: [
+            "a) Locators have 200 W power, 50 nm range and are NON A2A",
+            "b) Locators have 15 W power, 10-25 nm range and are NON A2A",
+            "c) Locators have 5000 W power, 50 nm range and are NON A2A",
+            "d) Locators have 5000 W power, 50 nm range and are NON A1A"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Locators are low-powered beacons (approx 15 Watts) used for approach guidance with a short range of 10-25 NM, transmitting NON A2A."
+    },
+    {
+        q: "An NDB aerial is (i) so as to ensure the range is (ii) by minimising (iii) due to (iv):",
+        options: [
+            "a) (i) horizontal; (ii) maximum; (iii) diffraction; (iv) the ground wave",
+            "b) (i) vertical; (ii) maximum; (iii) attenuation; (iv) energy losses to the surface",
+            "c) (i) horizontal; (ii) maximum; (iii) refraction; (iv) the D layer",
+            "d) (i) vertical; (ii) maximum; (iii) attenuation; (iv) atmospheric refraction"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> NDBs use vertical polarization (vertical aerial) to maximize range by minimizing the attenuation caused by surface wave energy bleeding into the ground."
+    },
+    {
+        q: "What according to ICAO Annex 10 is the range of a locator?",
+        options: [
+            "a) 50 - 100 NM",
+            "b) 25 - 50 NM",
+            "c) 10 - 25 NM",
+            "d) 100 - 300 NM"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> ICAO Annex 10 defines locator beacons as having a low operational range, specifically between 10 and 25 NM."
+    },
+    {
+        q: "Which of the following is correct regarding the range of an NDB?",
+        options: [
+            "a) The range is limited to the line of sight",
+            "b) Aircraft height is not limiting for the reception of signals from the NDB",
+            "c) The range of an NDB will most likely increase at day time compared to night time",
+            "d) The transmitter power of the NDB station has no affect on the range"
+        ],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Unlike VHF/UHF systems that rely on line-of-sight, LF/MF NDBs rely on ground waves which follow the Earth's curvature. Therefore, aircraft height is not the primary limiting factor for signal reception."
+    },
+    {
+        q: "When using ADF (i)___, the accuracy is (ii)___ than (iii)___, because the surface wave is (iv)___",
+        options: [
+            "a) (i) BY NIGHT (ii) LESS (iii) BY DAY (iv) CONTAMINATED BY SKY WAVES",
+            "b) (i) BY DAY (ii) MORE (iii) BY NIGHT (iv) ATTENUATED",
+            "c) (i) BY NIGHT (ii) GREATER (iii) BY DAY (iv) STRONGER",
+            "d) (i) BY DAY (ii) LESS (iii) BY NIGHT (iv) REFRACTED"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> ADF accuracy degrades heavily at night because the returning skywaves contaminate and interfere with the primary surface ground wave."
+    },
+    {
+        q: "Snow will NOT affect ADF.",
+        options: [
+            "a) True",
+            "b) False"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Snow generally does not build up enough static charge to cause significant ADF interference, unlike active thunderstorm precipitation or heavy rain."
+    },
+    {
+        q: "An NDB has a range of 50 nm with a power output of 80 watts. The power required to increase the range to 75 nm is:",
+        options: [
+            "a) 120 watts",
+            "b) 150 watts",
+            "c) 180 watts",
+            "d) 320 watts"
+        ],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Range is proportional to the square root of power. The ratio of ranges is 75/50 = 1.5. To find the required power, square the range ratio: (1.5)² = 2.25. Multiply original power by 2.25: 80W * 2.25 = 180 watts."
+    },
+    {
+        q: "If an NDB signal is received at a range of 1000 nm:",
+        options: [
+            "a) The signal is a surface wave and is quite usable",
+            "b) It will be a ground wave and will be inaccurate",
+            "c) It is a space wave and will be inaccurate",
+            "d) It is a sky wave and is inaccurate"
+        ],
+        correct: 3,
+        sol: "<strong>Explanation:</strong> At extreme ranges like 1000 NM, a medium frequency transmission is surviving entirely as a refracted sky wave, making it totally unusable for accurate navigation."
+    },
+    {
+        q: "For long range NDBs the most common type is:",
+        options: [
+            "a) LF NON A1A",
+            "b) LF NON A2A",
+            "c) MF NON A1A",
+            "d) MF NON A2A"
+        ],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Long-range enroute NDBs typically utilize the lower Low Frequency (LF) band and transmit an unmodulated carrier (NON A1A) to maximize efficiency and ground wave range."
+    },
+    
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
+        }
+
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
+            
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('theory-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectTheoryOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // PDF ENGINE LOGIC
+        // ==========================================
+        let currentPdfIndex = 0;
+        let pdfAnswers = [];
+        let pdfRightCount = 0;
+        let pdfWrongCount = 0;
+
+        function startPdf() {
+            if (pdf_mcqs.length === 0) { alert("PDF Engine is empty."); return; }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            pdfRightCount = 0;
+            pdfWrongCount = 0;
+            document.getElementById('pdf-right').innerText = "0";
+            document.getElementById('pdf-wrong').innerText = "0";
+            pdfAnswers = new Array(pdf_mcqs.length).fill(null);
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdf_mcqs.length === 0) return;
+            const qData = pdf_mcqs[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Q${currentPdfIndex + 1} of ${pdf_mcqs.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdf_mcqs.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('pdf-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pdfAnswers[currentPdfIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pdfAnswers[currentPdfIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPdfOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('pdf', qData, hasAnswered);
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdf_mcqs.length - 1;
+        }
+
+        function selectPdfOption(selectedIndex) { 
+            pdfAnswers[currentPdfIndex] = selectedIndex;
+            if (selectedIndex === pdf_mcqs[currentPdfIndex].correct) {
+                pdfRightCount++;
+                document.getElementById('pdf-right').innerText = pdfRightCount;
+            } else {
+                pdfWrongCount++;
+                document.getElementById('pdf-wrong').innerText = pdfWrongCount;
+            }
+            renderPdf(); 
+        }
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdf_mcqs.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none';
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none';
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+            document.getElementById('pdf-card-count').innerText = pdf_mcqs.length + " MCQs";
+        };
+    </script>
+</body>
+</html>

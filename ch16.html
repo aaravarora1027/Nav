@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 16 | Gyroscope</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; font-size: 1rem; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 40px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-tracker { font-size: 1rem; font-weight: bold; color: var(--text-muted); }
+        .score-right { color: var(--correct-border); }
+        .score-wrong { color: var(--wrong-border); }
+
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 25px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        
+        .mcq-options { display: flex; flex-direction: column; gap: 10px; }
+        .mcq-option { background-color: var(--bg-color); border: 1px solid var(--border); color: var(--text-main); padding: 15px 20px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 1.05rem; transition: all 0.2s; }
+        .mcq-option:hover:not(.disabled) { background-color: var(--accent); }
+        .mcq-option.disabled { cursor: default; }
+        .mcq-option.correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .mcq-option.wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        
+        .feedback-solution { display: block; background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border); padding: 20px; font-size: 1.05rem; font-weight: normal; border-radius: 8px; }
+        .flashcard-ans-box { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 20px; font-size: 1.15rem; font-weight: bold; border-radius: 8px; margin-bottom: 15px; }
+
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        
+        .btn-group { display: flex; gap: 15px; justify-content: center; margin-top: 25px; margin-bottom: 25px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- MODULE SELECTION -->
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 16: Gyroscope</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="startTheory()">
+                    <h3>Theory Engine</h3>
+                    <p id="theory-card-count">Loading MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startPdf()">
+                    <h3>PDF Data</h3>
+                    <p id="pdf-card-count">Loading PDF MCQs...</p>
+                </div>
+                <div class="module-card" onclick="startNumerical()">
+                    <h3>Numericals</h3>
+                    <p id="num-card-count">Loading Flashcards...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- THEORY ENGINE (MCQ) -->
+        <div id="theory-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="theory-counter">Theory Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="theory-right" class="score-right">0</span> | 
+                    Wrong: <span id="theory-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Engine</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="theory-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="theory-q-text">Loading question...</div>
+                <div class="mcq-options" id="theory-options"></div>
+
+                <div id="theory-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="theory-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="theory-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="theory-prev-btn" class="quiz-nav-btn" onclick="goPrevTheory()">Previous</button>
+                <button id="theory-next-btn" class="quiz-nav-btn" onclick="goNextTheory()">Next</button>
+            </div>
+        </div>
+
+        <!-- PDF ENGINE (MCQ) -->
+        <div id="pdf-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="pdf-counter">PDF Question 1 of X</h2>
+                <div class="score-tracker">
+                    Right: <span id="pdf-right" class="score-right">0</span> | 
+                    Wrong: <span id="pdf-wrong" class="score-wrong">0</span>
+                </div>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit PDF Data</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="pdf-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="pdf-q-text">Loading question...</div>
+                <div class="mcq-options" id="pdf-options"></div>
+
+                <div id="pdf-sol-area" style="margin-top: 20px; display: none; text-align: center;">
+                    <button id="pdf-reveal-btn" class="btn" style="border-color: #555;">Reveal Solution</button>
+                    <div id="pdf-sol-box" class="feedback-solution" style="display:none; margin-top: 15px; text-align: left;"></div>
+                </div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="pdf-prev-btn" class="quiz-nav-btn" onclick="goPrevPdf()">Previous</button>
+                <button id="pdf-next-btn" class="quiz-nav-btn" onclick="goNextPdf()">Next</button>
+            </div>
+        </div>
+
+        <!-- NUMERICAL ENGINE (FLASHCARDS) -->
+        <div id="numerical-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="num-counter">Numerical 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Numericals</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="num-progress"></div></div>
+            
+            <div class="content-area">
+                <div class="question-text" id="num-q-text" style="font-size: 1.4rem;">Loading problem...</div>
+                
+                <div class="btn-group">
+                    <button class="btn" onclick="document.getElementById('num-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" onclick="document.getElementById('num-sol-box').style.display='block'">Reveal Solution</button>
+                </div>
+
+                <div id="num-ans-box" class="flashcard-ans-box" style="display:none;"></div>
+                <div id="num-sol-box" class="feedback-solution" style="display:none;"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="num-prev-btn" class="quiz-nav-btn" onclick="goPrevNum()">Previous</button>
+                <button id="num-next-btn" class="quiz-nav-btn" onclick="goNextNum()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        // ==========================================
+        // DATA ARRAYS (Awaiting Data)
+        // ==========================================
+        const theory_mcqs = [
+            {
+        q: "The basis properties of a gyroscope are: 1. The gyro's weight 2. The rigidity in space 3. The inertia 4. The high RPM 5. The precession. The combination of correct statements is:",
+        options: ["a) 2, 5", "b) 3, 4", "c) 2, 3, 5"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "In the building principle of a gyroscope, the best efficiency is obtained through the concentration of the mass:",
+        options: ["a) close to the axis and with a low rotation speed", "b) on the periphery and with a low rotation speed", "c) on the periphery and with a high rotation speed"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "Rigidity in a gyroscope is:",
+        options: ["a) the reaction 90° in the direction of rotation when applying force to the spinning wheel.", "b) a way to express the stability of the inner and outer gimbal rings.", "c) the tendency it has to remain in its plane of rotation and resist attempts to alter its position."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "Sources of power for Gyroscopic operations in an aircraft are:",
+        options: ["a) Vaccum, gravity and rigidity.", "b) Vaccum, pressure and electrical.", "c) Rigidity, rotor speed and movement of inertia."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The number of degrees of freedom of a gyro is?",
+        options: ["a) One more than the number of gimbals.", "b) The same as the number of gimbals.", "c) One less than the number of gimbals."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "A directional gyro requires?",
+        options: ["a) One gimbal, one degree of freedom and a horizontal spin axis.", "b) Two gimbals, two degrees of freedom and a horizontal spin axis,", "c) Three gimbals, three degrees of freedom and a lateral spin axis."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "What type of gyro has a horizontal spin axis and one degree of freedom?",
+        options: ["a) Rate gyro.", "b) Displacement gyro.", "c) Rate integrating gyro."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The properties of a gyro are? 1. Mass. 2. Rigidity in space. 3. Inertia. 4. Precession. 5. Rigidity with reference to the earth.",
+        options: ["a) 1,2,3,4.", "b) 1,3,4,5.", "c) 1,2,3,5."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "Gyro rigidity improves with?",
+        options: ["a) Increasing RPM, mass and radial displacement of mass.", "b) Increasing RPM and mass but decreasing radial displacement of mass.", "c) Decreasing RPM but increasing mass and radial displacement of mass."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "Apparent wander in the horizontal plane caused by the earth's rotation varies",
+        options: ["a) as sine latitude", "b) as cosine latitude", "c) in direct proportion to the angular velocity of the rotor."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "A/H indications are reliable in",
+        options: ["a) ±85° pitch, ±90° roll", "b) ±55° pitch, ±85° roll", "c) ±85° pitch, ±180° roll"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "During take off roll an a/c fitted with vacuum driven A/H will show:",
+        options: ["a) Climb and bank to right", "b) Only climb and no bank as a/c is on ground.", "c) Will read correct as a/c on ground."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "An a/c rolls out after 180° steep turn to the right with reference to natural horizon. A/H will show",
+        options: ["a) Climb and slight bank to the right", "b) Level and bank to the left", "c) Climb and slight bank to the left"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "An a/c rolls out after 180° steep turn to the left with reference to natural horizon. A/H will show.",
+        options: ["a) Climb and slight turn to the right", "b) Level and bank to the left", "c) Climb and slight bank to the left"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "Among the flight control instruments, the artificial horizon plays an essential part. It uses a gyroscope with:",
+        options: ["a) one degree of freedom, whose vertical axis oriented in the direction of the real vertical to the location is maintained in this direction by an automatic erecting system", "b) two degrees of freedom, whose horizontal axis corresponding to a reference direction is maintained in a horizontal plane by an automatic erecting system", "c) two degrees of freedom, whose axis is oriented and continuously maintained to local vertical by an automatic erecting system"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "When an aircraft has turned 90 degrees with a constant attitude and bank, the pilot observes the following on a classic artificial horizon:",
+        options: ["a) too much nose-up and bank too high", "b) too much nose-up and bank too low", "c) too much nose-up and bank correct"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "Following 180° stabilized turn with a constant attitude and bank, the artificial horizon indicates:",
+        options: ["a) too high pitch up and low banking", "b) attitude and banking correct", "c) too low pitch down and correct banking"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "When an aircraft has turned 360 degrees with a constant attitude and bank, the pilot observes the following on a classic artificial horizon:",
+        options: ["a) too much nose-up and bank too high", "b) attitude and bank correct", "c) too much nose-up and bank correct"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "Classic artificial horizon indications turning through 180° at constant AOB?",
+        options: ["a) Nose up and AOB too low.", "b) Nose up and AOB too high.", "c) Nose up and correct AOB."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "During an acceleration phase at constant attitude, the resetting principle of the artificial horizon results in the horizon bar indicating a:",
+        options: ["a) nose-down followed by a nose-up attitude", "b) constant attitude", "c) nose-up attitude"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "When an aircraft has turned 270 degrees with a constant attitude and bank, the pilot observes the following on a classic artificial horizon:",
+        options: ["a) attitude and bank correct", "b) too much nose-up and bank too low", "c) too much nose-up and bank correct"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "How many degrees of freedom and what is the spin axis of an attitude indicator?",
+        options: ["a) Local earth vertical - two degrees of freedom.", "b) Aircraft lateral axis - two degrees of freedom.", "c) Aircraft horizontal axis - one degree of freedom."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c. (Note: standard AI spin axis is vertical with 2 DOF, but following key precisely)."
+    },
+    {
+        q: "What would be the indication on an attitude indicator in a right turn?",
+        options: ["a) Climb due to pendulous vanes.", "b) No climb.", "c) Descent due to pendulous vanes."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "What will a classic artificial horizon indicate when turning through 90 degrees at constant attitude and bank angle?",
+        options: ["a) Correct bank angle and attitude.", "b) Too much bank and too much nose up attitude.", "c) Too little bank and too much nose up attitude."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "How will a basic AI respond if an aircraft performs a 270 degree turn at constant bank angle and ROT?",
+        options: ["a) Nose up and bank.", "b) Nose down and bank.", "c) Nose level and bank."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "What are the errors in a DGI? 1. Transport wander. 2. Earth rate. 3. Heading errors when banking and pitching. 4. Mechanical imperfections.",
+        options: ["a) 1, 2, 3.", "b) 1, 2, 4.", "c) All of the above."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "What is the function of the latitude nut on a DI?",
+        options: ["a) To correct Coriolis effect.", "b) To compensate for earth rate error.", "c) To compensate for latitude error."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "What error is introduced into a DGI due to movement of the gyro relative to the earth?",
+        options: ["a) Transport wander.", "b) Earth rate error.", "c) Altitude error."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "The maximum directional gyro error to the earth rotation is:",
+        options: ["a) 20°/hour", "b) 15°/hour", "c) 4°/hour"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "A directional gyro is: 1. a gyroscope free around two axis 2. a gyroscope free around one axis 3. capable of self-orientation around an earth-tied direction 4. incapable of self-orientation around an earth-tied direction.",
+        options: ["a) 2, 3", "b) 2, 4", "c) 1, 4"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "An airborne instrument, equipped with a gyro with 2 degrees of freedom and a horizontal spin axis is:",
+        options: ["a) a flux gate compass", "b) a directional gyro", "c) a turn indicator"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The heading read on the dial of a directional gyro is subject to errors, one of which is due to the movement of the aircraft. This error...",
+        options: ["a) shows itself by an apparent rotation of the horizontal axis of the gyroscope which seems to turn at 15° per hour to the right in the northern hemisphere", "b) is dependent on the ground speed of the aircraft, its true track and the average latitude of the flight", "c) is at its greatest value when the aircraft follows a meridian track"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The gimbal error of the directional gyro is due to the effect of:",
+        options: ["a) an apparent weight and an apparent vertical", "b) too slow precession on the horizontal gimbal ring", "c) a bank or pitch attitude of the aircraft"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "The characteristics of the directional gyro (DG) used in a gyro stabilized compass system are:",
+        options: ["a) two degrees of freedom, whose axis aligned with the vertical to the location is maintained in this direction by an erecting system", "b) two degrees of freedom, whose horizontal axis corresponding to the reference direction is maintained in the horizontal plane by an automatic erecting system", "c) one degree of freedom, whose vertical axis, aligned with the real vertical to the location is maintained in this direction by an automatic erecting system"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "The indication of the directional gyro as an on-board instrument are valid only for a short period of time. The causes of this inaccuracy are: 1. the earth's rotation 2. the longitudinal acceleration 3. the aircraft's motion over the surface of the earth 4. the mechanical defects of the gyro 5. the gyro's weight 6. the gimbal mount of the gyro rings",
+        options: ["a) 1, 3, 4", "b) 1, 3, 4, 6", "c) 2, 5, 6"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The indications on a directional gyroscope or gyrocompass are subject to errors, due to: 1. rotation of Earth 2. aero plane motion on Earth 3. lateral and transversal aero plane bank angles 4. north change 5. mechanical defects",
+        options: ["a) 2, 3, 5", "b) 3, 4, 5", "c) 1, 2, 3, 5"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "To maintain same rate of turn, if CAS is increased, bank should be",
+        options: ["a) Increased", "b) Decreased", "c) Same"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "In comparison to low level, to maintain same rate of turn, RAS at higher level is to be-",
+        options: ["a) Increased", "b) Decreased", "c) Same"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "In comparison to low level at higher level, if RAS is kept constant to maintain same rate. Bank is to be",
+        options: ["a) Increased", "b) Decreased", "c) Same"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "The ball in a serviceable slip indicator is _________ by _________ and _________ indicate the state of slip.",
+        options: ["a) Held central, gravity, does not always", "b) Positioned, Acceleration, does not always", "c) Held central, gravity, always"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "Increasing altitude at constant TAS will _________ the angle of Bank required to achieve a rate 1 turn.",
+        options: ["a) Increase", "b) Decrease", "c) Not affect"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "Following a left engine failure the pilot of a multi engine a/c uses rudder to oppose yaw and keeps the a/c on hdg while using bank to prevent side slip. The TSI will show:",
+        options: ["a) both needle and ball central", "b) Both needle and ball to the right", "c) Needle central and ball to the right."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "The rate turn indicator uses a gyroscope: 1. with one degree of freedom 2. with two degrees of freedom 3. the frame of which is supported by two return springs 4. the spinning wheel axis of which is parallel to the pitch axis 5. the spinning wheel axis of which is parallel to the yawing axis 6. the spinning wheel axis of which is horizontal",
+        options: ["a) 2, 5", "b) 1, 6", "c) 1, 3"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "In a Turn-indicator, the measurement of a rate-of-turn consists of :",
+        options: ["a) high bank angles, in measuring the yaw rate", "b) high bank angles, in measuring the roll rate", "c) low bank angles, in measuring the yaw rate"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "In a turn at constant rate, the turn indicator reading is:",
+        options: ["a) independent to the aircraft true airspeed", "b) inversely proportional to the aircraft true airspeed", "c) proportional to the aircraft true airspeed"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "An airborne instrument, equipped with a gyro with 1 degree of freedom and a horizontal spin axis is a:",
+        options: ["a) fluxgate compass", "b) directional gyro", "c) turn indicator"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "A turn indicator is an instrument which indicates rate of turn. Rate of turn depends on: 1. bank angle 2. aero plane speed 3. aero plane weight",
+        options: ["a) 1, 3", "b) 1, 2", "c) 2, 3"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "When, in flight, the needle of a needle-and-ball indicator is on the left and the ball on the right, the aircraft is:",
+        options: ["a) turning right with not enough bank", "b) turning left with too much bank", "c) turning left with not enough bank"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "When, in flight, the needle of a needle-and-ball indicator is on the right and the ball on the left, the aircraft is:",
+        options: ["a) turning left with too much bank", "b) turning right with not enough bank", "c) turning right with too much bank"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "When, in flight, the needle and ball of a needle-and-ball indicator are on the right, the aircraft is:",
+        options: ["a) turning left with not enough bank", "b) turning left with too much bank", "c) turning right with too much bank"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "When, in flight, the needle and ball of a needle-and-ball indicator are on the left, the aircraft is:",
+        options: ["a) turning right with not enough bank", "b) turning right with too much bank", "c) turning left with too much bank"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "On the ground, during a left turn, the turn indicator indicates:",
+        options: ["a) needle to the left, ball to the right", "b) needle in the middle, ball to the right", "c) needle to the left, ball to the left"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "On the ground, during a right turn, the turn indicator indicates:",
+        options: ["a) needle to the right, ball to the right", "b) needle to the right, ball to the left", "c) needle in the middle, ball to the right"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "Under normal operating conditions, when an aircraft is in banked turn, the rate-of-turn indicator is a valuable gyroscopic flight control instrument; when it is associated with an attitude indicator it indicates: 1. the angular velocity of the aircraft about the yaw axis 2. the bank of the aircraft 3. the direction of the aircraft turn 4. the angular velocity of the aircraft about the real vertical.",
+        options: ["a) 1, 2", "b) 3, 4", "c) 1, 3"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "A turn indicator is built around a gyroscope with:",
+        options: ["a) 1 degree of freedom", "b) 0 degree of freedom", "c) 3 degrees of freedom"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "The rate-of-turn is the:",
+        options: ["a) pitch rate in a turn", "b) change-of-heading rate of the aircraft", "c) aircraft speed in a turn"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "A turn indicator used in conjunction with an attitude indicator will show? 1. Turn direction. 2. Rate of turn. 3. Angular velocity about the true vertical axis. 4. Angular velocity about the aircraft vertical axis. 5. Angular velocity about the longitudinal axis.",
+        options: ["a) 1, 2.", "b) 1, 3.", "c) 1, 2, 4."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "ROT indications are?",
+        options: ["a) Proportional to TAS.", "b) Proportional to CAS.", "c) Proportional to mass."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "When both the needle and ball of a turn and slip indicator are displaced to the right the aircraft is?",
+        options: ["a) Turning right with too much TAS.", "b) Turning right with insufficient TAS.", "c) Turning left with too much TAS."],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Correct answer is a."
+    },
+    {
+        q: "What will be the immediate turn and slip indications when a left engine fails in climbing flight.",
+        options: ["a) Needle and ball left.", "b) Needle and ball right.", "c) Needle left and ball right."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "When turning at constant bank angle the rate of turn is?",
+        options: ["a) Determined by weight and TAS.", "b) Determined by weight.", "c) Determined by TAS."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "A turn indicator used in conjunction with an attitude indicator can show? 1. TAS in a turn. 2. Direction of turn. 3. Angular velocity about the vertical axis of the aircraft. 4. Angular velocity about the true vertical axis.",
+        options: ["a) 1, 2.", "b) 1, 3.", "c) 2, 3."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "What factors affect the turn indicator? 1. AoA. 2. AOB. 3. TAS. 4. Weight.",
+        options: ["a) 1, 2.", "b) 1, 3.", "c) 2, 3."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "What are the essential properties of a turn indicator? 1. Two degrees of freedom. 2. One degree of freedom. 3. Horizontal spin axis. 4. Vertical spin axis. 5. Longitudinal spin axis.",
+        options: ["a) 1, 2.", "b) 2, 3.", "c) 3, 4."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "On a TSI what does it indicate when the turn needle is out to the left and the ball out to the right?",
+        options: ["a) Right turn with too much bank.", "b) Left turn with too little bank.", "c) Left turn with too much bank."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "What should a turn and slip indicator show in a right turn on the ground?",
+        options: ["a) Needle left and ball left.", "b) Needle right and ball left.", "c) Needle right and ball right."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "If the turn and slip indicator shows needle left and ball left in a banked turn, the aircraft is .........and the required corrective action is........?",
+        options: ["a) Skidding push right pedal forward.", "b) Skidding push left pedal forward.", "c) Slipping push left pedal forward."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "If the turn and slip indicator shows needle left and ball right in a banked turn, the aircraft is.........and the required corrective action is.........?",
+        options: ["a) Skidding push right pedal forward.", "b) Skidding push left pedal forward.", "c) Slipping push left pedal forward."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "What corrective action is required if the ball is out to the right in a left turn?",
+        options: ["a) More right rudder.", "b) More left rudder.", "c) More left bank."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "If both the ball and needle are out to the left in a turn, the ball can be centralized by?",
+        options: ["a) Pushing the right rudder bar forward.", "b) Increasing TAS.", "c) Decreasing TAS."],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Correct answer is b."
+    },
+    {
+        q: "The gyro in a turn indicator must have.........gimbal........and.........degrees of freedom?",
+        options: ["a) One one.", "b) Two one.", "c) Two two."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "If the turn indicator needle is out to the right and the ball is out to the left, it indicates?",
+        options: ["a) A left turn with too much bank.", "b) A left turn with too little bank.", "c) A right turn with too little bank."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    },
+    {
+        q: "If the mass of the aircraft was decreased from 60000 Kg to 45000 Kg:",
+        options: ["a) It would increase the required AOB.", "b) It would decrease the required AOB.", "c) It would not affect the required AOB, but less power would be required."],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Correct answer is c."
+    }
+            
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+
+        const pdf_mcqs = [
+            {
+        q: "The primary characteristics of a gyroscope include:",
+        options: ["a) Weight and inertia", "b) Rigidity in space and precession", "c) High RPM and weight"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The fundamental properties defining gyroscopic behavior are its rigidity in space and precession."
+    },
+    {
+        q: "To maximize a gyroscope's efficiency, its mass should be concentrated:",
+        options: ["a) Close to the axis with low rotation speed", "b) On the periphery with low rotation speed", "c) On the periphery with a high rotation speed"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Placing mass at the periphery and spinning it at high speeds maximizes angular momentum and efficiency."
+    },
+    {
+        q: "A 2-axis gyroscope measuring vertical changes features:",
+        options: ["a) A horizontal axis with one degree of freedom", "b) A vertical axis with two degrees of freedom", "c) A vertical axis with one degree of freedom"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Vertical measurement requires a vertical spin axis and two degrees of freedom to sense pitch and roll changes."
+    },
+    {
+        q: "Which of the following are primary functioning components of a Ring Laser Gyroscope?",
+        options: ["a) Two beams of laser light", "b) A single spinning metallic rotor", "c) A directional pendulous vane"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> A Ring Laser Gyro utilizes two counter-rotating beams of laser light within its cavities."
+    },
+    {
+        q: "In comparison to a conventional gyroscope, what is a key advantage of a laser gyro?",
+        options: ["a) It consumes significantly more power", "b) It has a substantially longer life cycle", "c) It requires a fairly long starting cycle"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> With no moving parts or mechanical bearings, laser gyros offer a much longer operational life cycle."
+    },
+    {
+        q: "Where are the earth rate wander and transport wander of a gyroscope equal to zero?",
+        options: ["a) At the North Pole", "b) At the Equator", "c) At 45 degrees latitude"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> At the Equator, the earth's rotation vector has no vertical component, nullifying these wander effects on a horizontal gyro."
+    },
+    {
+        q: "If a stationary free gyro with a horizontal rotor is aligned with the meridian at 60 degrees North latitude, what is its apparent drift rate?",
+        options: ["a) 13 degrees/hour to the right", "b) 15 degrees/hour to the left", "c) 7.5 degrees/hour to the right"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Drift = 15 &times; sin(Latitude). 15 &times; sin(60&deg;) &approx; 13 degrees/hour to the right (Northern Hemisphere)."
+    },
+    {
+        q: "Due to Earth's rotation, the apparent drift of a horizontal free gyro at 30 degrees South latitude is:",
+        options: ["a) 7.5 degrees per hour to the left", "b) 15 degrees per hour to the right", "c) 11 degrees per hour to the left"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Drift = 15 &times; sin(30&deg;) = 7.5 degrees/hour. In the Southern Hemisphere, apparent drift is to the left."
+    },
+    {
+        q: "Gimballing errors in a directional gyro are primarily caused by:",
+        options: ["a) The aircraft's movement over the earth", "b) A banked attitude", "c) The vertical component of the earth's magnetic field"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Gimbal error is a geometric error that arises when the aircraft is banked or pitched."
+    },
+    {
+        q: "To counter the 'lock-in' error at low rotation rates in a ring laser gyro, a piezo-electric motor is used for a technique called:",
+        options: ["a) Cavity rotation", "b) Zero drop", "c) Dither"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> 'Dither' physically vibrates the gyro to prevent the two laser beams from locking frequencies at low rotation rates."
+    },
+    {
+        q: "The fundamental operational principle of a laser gyro relies on:",
+        options: ["a) A spinning rotor compensating for apparent wander", "b) The frequency difference between two counter-rotating laser beams", "c) Two rotating cavities provided with internal mirrors"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> It measures rotation by detecting the Sagnac effect, which causes a frequency difference between the two laser beams."
+    },
+    {
+        q: "Without external interference, the spin axis of a free gyroscope remains fixed relative to:",
+        options: ["a) The Earth", "b) Space", "c) The aircraft's longitudinal axis"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Due to rigidity in space, a free gyro maintains its orientation relative to absolute space, not the rotating Earth."
+    },
+    {
+        q: "A rate integrating gyro is a component typically found in which systems?",
+        options: ["a) Inertial attitude units and inertial navigation units", "b) Turn indicators and basic autopilot systems", "c) Stabiliser servo mechanisms only"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Rate integrating gyros are high-precision sensors used in complex inertial navigation and attitude reference systems."
+    },
+    {
+        q: "A rate gyro is the core sensing element utilized in a:",
+        options: ["a) Turn co-ordinator", "b) Directional gyro", "c) Fluxgate compass"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> A turn co-ordinator uses a canted rate gyro to sense both rate of roll and rate of yaw."
+    },
+    {
+        q: "An aircraft's rate of turn depends directly upon:",
+        options: ["a) Bank angle and aeroplane speed", "b) Aeroplane weight and bank angle", "c) Aeroplane speed and weight"],
+        correct: 0,
+        sol: "<strong>Explanation:</strong> Rate of turn is determined by the bank angle and the true airspeed (TAS). Weight does not directly affect the rate of turn."
+    },
+    {
+        q: "During a right turn on the ground, a standard turn indicator will display:",
+        options: ["a) Needle to the right, ball centered", "b) Needle to the right, ball to the left", "c) Needle left, ball right"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The needle indicates the right turn. Centrifugal force pushes the ball to the outside of the turn (left) since there is no bank."
+    },
+    {
+        q: "The rate-of-turn is defined as the:",
+        options: ["a) Pitch rate of the aircraft", "b) Angular velocity about the horizontal axis", "c) Change-of-heading rate of the aircraft"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Rate-of-turn measures how fast the aircraft is changing its heading, typically expressed in degrees per second."
+    },
+    {
+        q: "When turning at a constant bank angle, the turn indicator's reading is:",
+        options: ["a) Proportional to true airspeed", "b) Inversely proportional to the aircraft true airspeed", "c) Independent of the aircraft true airspeed"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> At a constant bank angle, as TAS increases, the rate of turn decreases, making them inversely proportional."
+    },
+    {
+        q: "In a turn at a constant angle of bank, the actual rate of turn is:",
+        options: ["a) Dependent on weight and proportional to TAS", "b) Independent of weight and inversely proportional to TAS", "c) Independent of weight and proportional to TAS"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Rate of turn relies on TAS and bank angle. It is inversely proportional to TAS and completely independent of aircraft weight."
+    },
+    {
+        q: "A turn indicator instrument is built utilizing a gyroscope that has:",
+        options: ["a) 0 degrees of freedom", "b) 1 degree of freedom", "c) 2 degrees of freedom"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Rate gyros used in turn indicators have only one degree of freedom (plus the spin axis)."
+    },
+    {
+        q: "Which properties correctly describe a Turn Indicator's gyro?",
+        options: ["a) Two degrees of freedom and a longitudinal spin axis", "b) One degree of freedom and a spin axis in the lateral plane", "c) Two degrees of freedom and a vertical spin axis"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> It utilizes a rate gyro with one degree of freedom and a horizontal (lateral) spin axis."
+    },
+    {
+        q: "A turn rate indicator uses a gyroscope that features:",
+        options: ["a) Two degrees of freedom and one return spring", "b) One degree of freedom and a frame supported by return springs", "c) One degree of freedom and a vertical spinning wheel axis"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> It has 1 degree of freedom and relies on calibration springs to restrain precession and return the gyro to neutral."
+    },
+    {
+        q: "If the ball of a turn co-ordinator is displaced to the right during a left turn, what is the appropriate corrective action?",
+        options: ["a) Apply more right rudder", "b) Apply more left bank", "c) Apply more right bank"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The ball on the outside (right) indicates a skidding turn. You must either decrease rudder or increase the bank angle (more left bank)."
+    },
+    {
+        q: "At a shallow bank angle, what does the rate-of-turn measurement actually sense?",
+        options: ["a) Roll rate of the aircraft", "b) Rate of yaw of the aircraft", "c) Pitch rate of the aircraft"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> At very low bank angles, the turn indicator primarily measures the angular velocity around the vertical axis (yaw rate)."
+    },
+    {
+        q: "When a turn indicator is used in association with an attitude indicator in a banked turn, it shows:",
+        options: ["a) The bank of the aircraft and the direction of turn", "b) The angular velocity about the yaw axis and the direction of the turn", "c) The angular velocity about the real vertical"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> It provides the pilot with the direction of the turn and the rate of yaw (angular velocity about the yaw axis)."
+    },
+    {
+        q: "The rate of turn displayed by a turn indicator is considered valid:",
+        options: ["a) For all airspeeds", "b) For the cruising speed only", "c) For the airspeed range defined during the instrument's calibration"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Rate gyros are calibrated for specific operational ranges and may have slight inaccuracies outside those defined airspeed parameters."
+    },
+    {
+        q: "In a directional gyro, the local vertical detection system typically feeds into:",
+        options: ["a) A nozzle integral with the inner gimbal", "b) A levelling erection torque motor", "c) Two horizontally arranged torque motors"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Remote indicating compasses and modern DGs use levelling erection torque motors to maintain the gyro axis horizontal."
+    },
+    {
+        q: "Where is the heading information originating from the gyro-magnetic compass flux valve sent?",
+        options: ["a) The heading indicator directly", "b) The erector system", "c) The error detector"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The flux valve sends its sensed magnetic data to an error detector to be compared against the gyro's current heading."
+    },
+    {
+        q: "In a gyro-magnetic compass resetting device, the amplifier's input signal originates from the:",
+        options: ["a) Directional gyro unit", "b) Flux valve", "c) Error detector"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The error detector finds the difference, which is then sent as a signal to the amplifier before driving the torque motor."
+    },
+    {
+        q: "In a gyro-magnetic compass, the torque motor receives its operational information from the:",
+        options: ["a) Rotor gimbal", "b) Amplifier", "c) Flux gate"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The error signal is boosted by the amplifier and then fed to the torque motor to precess the gyro."
+    },
+    {
+        q: "What is the flux valve in a Remote Indicating Magnetic Compass (RIMC) supplied with?",
+        options: ["a) DC current", "b) AC current", "c) Self-exciting voltage"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The primary coils of a flux valve are fed with alternating current (typically 400Hz or 487.5Hz)."
+    },
+    {
+        q: "What is the function of the torque motor in a gyro-magnetic compass?",
+        options: ["a) It feeds the error detector system", "b) It causes the heading indicator to precess", "c) It causes the directional gyro unit to precess"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The torque motor applies a force that precesses the directional gyro to align with the magnetic heading."
+    },
+    {
+        q: "A gyro-magnetic compass or heading reference unit always includes:",
+        options: ["a) A vertical axis gyro and an azimuth control", "b) A directional gyro, an earth's magnetic field detector, and a synchronising control", "c) An earth's magnetic field detector and a vertical axis gyro"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> It combines a horizontal axis gyro (DG), a magnetic sensor (flux valve), and a synchronization system."
+    },
+    {
+        q: "The Directional Gyro (DG) utilized in a gyro-stabilised compass system has:",
+        options: ["a) One degree of freedom with an automatic erecting system", "b) Two degrees of freedom, with its horizontal axis maintained in the horizontal plane by an automatic erecting system", "c) Two degrees of freedom aligned with the vertical location"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> The DG has 2 degrees of freedom and requires an erecting system to keep its spin axis horizontal to the earth."
+    },
+    {
+        q: "A three-axis data generator's heading reference unit is equipped with a gyro featuring:",
+        options: ["a) 2 degrees of freedom and a vertical spin axis", "b) 2 degrees of freedom and a horizontal spin axis", "c) 3 degrees of freedom"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Heading data relies on a directional gyro, which utilizes a horizontal spin axis and 2 degrees of freedom."
+    },
+    {
+        q: "Heading information from a gyro platform is provided by a gyro with:",
+        options: ["a) 3 degrees-of-freedom in the vertical axis", "b) 2 degrees-of-freedom in the horizontal axis", "c) 2 degrees-of-freedom in the vertical axis"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Gyro heading platforms extract data from the gyro possessing 2 degrees of freedom and a horizontal axis."
+    },
+    {
+        q: "At which location will a directional gyro's axis no longer spin about the local vertical?",
+        options: ["a) The North pole", "b) The equator", "c) Latitude 45 degrees"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> At the equator, the earth's rotation is entirely horizontal relative to the local vertical, so earth rate drift is zero."
+    },
+    {
+        q: "At what location will the directional gyro axis spin about the local vertical at a maximum rate of 15 degrees/hour?",
+        options: ["a) The equator", "b) The North pole", "c) Latitude 30 degrees"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Apparent drift is maximum at the poles (15 &times; sin 90&deg; = 15&deg;/hr)."
+    },
+    {
+        q: "The apparent wander of a directional gyro indicator is equal to zero at:",
+        options: ["a) The North pole", "b) Latitude 45 degrees", "c) The equator"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Since sine(0&deg;) = 0, there is no apparent wander due to Earth's rotation at the equator."
+    },
+    {
+        q: "Which error in a DGI is caused by the gyroscope's physical movement relative to the Earth?",
+        options: ["a) Real wander", "b) Latitude error", "c) Transport wander"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Transport wander occurs because the aircraft is moving across the curved surface of the earth, changing its meridian."
+    },
+    {
+        q: "Errors in a directional gyro's heading reading due to aircraft movement are dependent on:",
+        options: ["a) Aircraft weight and altitude", "b) Ground speed, true track, and average flight latitude", "c) Indicated airspeed and engine RPM"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Transport wander is calculated based on how fast and in what direction the aircraft crosses meridians."
+    },
+    {
+        q: "What primarily causes the gimbal error in a directional gyro?",
+        options: ["a) An apparent weight shift", "b) A bank or pitch attitude of the aircraft", "c) Too slow precession on the horizontal gimbal ring"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Gimbal error occurs when the aircraft pitches or banks, causing the inner and outer gimbals to no longer be orthogonal."
+    },
+    {
+        q: "For an aircraft flying a true track of 360 degrees between 005S and 005N, the precession error due to apparent drift is:",
+        options: ["a) 15 degrees/hour", "b) 5 degrees/hour", "c) 0 degrees/hour"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The aircraft is crossing the equator where apparent drift (Earth rate) is zero."
+    },
+    {
+        q: "A directional gyro is defined as:",
+        options: ["a) A gyro free around one axis and incapable of self-orientation", "b) A gyro free around two axes and capable of self-orientation", "c) A gyro free around two axes and incapable of self-orientation around an earth-tied direction"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> A standard directional gyro has 2 degrees of freedom but cannot seek North on its own; it must be manually aligned."
+    },
+    {
+        q: "During a flight at 60N, an aircraft's DG (corrected for apparent drift at 30S) observes a drift rate of 15.5 deg/hr to the right. The apparent wander due to aircraft position change is:",
+        options: ["a) 5 degrees/hr to the right", "b) 5 degrees/hr to the left", "c) 2.5 degrees/hr to the left"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Mathematical breakdown of latitude correction and actual drift reveals a 5 degree/hr leftward transport wander component."
+    },
+    {
+        q: "What is the primary purpose of the latitude nut in a Directional Gyro Indicator (DGI)?",
+        options: ["a) To correct for coriolis error", "b) To correct for transport wander", "c) To correct for earth rate"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> The latitude nut applies a pre-calculated mechanical torque to counter apparent wander caused by Earth's rotation at a specific latitude."
+    },
+    {
+        q: "A directional gyro obtains accurate directional correction information using a:",
+        options: ["a) Air data computer", "b) Direct reading magnetic compass", "c) Flight director"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Basic Directional Gyros must be periodically cross-checked and manually realigned with the direct reading magnetic compass."
+    },
+    {
+        q: "The vertical reference in a data generation unit consists of:",
+        options: ["a) A horizontal axis with 2 degrees of freedom", "b) A vertical axis with 2 degrees of freedom", "c) A vertical axis with 1 degree of freedom"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Attitude indicators and vertical reference units use a vertical spin axis and 2 degrees of freedom to track pitch and roll."
+    },
+    {
+        q: "A gravity erector system is utilized to correct errors on which instrument?",
+        options: ["a) A directional gyro", "b) An artificial horizon", "c) A turn indicator"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Gravity erectors (like pendulous vanes) ensure the spin axis of the artificial horizon remains aligned with the local vertical."
+    },
+    {
+        q: "The artificial horizon relies on a gyroscope that features:",
+        options: ["a) One degree of freedom maintained by an erecting system", "b) Two degrees of freedom with its axis continuously maintained to the local vertical by an automatic erecting system", "c) Two degrees of freedom aligned horizontally"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> It uses an earth-tied vertical gyro with 2 degrees of freedom, continuously corrected by an erection mechanism."
+    },
+    {
+        q: "During a phase of acceleration at a constant altitude, the artificial horizon's resetting principle typically causes it to indicate a:",
+        options: ["a) Constant attitude", "b) Nose-down attitude", "c) Nose-up attitude"],
+        correct: 2,
+        sol: "<strong>Explanation:</strong> Forward acceleration affects the pendulous erection system, causing a false nose-up indication on a classic artificial horizon."
+    },
+    {
+        q: "Following a stabilized 180-degree turn with constant attitude and bank, an artificial horizon will typically indicate:",
+        options: ["a) Correct attitude and banking", "b) Too high pitch-up and correct banking", "c) Too high pitch up and too low banking"],
+        correct: 1,
+        sol: "<strong>Explanation:</strong> Due to erection system errors building up during a turn, completing a 180-degree turn generally results in a false pitch-up indication with the bank error having zeroed out."
+    }
+           
+    
+            // Format: { q: "Question?", options: ["a) Opt 1", "b) Opt 2", "c) Opt 3"], correct: 0, sol: "<strong>Explanation:</strong> text" }
+        ];
+        
+        const numerical_data = [
+            {
+        q: "An a/c turns left from Hdg 045° to 315° at rate 1. Time taken will be.",
+        ans: "30 sec",
+        sol: "<strong>Explanation:</strong> A turn left from heading 045° to 315° covers 90 degrees. A rate 1 turn is 3 degrees per second. Time taken = 90° / 3°/sec = 30 seconds."
+    },
+    {
+        q: "An a/c is turning with rate 1 with TAS = 250 kts. Find bank angle required.",
+        ans: "32°",
+        sol: "<strong>Explanation:</strong> Using the formula: Bank = (TAS / 10) + 7 <br> Bank = (250 / 10) + 7 = 25 + 7 = 32°."
+    },
+    {
+        q: "A/C turns with rate 1 at TAS = 150, Bank angle required:",
+        ans: "22°",
+        sol: "<strong>Explanation:</strong> Using the formula: Bank = (TAS / 10) + 7 <br> Bank = (150 / 10) + 7 = 15 + 7 = 22°."
+    },
+    {
+        q: "An aircraft is flying at a 120kt true airspeed, in order to achieve a rate 1 turn, the pilot will have to bank the aircraft at an angle of:",
+        ans: "19°",
+        sol: "<strong>Explanation:</strong> Using the formula: Bank = (TAS / 10) + 7 <br> Bank = (120 / 10) + 7 = 12 + 7 = 19°."
+    },
+    {
+        q: "For a coordinated rate 1 right turn at 250 Kts TAS, in clean configuration the correct AOB is approximately?",
+        ans: "32 degrees",
+        sol: "<strong>Explanation:</strong> Using the standard formula: Bank Angle = (TAS / 10) + 7 <br> Bank = (250 / 10) + 7 = 25 + 7 = 32 degrees."
+    },
+    {
+        q: "For a coordinated rate 1 left turn at an AOB of 27 degrees, the TAS should be?",
+        ans: "200 Kts",
+        sol: "<strong>Explanation:</strong> Using the formula: Bank = (TAS / 10) + 7 <br> 27 = (TAS / 10) + 7 <br> 20 = TAS / 10 <br> TAS = 200 Kts."
+    },
+    {
+        q: "What angle of bank is required to conduct a balanced rate 1 turn in an aircraft at 125 kts TAS at a mass of 55000 Kg?",
+        ans: "19.5 degrees",
+        sol: "<strong>Explanation:</strong> Aircraft mass does not affect the bank angle required for a given rate of turn. Using the formula: Bank = (TAS / 10) + 7 <br> Bank = (125 / 10) + 7 = 12.5 + 7 = 19.5 degrees."
+    }
+            
+            // Format: { q: "Question?", ans: "Final Answer", sol: "Step-by-step logic" }
+        ];
+
+        // ==========================================
+        // THEORY ENGINE LOGIC
+        // ==========================================
+        let currentTheoryIndex = 0;
+        let theoryAnswers = [];
+        let theoryRightCount = 0;
+        let theoryWrongCount = 0;
+
+        function startTheory() {
+            if (theory_mcqs.length === 0) { alert("Theory Engine is empty."); return; }
+            switchView('theory-page');
+            currentTheoryIndex = 0;
+            theoryRightCount = 0;
+            theoryWrongCount = 0;
+            document.getElementById('theory-right').innerText = "0";
+            document.getElementById('theory-wrong').innerText = "0";
+            theoryAnswers = new Array(theory_mcqs.length).fill(null);
+            renderTheory();
+        }
+
+        function renderTheory() {
+            if (theory_mcqs.length === 0) return;
+            const qData = theory_mcqs[currentTheoryIndex];
+            
+            document.getElementById('theory-counter').innerText = `Theory Q${currentTheoryIndex + 1} of ${theory_mcqs.length}`;
+            document.getElementById('theory-progress').style.width = `${((currentTheoryIndex + 1) / theory_mcqs.length) * 100}%`;
+            document.getElementById('theory-q-text').innerHTML = `<strong>Q${currentTheoryIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('theory-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = theoryAnswers[currentTheoryIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === theoryAnswers[currentTheoryIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectTheoryOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('theory', qData, hasAnswered);
+            
+            document.getElementById('theory-prev-btn').disabled = currentTheoryIndex === 0;
+            document.getElementById('theory-next-btn').disabled = currentTheoryIndex === theory_mcqs.length - 1;
+        }
+
+        function selectTheoryOption(selectedIndex) { 
+            theoryAnswers[currentTheoryIndex] = selectedIndex;
+            if (selectedIndex === theory_mcqs[currentTheoryIndex].correct) {
+                theoryRightCount++;
+                document.getElementById('theory-right').innerText = theoryRightCount;
+            } else {
+                theoryWrongCount++;
+                document.getElementById('theory-wrong').innerText = theoryWrongCount;
+            }
+            renderTheory(); 
+        }
+        function goPrevTheory() { if (currentTheoryIndex > 0) { currentTheoryIndex--; renderTheory(); } }
+        function goNextTheory() { if (currentTheoryIndex < theory_mcqs.length - 1) { currentTheoryIndex++; renderTheory(); } }
+
+        // ==========================================
+        // PDF ENGINE LOGIC
+        // ==========================================
+        let currentPdfIndex = 0;
+        let pdfAnswers = [];
+        let pdfRightCount = 0;
+        let pdfWrongCount = 0;
+
+        function startPdf() {
+            if (pdf_mcqs.length === 0) { alert("PDF Engine is empty."); return; }
+            switchView('pdf-page');
+            currentPdfIndex = 0;
+            pdfRightCount = 0;
+            pdfWrongCount = 0;
+            document.getElementById('pdf-right').innerText = "0";
+            document.getElementById('pdf-wrong').innerText = "0";
+            pdfAnswers = new Array(pdf_mcqs.length).fill(null);
+            renderPdf();
+        }
+
+        function renderPdf() {
+            if (pdf_mcqs.length === 0) return;
+            const qData = pdf_mcqs[currentPdfIndex];
+            
+            document.getElementById('pdf-counter').innerText = `PDF Q${currentPdfIndex + 1} of ${pdf_mcqs.length}`;
+            document.getElementById('pdf-progress').style.width = `${((currentPdfIndex + 1) / pdf_mcqs.length) * 100}%`;
+            document.getElementById('pdf-q-text').innerHTML = `<strong>Q${currentPdfIndex + 1}.</strong> ` + qData.q;
+            
+            const optionsContainer = document.getElementById('pdf-options');
+            optionsContainer.innerHTML = '';
+            
+            const hasAnswered = pdfAnswers[currentPdfIndex] !== null;
+            
+            qData.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'mcq-option';
+                btn.innerHTML = optText;
+                
+                if (hasAnswered) {
+                    btn.classList.add('disabled');
+                    if (index === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (index === pdfAnswers[currentPdfIndex]) {
+                        btn.classList.add('wrong');
+                    }
+                } else {
+                    btn.onclick = () => selectPdfOption(index);
+                }
+                optionsContainer.appendChild(btn);
+            });
+
+            handleSolutionBox('pdf', qData, hasAnswered);
+            
+            document.getElementById('pdf-prev-btn').disabled = currentPdfIndex === 0;
+            document.getElementById('pdf-next-btn').disabled = currentPdfIndex === pdf_mcqs.length - 1;
+        }
+
+        function selectPdfOption(selectedIndex) { 
+            pdfAnswers[currentPdfIndex] = selectedIndex;
+            if (selectedIndex === pdf_mcqs[currentPdfIndex].correct) {
+                pdfRightCount++;
+                document.getElementById('pdf-right').innerText = pdfRightCount;
+            } else {
+                pdfWrongCount++;
+                document.getElementById('pdf-wrong').innerText = pdfWrongCount;
+            }
+            renderPdf(); 
+        }
+        function goPrevPdf() { if (currentPdfIndex > 0) { currentPdfIndex--; renderPdf(); } }
+        function goNextPdf() { if (currentPdfIndex < pdf_mcqs.length - 1) { currentPdfIndex++; renderPdf(); } }
+
+        // ==========================================
+        // NUMERICAL ENGINE LOGIC (Flashcards)
+        // ==========================================
+        let currentNumIndex = 0;
+
+        function startNumerical() {
+            if (numerical_data.length === 0) { alert("Numerical Engine is empty."); return; }
+            switchView('numerical-page');
+            currentNumIndex = 0;
+            renderNumerical();
+        }
+
+        function renderNumerical() {
+            if (numerical_data.length === 0) return;
+            const qData = numerical_data[currentNumIndex];
+            
+            document.getElementById('num-counter').innerText = `Numerical Card ${currentNumIndex + 1} of ${numerical_data.length}`;
+            document.getElementById('num-progress').style.width = `${((currentNumIndex + 1) / numerical_data.length) * 100}%`;
+            
+            // Text ONLY (No numbering)
+            document.getElementById('num-q-text').innerHTML = qData.q;
+            
+            // Reset visibility
+            document.getElementById('num-ans-box').style.display = 'none';
+            document.getElementById('num-sol-box').style.display = 'none';
+            
+            // Populate content
+            document.getElementById('num-ans-box').innerHTML = `<strong>Answer:</strong> ${qData.ans}`;
+            document.getElementById('num-sol-box').innerHTML = qData.sol || "No solution provided.";
+            
+            document.getElementById('num-prev-btn').disabled = currentNumIndex === 0;
+            document.getElementById('num-next-btn').disabled = currentNumIndex === numerical_data.length - 1;
+        }
+
+        function goPrevNum() { if (currentNumIndex > 0) { currentNumIndex--; renderNumerical(); } }
+        function goNextNum() { if (currentNumIndex < numerical_data.length - 1) { currentNumIndex++; renderNumerical(); } }
+
+        // ==========================================
+        // HELPER FUNCTIONS
+        // ==========================================
+        function handleSolutionBox(prefix, qData, hasAnswered) {
+            const solArea = document.getElementById(`${prefix}-sol-area`);
+            const solBox = document.getElementById(`${prefix}-sol-box`);
+            const revealBtn = document.getElementById(`${prefix}-reveal-btn`);
+            
+            if (qData.sol) {
+                solArea.style.display = 'block';
+                solBox.innerHTML = qData.sol;
+                solBox.style.display = 'none';
+                
+                if (hasAnswered) {
+                    revealBtn.style.display = 'inline-block';
+                    revealBtn.onclick = () => { solBox.style.display = 'block'; };
+                } else {
+                    revealBtn.style.display = 'none';
+                }
+            } else {
+                solArea.style.display = 'none';
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('theory-card-count').innerText = theory_mcqs.length + " MCQs";
+            document.getElementById('pdf-card-count').innerText = pdf_mcqs.length + " MCQs";
+            document.getElementById('num-card-count').innerText = numerical_data.length + " Cards";
+        };
+    </script>
+</body>
+</html>

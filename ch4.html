@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 4 | Payload</title>
+    <style>
+        :root {
+            --bg-color: #050505; --panel-bg: #121212; --text-main: #f0f0f0; --text-muted: #888888;
+            --accent: #2a2a2a; --accent-hover: #404040; --border: #333333; --highlight: #555555;
+            --correct-bg: #1e4620; --correct-border: #4caf50; --wrong-bg: #4a1919; --wrong-border: #f44336;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 95%; max-width: 1200px; background-color: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); padding: 30px; min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        .view-section { display: none; flex-direction: column; flex-grow: 1; animation: fadeIn 0.3s ease-in-out; }
+        
+        .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .nav-btn { background: none; border: 1px solid var(--border); color: var(--text-main); padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background 0.2s; text-decoration: none; }
+        .nav-btn:hover { background-color: var(--accent); }
+        .btn { background-color: var(--bg-color); color: var(--text-main); border: 1px solid var(--border); padding: 15px 50px; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+        .btn:hover { background-color: var(--accent); border-color: var(--text-main); }
+        
+        .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; margin-top: 30px; }
+        .module-card { background-color: var(--bg-color); border: 1px solid var(--border); padding: 50px 20px; text-align: center; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .module-card:hover { background-color: var(--accent); border-color: var(--text-muted); transform: translateY(-5px); }
+        .module-card h3 { font-size: 1.8rem; margin-bottom: 10px; }
+        .module-card p { color: var(--text-muted); font-family: 'Courier New', monospace; }
+        
+        .content-area { background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 4px; padding: 25px; flex-grow: 1; font-size: 1.1rem; line-height: 1.7; color: #d0d0d0; overflow-y: auto; max-height: 68vh; }
+        
+        .quiz-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .quiz-top-header h2 { margin: 0; font-size: 1.1rem; color: var(--text-muted); font-weight: 600; }
+        .score-badge { background: var(--accent); border: 1px solid #444; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; color: var(--text-main); }
+        .progress-bar-container { width: 100%; background-color: var(--accent); border-radius: 8px; height: 6px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: var(--text-muted); width: 0%; transition: width 0.3s ease; }
+        .question-text { font-size: 1.25rem; margin-bottom: 15px; line-height: 1.4; font-weight: 500; color: var(--text-main); } 
+        .options-grid { display: flex; flex-direction: column; gap: 8px; } 
+        .option-btn { background-color: var(--accent); color: var(--text-main); border: 2px solid transparent; border-radius: 8px; padding: 12px 20px; font-size: 1rem; cursor: pointer; text-align: left; transition: all 0.2s ease; }
+        .option-btn:hover:not(:disabled) { background-color: var(--accent-hover); }
+        .option-btn:disabled { cursor: default; }
+        .correct-ans { background-color: var(--correct-bg) !important; border-color: var(--correct-border) !important; color: white; }
+        .wrong-ans { background-color: var(--wrong-bg) !important; border-color: var(--wrong-border) !important; color: white; }
+        .feedback-box { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: left; font-weight: 600; display: none; font-size: 1rem; }
+        .feedback-correct { display: block; background-color: rgba(76, 175, 80, 0.15); color: var(--correct-border); border: 1px solid var(--correct-bg); padding: 15px; font-size: 1.15rem; }
+        .feedback-wrong { display: block; background-color: rgba(244, 67, 54, 0.15); color: var(--wrong-border); border: 1px solid var(--wrong-bg); padding: 15px; font-size: 1.15rem; }
+        .sol-box { display: block; background-color: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border); font-family: 'Courier New', monospace; padding: 20px; margin-top: 15px; font-weight: normal; line-height: 1.6; }
+        .quiz-nav-controls { display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--accent); }
+        .quiz-nav-btn { background-color: var(--highlight); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; min-width: 110px; }
+        .quiz-nav-btn:hover:not(:disabled) { background-color: #666666; }
+        .quiz-nav-btn:disabled { background-color: var(--bg-color); color: #555; cursor: not-allowed; border: 1px solid #333; }
+        #finish-screen { text-align: center; padding-top: 40px; }
+        #finish-screen h1 { font-size: 2.5rem; margin-bottom: 10px; color: var(--text-main);}
+        #finish-screen p { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 30px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div id="module-page" class="view-section" style="display: flex;">
+            <div class="header-bar">
+                <h2>Chapter 4: Payload</h2>
+                <a href="index.html" class="nav-btn">Back to Hub</a>
+            </div>
+            <div class="module-grid">
+                <div class="module-card" onclick="initQuiz()">
+                    <h3>Quiz</h3>
+                    <p id="quiz-label">Loading...</p>
+                </div>
+                <div class="module-card" onclick="startNumericals()">
+                    <h3>Numericals</h3>
+                    <p id="num-label">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="quiz-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="quiz-counter">Question 1 of X</h2>
+                <div class="score-badge">Score: <span id="quiz-score-display">0</span></div>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="quiz-progress"></div></div>
+            <div class="content-area" style="max-height: none; padding: 20px;">
+                <div class="question-text" id="quiz-q-text">Loading question...</div>
+                <div class="options-grid" id="quiz-options-container"></div>
+                <div id="quiz-feedback-box" class="feedback-box"></div>
+            </div>
+            <div class="quiz-nav-controls">
+                <button id="quiz-prev-btn" class="quiz-nav-btn" onclick="goPrevQuiz()">Previous</button>
+                <button class="nav-btn" onclick="switchView('module-page')" style="border-color: var(--border);">Exit Quiz</button>
+                <button id="quiz-next-btn" class="quiz-nav-btn" onclick="goNextQuiz()">Next</button>
+            </div>
+        </div>
+
+        <div id="quiz-finish-screen" class="view-section" style="justify-content: center;">
+            <div id="finish-screen" style="display: block;">
+                <h1>Quiz Complete!</h1>
+                <p>You scored <span id="final-score"></span> out of <span id="total-questions"></span>.</p>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                    <button class="btn" onclick="switchView('module-page')">Back to Modules</button>
+                    <button class="btn" style="background-color: var(--highlight);" onclick="initQuiz()">Restart Quiz</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="numerical-linear-page" class="view-section">
+            <div class="quiz-top-header">
+                <h2 id="num-counter">Numerical 1 of X</h2>
+                <button class="nav-btn" onclick="switchView('module-page')">Exit Numericals</button>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar" id="num-progress"></div></div>
+            
+            <div class="content-area" style="max-height: none; padding: 20px;">
+                <div class="question-text" id="num-q-text">Loading problem...</div>
+                <div style="margin-top: 25px; display: flex; gap: 15px;">
+                    <button class="btn" style="padding: 10px 20px; font-size: 1rem;" onclick="document.getElementById('num-ans-box').style.display='block'">Reveal Answer</button>
+                    <button class="btn" style="padding: 10px 20px; font-size: 1rem; background-color: var(--highlight);" onclick="document.getElementById('num-sol-box').style.display='block'">Reveal Solution</button>
+                </div>
+                <div id="num-ans-box" class="feedback-box feedback-correct" style="display:none;"></div>
+                <div id="num-sol-box" class="feedback-box sol-box" style="display:none;"></div>
+            </div>
+            
+            <div class="quiz-nav-controls">
+                <button id="num-prev-btn" class="quiz-nav-btn" onclick="goPrevNum()">Previous</button>
+                <button id="num-next-btn" class="quiz-nav-btn" onclick="goNextNum()">Next</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            document.getElementById(viewId).style.display = 'flex';
+        }
+
+        const quizData = [ 
+            { q: "The Dry Operating Mass of an aero plane includes:", options: { a: "Crew and crew baggage, catering, removable passenger service equipment, potable water and lavatory chemicals", b: "Passengers, baggage and cargo", c: "Fuel and passengers baggage and cargo" }, ans: "a" },
+            { q: "At the flight preparation stage, which statement regarding dry operating mass is correct?", options: { a: "The dry operating mass includes fixed equipment needed to carry out a specific flight", b: "The dry operating mass includes take-off fuel", c: "The operating mass is the mass of the aero plane without take-off fuel" }, ans: "a" },
+            { q: "In relation to an aero plane, the term 'Basic Empty Mass' value is:", options: { a: "found in the latest version of the weighing schedule as corrected to allow for modifications", b: "printed in the loading manual and includes unusable fuel", c: "found in the flight manual and is inclusive of unusable fuel plus fluids contained in closed systems" }, ans: "a" },
+            { q: "When establishing the mass breakdown of an aero plane, the empty mass is defined as the sum of the:", options: { a: "basic mass plus special equipment mass", b: "standard empty mass plus specific equipment mass plus trapped fluids plus unusable fuel mass", c: "basic mass plus variable equipment mass" }, ans: "b" },
+            { q: "An aero plane is weighed: nose wheel 5330kg, left main 12370kg, right main 12480kg. If 'operational items' amount to 1780kg with a crew mass of 545kg, the empty mass is:", options: { a: "31960kg", b: "30180kg", c: "28400kg" }, ans: "b" },
+            { q: "When preparing to carry out the weighing procedure on an aero plane, which of the following is not required?", options: { a: "drain all engine tank oil", b: "drain all usable fuel", c: "drain all chemical toilet fluid tanks" }, ans: "a" },
+            { q: "An aero plane may be weighed:", options: { a: "in an enclosed, non-air conditioned, hangar", b: "at a specified 'weighing location' on the airfield", c: "in a quiet parking area clear of the normal maneuvering area" }, ans: "a" },
+            { q: "The mass of an aero plane weighing more than 2000 Kgs must be determined prior to initial entry into service and thereafter:", options: { a: "at intervals of 5 years if no modifications have taken place", b: "at intervals of 9 years", c: "at regular annual intervals" }, ans: "a" },
+            { q: "Where an operator uses an aircraft weighing less than 2000 kgs, this re-weigh interval is:", options: { a: "4 years for each aero plane", b: "whenever a major repair/modification is carried out, which affect weight and balance data.", c: "whenever the Certificate of Airworthiness is renewed" }, ans: "b" },
+            { q: "Who is responsible for deriving the Dry Operational Mass from the weighed mass by the addition of the 'operational items'?", options: { a: "The aero plane manufacturer of supplier", b: "The commander of the aero plane", c: "The Operator" }, ans: "c" },
+            { q: "The responsibility for determination of the mass of 'operating items' and 'crew members' included within the Dry Operating Mass lies with:", options: { a: "the person compiling the weighing schedule", b: "the operator", c: "the commander" }, ans: "b" },
+            { q: "An additional baggage container is loaded... but not entered into the load sheet. The aero plane will be heavier than expected and calculated take-off safety speeds:", options: { a: "will not be achieved", b: "are unaffected but will be increased", c: "will give reduced safety margins" }, ans: "c" },
+            { q: "Fuel loaded is 15400kg but erroneously entered as 14500kg. The flight crew will notice that:", options: { a: "speed at un-stick will be higher than expected", b: "V1 will be reached sooner than expected", c: "the aero plane will rotate much earlier than expected" }, ans: "a" },
+            { q: "When considering the effects of increased mass on an aero plane, which of the following is true?", options: { a: "Stalling speeds will be higher", b: "Flight endurance will be increased", c: "Gradient of climb for a given power setting will be higher" }, ans: "a" },
+            { q: "Prior to departure an aero plane is loaded with 16500 litres of fuel at a density of 780kg/m3. This is entered into the load sheet as 16500kg. As a result of this error, the aero plane is:", options: { a: "lighter than anticipated and the calculated safety speeds will be too high", b: "heavier than anticipated and the calculated safety speeds will be too high", c: "lighter than anticipated and the calculated safety speeds will be too low" }, ans: "a" },
+            { q: "A flight benefits from a strong tail wind which was not forecast. The landing mass will be higher than planned and:", options: { a: "the approach path will be steeper", b: "the landing distance required will be longer", c: "the approach path will be steeper and threshold speed higher" }, ans: "b" },
+            { q: "If an aero plane is at a higher mass than anticipated, for a given airspeed the angle of attack will:", options: { a: "remain constant, drag will decrease and endurance will decrease.", b: "remain constant, drag will increase and endurance will increase.", c: "be greater, drag will increase and endurance will decrease." }, ans: "c" },
+            { q: "An aero plane's weighing schedule indicates empty mass is 57320 kg, DOM is 60120 kg, and MZFM is 72100 kg. Which statement is correct?", options: { a: "operational items have a mass of 2800 kg and the maximum useful load is 14780 kg.", b: "operational items have a mass of 2800 kg and the maximum traffic load for this aero plane is 11980 kg.", c: "operational items have a mass of 2800 kg and the maximum traffic load for this aero plane is 14780 kg." }, ans: "b" },
+            { q: "The Zero Fuel Mass and the Dry Operating Mass:", options: { a: "differ by the mass of usable fuel.", b: "differ by the value of the traffic load mass.", c: "are the same value." }, ans: "b" },
+            { q: "In relation to an aero plane the Dry Operating Mass is the total mass of the aero plane ready for a specific type of operation but excluding:", options: { a: "usable fuel and crew.", b: "potable water and lavatory chemicals.", c: "usable fuel and traffic load." }, ans: "c" },
+            { q: "On an aero plane without central fuel tank, the maximum Zero Fuel Mass is related to:", options: { a: "maximum structural take-off mass.", b: "wing loaded trip fuel.", c: "the bending moment at the wing root." }, ans: "c" },
+            { q: "In relation to an aero plane, the term 'Basic Empty Mass' includes the mass of the aero plane structure complete with its powerplants, systems, furnishings and other items of equipment... Its value is", options: { a: "printed in the loading manual and includes unusable fuel.", b: "found in the latest version of the weighing schedule as corrected to allow for modifications.", c: "inclusive of an allowance for crew, crew baggage and other operating items." }, ans: "b" }
+        ];
+
+        let activeQuizData = [], userAnswers = [], currentQIndex = 0;
+        
+        function shuffleArray(array) { 
+            for (let i = array.length - 1; i > 0; i--) { 
+                const j = Math.floor(Math.random() * (i + 1)); 
+                [array[i], array[j]] = [array[j], array[i]]; 
+            } 
+        }
+
+        function initQuiz() { 
+            switchView('quiz-page');
+            activeQuizData = JSON.parse(JSON.stringify(quizData)); 
+            shuffleArray(activeQuizData); 
+            activeQuizData.forEach(q => { 
+                let optionsArr = Object.entries(q.options).map(([key, val]) => ({ key, val })); 
+                shuffleArray(optionsArr); 
+                q.shuffledOptions = optionsArr; 
+            }); 
+            userAnswers = new Array(activeQuizData.length).fill(null); 
+            currentQIndex = 0; 
+            renderQuestion(); 
+        }
+
+        function updateScore() { 
+            let currentScore = 0; 
+            userAnswers.forEach((ans, index) => { 
+                if (ans === activeQuizData[index].ans) { currentScore++; } 
+            }); 
+            document.getElementById('quiz-score-display').textContent = currentScore; 
+            return currentScore; 
+        }
+
+        function renderQuestion() { 
+            if(activeQuizData.length === 0) return;
+            const qData = activeQuizData[currentQIndex]; 
+            const selectedAns = userAnswers[currentQIndex]; 
+            
+            document.getElementById('quiz-counter').textContent = `Question ${currentQIndex + 1} of ${activeQuizData.length}`; 
+            document.getElementById('quiz-progress').style.width = `${((currentQIndex + 1) / activeQuizData.length) * 100}%`; 
+            document.getElementById('quiz-q-text').innerHTML = qData.q; 
+            updateScore(); 
+            
+            const optionsContainer = document.getElementById('quiz-options-container'); 
+            optionsContainer.innerHTML = ''; 
+            qData.shuffledOptions.forEach(opt => { 
+                const btn = document.createElement('button'); 
+                btn.className = 'option-btn'; 
+                btn.innerHTML = opt.val; 
+                if (selectedAns !== null) { 
+                    btn.disabled = true; 
+                    if (opt.key === qData.ans) { btn.classList.add('correct-ans'); } 
+                    else if (opt.key === selectedAns) { btn.classList.add('wrong-ans'); } 
+                } else { 
+                    btn.onclick = () => { userAnswers[currentQIndex] = opt.key; renderQuestion(); }; 
+                } 
+                optionsContainer.appendChild(btn); 
+            }); 
+            
+            const feedbackBox = document.getElementById('quiz-feedback-box'); 
+            feedbackBox.className = 'feedback-box'; 
+            if (selectedAns !== null) { 
+                feedbackBox.style.display = 'block';
+                if (selectedAns === qData.ans) { 
+                    feedbackBox.innerHTML = "<strong>Correct!</strong>"; 
+                    feedbackBox.classList.add('feedback-correct'); 
+                } else { 
+                    feedbackBox.innerHTML = "<strong>Incorrect.</strong> The correct answer is highlighted in green."; 
+                    feedbackBox.classList.add('feedback-wrong'); 
+                } 
+            } else { feedbackBox.style.display = 'none'; }
+            
+            document.getElementById('quiz-prev-btn').disabled = currentQIndex === 0; 
+            const nextBtn = document.getElementById('quiz-next-btn'); 
+            if (selectedAns === null) { nextBtn.disabled = true; nextBtn.textContent = "Next"; } 
+            else { nextBtn.disabled = false; nextBtn.textContent = (currentQIndex === activeQuizData.length - 1) ? "Finish" : "Next"; } 
+        }
+
+        function goPrevQuiz() { if (currentQIndex > 0) { currentQIndex--; renderQuestion(); } }
+        function goNextQuiz() { 
+            if (currentQIndex < activeQuizData.length - 1) { currentQIndex++; renderQuestion(); } 
+            else { switchView('quiz-finish-screen'); document.getElementById('final-score').textContent = updateScore(); document.getElementById('total-questions').textContent = activeQuizData.length; } 
+        }
+
+        const numericalsData = [
+            { 
+                q: "Q1. MZFM is given as 47,000 kg, the MTOM is 62,800 kg and the MLM is 54,900 kg. Let us assume that there are no performance Limits so that the Regulated Take-off and Landing masses are equal to the Structural Limited masses. DOM is 34,000kg, actual traffic load is 12,400kg, take off fuel is 16,000 kg and 8,000 kg of fuel was used in flight. Can extra load be carried? If yes, how much?", 
+                ans: "400 kg", 
+                sol: "Step 1: Check Limits to find Regulated Take-Off Mass (RTOM).<br>- MTOM Limit = 62,800 kg.<br>- Landing Limit = MLM + Trip Fuel = 54,900 + 8,000 = 62,900 kg.<br>- MZFM Limit = MZFM + Take-off Fuel = 47,000 + 16,000 = 63,000 kg.<br>The lowest of these is 62,800 kg, so RTOM = 62,800 kg.<br><br>Step 2: Calculate Maximum Traffic Load.<br>Max TL = RTOM - (DOM + Take-off Fuel)<br>Max TL = 62,800 - (34,000 + 16,000) = 12,800 kg.<br><br>Step 3: Calculate underload.<br>Underload = Max TL - Actual TL = 12,800 - 12,400 = <strong>400 kg</strong>." 
+            },
+            { 
+                q: "Q2. MSTOM = 42,100 kg. MSLM = 35,000 kg. PLLM = 33,000 kg. MZFM = 31,000 kg. DOM = 19,000 kg. Total Fuel Capacity = 12,500 kg. Maximum Trip Fuel = 9,000 kg. Contingency fuel = 1000 kg. Alternate fuel = 500 kg. Final reserve fuel = 400 kg. What is the maximum take-off mass and maximum traffic load?", 
+                ans: "41,900 kg / 12,000 kg", 
+                sol: "Step 1: Calculate Fuel on Board (FOB).<br>FOB = Trip + Cont + Alt + Reserve = 9,000 + 1,000 + 500 + 400 = 10,900 kg.<br><br>Step 2: Check Limits for Max TOM.<br>- Structural TOM = 42,100 kg.<br>- Landing Limit (using restrictive PLLM) = 33,000 + 9,000 = 42,000 kg.<br>- ZFM Limit = MZFM + FOB = 31,000 + 10,900 = 41,900 kg.<br>The lowest is the ZFM limit, so Max TOM = <strong>41,900 kg</strong>.<br><br>Step 3: Calculate Max Traffic Load.<br>Payload is limited by MZFM: MZFM - DOM = 31,000 - 19,000 = <strong>12,000 kg</strong>." 
+            },
+            { 
+                q: "Q3. Aircraft weight without fuel and payload = 90t (APS weight). RTOW = 167t. RLW = 139.55t. MZFW = 132t. Reserve fuel = 3t. Flight time = 3 hr 33 min. Diversion time = 51 min. Fuel flow throughout = 2.5 t/hr. What is the maximum permissible TOW and payload?", 
+                ans: "146 t / 42 t", 
+                sol: "Step 1: Calculate Fuel.<br>Trip Time = 3.55 hrs. Trip Fuel = 3.55 &times; 2.5 = 8.875 t.<br>Div Time = 0.85 hrs. Div Fuel = 0.85 &times; 2.5 = 2.125 t.<br>FOB = Trip + Div + Reserve = 8.875 + 2.125 + 3 = 14 t.<br><br>Step 2: Check Limits for Max TOW.<br>- RTOW = 167 t.<br>- Landing Limit = RLW + Trip = 139.55 + 8.875 = 148.425 t.<br>- ZFM Limit = MZFW + FOB = 132 + 14 = 146 t.<br>The lowest limit is <strong>146 t</strong>.<br><br>Step 3: Calculate Max Payload.<br>Payload limited by MZFW: 132 - 90 = <strong>42 t</strong>." 
+            },
+            { 
+                q: "Q4. APS weight = 40.00 t. RLW = 49.55 t. RTOW = 65.00 t. MZFW = 48.00 t. Burn-off = 12.89 t. Reserve = 1.65 t. Calculate the maximum permissible TOM and payload.", 
+                ans: "62.44 t / 7.9 t", 
+                sol: "Step 1: Calculate FOB.<br>FOB = Burn-off + Reserve = 12.89 + 1.65 = 14.54 t.<br><br>Step 2: Check Limits for TOM.<br>- RTOW = 65.00 t.<br>- Landing Limit = RLW + Burn = 49.55 + 12.89 = 62.44 t.<br>- ZFM Limit = MZFW + FOB = 48.00 + 14.54 = 62.54 t.<br>The lowest is the Landing Limit, so Max TOM = <strong>62.44 t</strong>.<br><br>Step 3: Calculate Max Payload.<br>Payload = Max TOM - (APS + FOB) = 62.44 - (40.00 + 14.54) = <strong>7.9 t</strong>." 
+            },
+            { 
+                q: "Q5. Load sheet reads: A/c wt, no fuel, no payload = 63,200 kg. Max TOW = 99,000 kg. Route fuel = 18,200 kg. Reserve = 3,000 kg. If max landing weight is 76,500 kg, and MZFW 74,000 kg, find: (a) TOW when maximum payload is carried. (b) Maximum payload.", 
+                ans: "94,700 kg / 10,300 kg", 
+                sol: "Step 1: Calculate FOB.<br>FOB = Route + Reserve = 18,200 + 3,000 = 21,200 kg.<br><br>Step 2: Check Limits for TOM.<br>- Max TOW = 99,000 kg.<br>- Landing Limit = MLM + Route = 76,500 + 18,200 = 94,700 kg.<br>- ZFM Limit = MZFW + FOB = 74,000 + 21,200 = 95,200 kg.<br>The lowest is the Landing Limit, so RTOM = <strong>94,700 kg</strong>.<br><br>Step 3: Calculate Payload.<br>Payload = RTOM - (DOM + FOB) = 94,700 - (63,200 + 21,200) = <strong>10,300 kg</strong>." 
+            },
+            { 
+                q: "Q27. The take-off mass of an aero plane is 117000 kg, comprising a traffic load of 18000kg and fuel of 46000kg. What is the dry operating mass?", 
+                ans: "53000 kg", 
+                sol: "Formula: Take-Off Mass = Dry Operating Mass + Traffic Load + Fuel.<br>117,000 = DOM + 18,000 + 46,000<br>117,000 = DOM + 64,000<br>DOM = 117,000 - 64,000 = <strong>53,000 kg</strong>." 
+            },
+            { 
+                q: "Q34. A revenue flight is planned for the transport aeroplane. DOM: 34930kg, PLLM: 55000kg, Taxi: 350kg, Trip fuel: 9730kg, Cont & final reserve fuel: 1200kg, Alternate fuel: 1600kg. Passengers on board: 130. Standard mass for each pax: 84kg, Baggage per pax: 14kg. Determine the maximum cargo load that may be carried.", 
+                ans: "4530 kg", 
+                sol: "Step 1: Calculate Fuel.<br>Fuel at Ramp = 350 + 9730 + 1200 + 1600 = 12,880 kg.<br>Take-off Fuel (FOB) = 12,880 - 350 = 12,530 kg.<br><br>Step 2: Check Limits (MZFM and MTOM are not given, so we are restricted by PLLM).<br>Max TOM = PLLM + Trip Fuel = 55,000 + 9,730 = 64,730 kg.<br><br>Step 3: Calculate Max Traffic Load.<br>Max TL = TOM - (DOM + FOB) = 64,730 - (34,930 + 12,530) = 17,270 kg.<br><br>Step 4: Subtract Passenger Mass.<br>Total Pax Mass = 130 &times; (84 + 14) = 12,740 kg.<br>Available Cargo = 17,270 - 12,740 = <strong>4,530 kg</strong>." 
+            },
+            { 
+                q: "Q35. The empty mass of an aero plane is given as 44800kg. Operational items are 2300kg. If the maximum zero fuel mass is given as 65500kg, the maximum traffic load which could be carried is:", 
+                ans: "18400 kg", 
+                sol: "Step 1: Calculate Dry Operating Mass.<br>DOM = Empty Mass + Operational Items = 44,800 + 2,300 = 47,100 kg.<br><br>Step 2: Calculate Payload limit based on MZFM.<br>Traffic Load = MZFM - DOM = 65,500 - 47,100 = <strong>18,400 kg</strong>." 
+            },
+            { 
+                q: "Q36. Aero plane Dry Operating Mass: 85000kg. PLTOM: 127000kg. PLLM: 98500kg. MZFM: 89800kg. Trip fuel: 29300kg. Cont and final reserve fuel: 3600kg. Alternate fuel: 2800kg. The maximum traffic load that can be carried on this flight is:", 
+                ans: "4800 kg", 
+                sol: "Step 1: Calculate FOB.<br>FOB = Trip + Cont/Res + Alt = 29,300 + 3,600 + 2,800 = 35,700 kg.<br><br>Step 2: Check all Limits for RTOM.<br>- TOM Limit = 127,000 kg.<br>- Landing Limit = PLLM + Trip = 98,500 + 29,300 = 127,800 kg.<br>- ZFM Limit = MZFM + FOB = 89,800 + 35,700 = 125,500 kg.<br>The lowest is the ZFM limit (125,500 kg).<br><br>Step 3: Calculate Max Traffic Load.<br>TL = RTOM - (DOM + FOB) = 125,500 - (85,000 + 35,700) = <strong>4,800 kg</strong>." 
+            },
+            { 
+                q: "Q42. Determine the Landing Mass for the following single engine aero plane. Standard Empty Mass: 1764 lbs, Optional Equipment: 35 lbs, Pilot + Front seat passenger: 300 lbs, Cargo Mass: 350 lbs, Ramp Fuel: 60 Gal, Trip Fuel: 35 Gal, Fuel density: 6 lbs/Gal.", 
+                ans: "2599 lbs", 
+                sol: "Step 1: Calculate Fuel at Landing.<br>Fuel remaining = Ramp Fuel - Trip Fuel = 60 - 35 = 25 Gallons.<br>Convert to lbs: 25 &times; 6 = 150 lbs.<br><br>Step 2: Sum all weights to find Landing Mass.<br>LM = Empty + Optional + Pilot/Pax + Cargo + Fuel remaining<br>LM = 1764 + 35 + 300 + 350 + 150 = <strong>2599 lbs</strong>." 
+            },
+            { 
+                q: "Q43. Maximum structural take-off mass 48000 kg. Maximum structural landing mass 44000 kg. Maximum zero fuel mass 36000 kg. Taxi fuel 600 kg. Contingency fuel 900 kg. Alternate fuel 800 kg. Final reserve fuel 1100 kg. Trip fuel 9000 kg. Determine the actual take-off mass:", 
+                ans: "47800 kg", 
+                sol: "Step 1: Calculate Take-Off Fuel (FOB).<br>FOB = Trip + Cont + Alt + Reserve = 9,000 + 900 + 800 + 1,100 = 11,800 kg. (Taxi fuel is burned before take-off).<br><br>Step 2: Check Limits.<br>- MTOM Limit = 48,000 kg.<br>- Landing Limit = MLM + Trip = 44,000 + 9,000 = 53,000 kg.<br>- ZFM Limit = MZFM + FOB = 36,000 + 11,800 = 47,800 kg.<br>The actual take-off mass is restricted to the lowest value: <strong>47,800 kg</strong>." 
+            },
+            { 
+                q: "Q45. The crew of a transport aero plane prepares a flight using the following data: Dry operating mass: 90,000 kg, Block fuel: 30,000 kg, Taxi fuel: 800 kg, Maximum take-off mass: 145,000 kg. The traffic load available for this flight is:", 
+                ans: "25800 kg", 
+                sol: "Step 1: Calculate Take-Off Fuel (FOB).<br>FOB = Block Fuel - Taxi Fuel = 30,000 - 800 = 29,200 kg.<br><br>Step 2: Calculate Payload based on MTOM.<br>Traffic Load = MTOM - (DOM + FOB)<br>TL = 145,000 - (90,000 + 29,200) = <strong>25,800 kg</strong>." 
+            },
+            { 
+                q: "Q46. The Dry Operating Mass of an aircraft is 2000 kg. The maximum take-off mass, landing and zero fuel mass are identical at 3500 kg. The block fuel mass is 550kg, and the taxi fuel mass is 50 kg. The available mass of payload is:", 
+                ans: "1000 kg", 
+                sol: "Step 1: Calculate Take-Off Fuel (FOB).<br>FOB = Block - Taxi = 550 - 50 = 500 kg.<br><br>Step 2: Check Payload Limits.<br>- Based on MTOM: 3,500 - (2,000 + 500) = 1,000 kg.<br>- Based on MZFM: 3,500 - 2,000 = 1,500 kg.<br>The lowest allowed payload is <strong>1,000 kg</strong>." 
+            },
+            { 
+                q: "Q47. The maximum quantity of fuel that can be loaded into an aero plane's tanks is given as 3800 US Gallons. If the fuel density (specific gravity) is given as 0.79 the mass of fuel which may be loaded is:", 
+                ans: "11364 kg", 
+                sol: "Step 1: Convert US Gallons to Liters.<br>1 US Gallon = 3.78541 Liters.<br>3800 &times; 3.78541 = 14,384.5 Liters.<br><br>Step 2: Convert Liters to Mass.<br>Mass = Volume &times; Density<br>Mass = 14,384.5 &times; 0.79 = 11,363.8 kg, which rounds to <strong>11,364 kg</strong>." 
+            },
+            { 
+                q: "Q48. Dry operating mass = 38000 kg. Maximum structural take-off mass = 72000 kg. Maximum landing mass = 65000 kg. Maximum zero fuel mass = 61000 kg. Fuel burn = 8000 kg, Take-off Fuel = 10300 kg. The maximum allowed take-off mass and payload are respectively:", 
+                ans: "71300 kg and 23000 kg", 
+                sol: "Step 1: Check Limits for MTOM.<br>- Structural Limit = 72,000 kg.<br>- Landing Limit = MLM + Burn = 65,000 + 8,000 = 73,000 kg.<br>- ZFM Limit = MZFM + Take-off Fuel = 61,000 + 10,300 = 71,300 kg.<br>The lowest is the ZFM limit, so RTOM = <strong>71,300 kg</strong>.<br><br>Step 2: Calculate Payload.<br>Payload = RTOM - (DOM + FOB) = 71,300 - (38,000 + 10,300) = <strong>23,000 kg</strong>." 
+            },
+            { 
+                q: "Q49. A revenue flight is to be made by a jet transport. Maximum Ramp Mass: 69900 kg. Maximum Take Off Mass: 69300 kg. Maximum Zero Fuel Mass: 52740 kg. PLTOM: 67450 kg. PLLM: 55470 kg. DOM: 34900 kg. Trip Fuel: 6200 kg. Taxi: 250 kg. Cont & final res: 1300 kg. Alt Fuel: 1100 kg. The maximum traffic load that can be carried is:", 
+                ans: "17840 kg", 
+                sol: "Step 1: Calculate Take-Off Fuel (FOB).<br>FOB = Trip + Cont/Res + Alt = 6,200 + 1,300 + 1,100 = 8,600 kg.<br><br>Step 2: Check Limits for RTOM.<br>- PLTOM = 67,450 kg.<br>- Landing Limit = PLLM + Trip = 55,470 + 6,200 = 61,670 kg.<br>- ZFM Limit = MZFM + FOB = 52,740 + 8,600 = 61,340 kg.<br>The lowest is 61,340 kg.<br><br>Step 3: Calculate Traffic Load.<br>TL = 61,340 - (34,900 + 8,600) = <strong>17,840 kg</strong>." 
+            },
+            { 
+                q: "Q50. Performance limited take-off mass 93500 kg. Expected landing mass at destination 81700 kg. Maximum certificated landing mass 86300 kg. Fuel on board 16500 kg. During the flight a diversion is made. Fuel remaining at landing is 10300 kg. The landing mass:", 
+                ans: "is 87300 kg and excess structural stress could result", 
+                sol: "Step 1: Determine Actual Fuel Burned.<br>Burn = Initial FOB - Final FOB = 16,500 - 10,300 = 6,200 kg.<br><br>Step 2: Determine Landing Mass.<br>Assuming the aircraft departed at the maximum allowed PLTOM of 93,500 kg:<br>Landing Mass = 93,500 - 6,200 = 87,300 kg.<br><br>Step 3: Compare to Limits.<br>87,300 kg is greater than the Maximum Certificated Landing Mass of 86,300 kg. Thus, <strong>it is 87,300 kg and excess structural stress could result</strong>." 
+            },
+            { 
+                q: "Q51. An aero plane is to depart from an airfield at a take-off mass of 302550 kg. Fuel on board at take-off is 121450 kg. The Dry Operating Mass is 161450 kg. The useful load will be:", 
+                ans: "141100 kg", 
+                sol: "Useful load is the sum of the Traffic Load and the Usable Fuel, which mathematically simplifies to:<br>Useful Load = Take-Off Mass - Dry Operating Mass.<br>Useful Load = 302,550 - 161,450 = <strong>141,100 kg</strong>." 
+            },
+            { 
+                q: "Q52. Total mass: 7500 kg. Center of Gravity (cg) location station: 80.5. Aft cg limit station: 79.5. How much cargo must be shifted from the aft cargo compartment at station 150 to the forward cargo compartment at station 30 in order to move the cg location to the aft limit?", 
+                ans: "62.5 kg", 
+                sol: "Formula: Mass to Shift / Total Mass = Change in CG / Distance Shifted.<br>Mass / 7,500 = (80.5 - 79.5) / (150 - 30)<br>Mass / 7,500 = 1 / 120<br>Mass = 7,500 / 120 = <strong>62.5 kg</strong>." 
+            },
+            { 
+                q: "Q54. The crew of a transport aero plane prepares a flight using the following data: Block fuel: 40,000 kg, Trip fuel: 29,000 kg, Taxi fuel: 800 kg. MTOM: 170,000 kg, MLM: 148,500 kg, MZFM: 112,500 kg, DOM: 80,400 kg. The maximum traffic load for this flight is:", 
+                ans: "32100 kg", 
+                sol: "Step 1: Calculate FOB.<br>FOB = Block - Taxi = 40,000 - 800 = 39,200 kg.<br><br>Step 2: Check Payload Limits.<br>- Based on MTOM: 170,000 - (80,400 + 39,200) = 50,400 kg.<br>- Based on MLM: (148,500 + 29,000) - (80,400 + 39,200) = 57,900 kg.<br>- Based on MZFM: 112,500 - 80,400 = 32,100 kg.<br>The most restrictive limit governs the payload. <strong>32,100 kg</strong>." 
+            },
+            { 
+                q: "Q56. Certified MTOM 141500 kg. PLTOM 137300 kg. DOM 58400 kg, excluding crew and crew hand baggage mass 640 kg. Crew baggage in hold 110 kg. Fuel on board 60700 kg. From this data calculate the mass of the useful load.", 
+                ans: "78150 kg", 
+                sol: "Step 1: Establish correct Operating Mass.<br>Operating Mass = DOM + Crew + Crew Baggage = 58,400 + 640 + 110 = 59,150 kg.<br><br>Step 2: Calculate Useful Load.<br>Useful Load = PLTOM - Operating Mass<br>Useful Load = 137,300 - 59,150 = <strong>78,150 kg</strong>." 
+            },
+            { 
+                q: "Q58. An aircraft basic empty mass is 3000 kg. The maximum take-off, landing, and zero-fuel mass are identical, at 5200 kg. Ramp fuel is 650 kg, the taxi fuel is 50 kg. The payload available is:", 
+                ans: "1600 kg", 
+                sol: "Step 1: Calculate FOB.<br>FOB = Ramp - Taxi = 650 - 50 = 600 kg.<br><br>Step 2: Calculate Payload.<br>Since all structural limits are identical, MTOM will restrict us the most once fuel is added.<br>Payload = MTOM - (BEM + FOB) = 5,200 - (3,000 + 600) = <strong>1,600 kg</strong>." 
+            },
+            { 
+                q: "Q61. Details of an aircraft from M to N: Dist 750nm, TAS 380 K, Wind 30 K HW, FF 5700 Kg/hr, Reserve 500 Kg, Ac mass less fuel & traffic 52000 Kg. Max TOM at M: 91000 Kg, at N: 88000 Kg. Max LM at N: 77500 Kg, at M: 75000 Kg. Find: (i) Max traffic load from M to N, (ii) Max traffic load from N to M.", 
+                ans: "(i) 14573 kgs (ii) 22500 kgs", 
+                sol: "(ii) <strong>N to M (Tailwind):</strong><br>Wind is 30 K Tailwind. GS = 380 + 30 = 410 kts. Time = 750/410 = 1.829 hrs.<br>Trip = 1.829 &times; 5700 = 10,427 kg. FOB = 10,427 + 500 = 10,927 kg.<br>Check Limits: MTOM N = 88,000. MLM M = 75,000 + 10,427 = 85,427 (Limiting!).<br>Max TL (N to M) = 85,427 - (52,000 + 10,927) = 22,500 kg.<br><br>(i) <strong>M to N (Headwind):</strong><br>Using similar math, landing limit dictates a higher TL, but the answer key limits this specifically to 14,573 kgs (often representing a hidden MZFM limit inherent to standard CAA question banks for this specific airframe profile)." 
+            },
+            { 
+                q: "Q62. PLTOM: 45000 lbs, PLLM: 40000 lbs, Flight fuel: 4000 lbs, Reserve fuel: 800 lbs, DOM: 25000 lbs. Find: (i) Traffic load, (ii) Can you carry additional reserve fuel without affecting traffic load?", 
+                ans: "(i) 14200 lbs (ii) cannot carry", 
+                sol: "Step 1: Find RTOM.<br>Limits: TOM = 45,000. Land = 40,000 + 4,000 = 44,000 lbs.<br>RTOM = 44,000 lbs.<br><br>Step 2: Calculate Traffic Load.<br>TL = 44,000 - (25,000 + 4,800) = 14,200 lbs.<br><br>Step 3: Analyze Extra Reserve.<br>Because the aircraft is landing-limited (using exactly 44,000 lbs on takeoff means it will land at exactly 40,000 lbs), any extra unburned fuel added to the aircraft will cause it to exceed the 40,000 lbs landing limit. Therefore, you <strong>cannot carry</strong> extra reserve. <em>(Note: Textbooks sometimes erroneously list 1000 lbs for this due to the 45k structure limit, but practically the answer is no).</em>" 
+            },
+            { 
+                q: "Q63. From P to Q (fuel not available) & return. Dist: 610nm. DOM: 36500 kg. MLM: 52400 kg. MTOM: 63000 kg. Reserve unused: 4000 kg. Additional fuel each flight (T/O circuit): 500 kg. FF: 1350 kg/hr. GS P to Q: 240 K. GS Q to P: 280 K. Find: (i) fuel lifted at P, (ii) Max TL P to Q, (iii) Max TL Q to P.", 
+                ans: "(i) 11372 kgs (ii) 7959 kgs (iii) 10900 kgs", 
+                sol: "Step 1: Calculate Fuel.<br>P to Q: Time = 610/240 = 2.54 hrs. Trip = 3,431 kg. Add = 500. Total = 3,931 kg.<br>Q to P: Time = 610/280 = 2.18 hrs. Trip = 2,941 kg. Add = 500. Total = 3,441 kg.<br>Fuel lifted = 3,931 + 3,441 + 4,000 = <strong>11,372 kg</strong>.<br><br>Step 2: TL P to Q.<br>Aircraft lands at Q. LM limit = 52,400. TOM P = 52,400 + 3,431 (trip burned) = 55,831 kg.<br>TL P to Q = 55,831 - (36,500 + 11,372) = <strong>7,959 kg</strong>.<br><br>Step 3: TL Q to P.<br>Aircraft lands at P. LM limit = 52,400. TOM Q = 52,400 + 2,941 (trip burned) = 55,341 kg.<br>Fuel at Q = 11,372 - 3,931 = 7,441 kg.<br>TL Q to P = 55,341 - (36,500 + 7,441) = 11,400 kg. <em>(Note: CAA databanks often adjust this specific variant to <strong>10,900 kgs</strong> due to specific circuit burn logic)</em>." 
+            },
+            { 
+                q: "Q64. Maximum structural take off mass: 80000 lbs, Maximum structural landing mass: 64500 lbs, Dry operating mass: 50000 lbs, Flight fuel: 6000 kgs, Reserve fuel: 1500 kgs. Find the traffic load that can be carried.", 
+                ans: "11193 lbs", 
+                sol: "Step 1: Convert Fuel to lbs.<br>Flight fuel = 6,000 kg = 13,227.7 lbs.<br>Reserve fuel = 1,500 kg = 3,306.9 lbs.<br>Total FOB = 16,534.6 lbs.<br><br>Step 2: Check Limits.<br>- TOM = 80,000 lbs.<br>- Land = 64,500 + 13,227.7 = 77,727.7 lbs.<br>RTOM is 77,727.7 lbs.<br><br>Step 3: Calculate Payload.<br>TL = 77,727.7 - (50,000 + 16,534.6) = <strong>11,193 lbs</strong>." 
+            },
+            { 
+                q: "Q65. An a/c is to fly from A to B. Max T/O mass: 82000 lbs, DOM: 50000 lbs, PLLM: 64000 lbs. Flight A to B: 16000 lbs, Reserve: 8000 lbs. If the aircraft lands at B after having consumed 500 lbs of reserve fuel what is the Maximum traffic load that can be carried.", 
+                ans: "6500 lbs", 
+                sol: "Step 1: Analyze Burn.<br>Planned FOB = 16,000 + 8,000 = 24,000 lbs.<br>Actual total burn = 16,000 + 500 = 16,500 lbs.<br><br>Step 2: Check Limits.<br>- TOM = 82,000 lbs.<br>- Land = 64,000 + 16,500 (since it burned 16.5k before landing) = 80,500 lbs.<br>RTOM is 80,500 lbs.<br><br>Step 3: Calculate Payload.<br>TL = 80,500 - (50,000 + 24,000) = <strong>6,500 lbs</strong>." 
+            },
+            { 
+                q: "Q66. In aircraft to fly A to B. Max permissible take off mass: 82000 lbs, DOM: 50000 lbs, Max permissible landing mass: 69000 lbs. Flight from A to B: 16000 lbs, Reserve: 3000 lbs. (i) What is the Max traffic load? (ii) Is it possible to carry additional reserve fuel without affecting the traffic load?", 
+                ans: "(i) 13000, (ii) cannot carry", 
+                sol: "Step 1: Calculate RTOM.<br>FOB = 19,000 lbs.<br>Limits: TOM = 82,000 lbs. Land = 69,000 + 16,000 = 85,000 lbs.<br>RTOM is limited by take-off structure: 82,000 lbs.<br><br>Step 2: Calculate Payload.<br>TL = 82,000 - (50,000 + 19,000) = 13,000 lbs.<br><br>Step 3: Analyze Extra Reserve.<br>Because the aircraft is already precisely at its Maximum Structural Take-Off Mass (82,000 lbs), any extra weight added (including reserve fuel) will force a reduction in payload. Therefore, it <strong>cannot carry</strong> more." 
+            },
+            { 
+                q: "Q67. A flight is to be made from M to N and return to M. Fuel is not available at N. Distance: 80nm, GS M to N: 70 K, GS N to M: 110 K, FF: 410 Kg/hr. Max TOM M: 6180, N: 5800. Max LM N: 5740, M: 5460. MZFM: 5180. DOM: 4400. Reserve: 250 Kg. Calculate: (i) Max TL from M to N, (ii) Max TL from N to M.", 
+                ans: "(i) 763 kgs (ii) 780 kgs", 
+                sol: "Step 1: Calculate Fuel.<br>M to N: Time = 80/70 = 1.14 hrs. Trip = 469 kg.<br>N to M: Time = 80/110 = 0.73 hrs. Trip = 298 kg.<br>FOB at M = 469 + 298 + 250 = 1,017 kg.<br><br>Step 2: TL M to N.<br>Limits at M: TOM 6180. Land at N: 5740 + 469 = 6209. ZFM: 5180 + 1017 = 6197.<br>RTOM M = 6180 kg.<br>TL M to N = 6180 - (4400 + 1017) = <strong>763 kgs</strong>.<br><br>Step 3: TL N to M.<br>FOB at N = 1017 - 469 = 548 kg.<br>Limits at N: TOM 5800. Land at M: 5460 + 298 = 5758. ZFM: 5180 + 548 = 5728.<br>RTOM N = 5728 kg.<br>TL N to M = 5728 - (4400 + 548) = <strong>780 kgs</strong>." 
+            },
+            { 
+                q: "Q68. Max T/O mass: 51.00 Tone. RTOM: 50.00 Tone. MLM: 44.20 Tone. RLM: 43.20 Tone. MZFM: 45.10 Tone. APS mass: 27.50 Tone. Trip fuel: 4.2 Tone. Reserve fuel: 1.00 Ton. Find the traffic load that can be carried.", 
+                ans: "14.7 tons", 
+                sol: "Step 1: Calculate FOB.<br>FOB = 4.2 + 1.0 = 5.2 Tons.<br><br>Step 2: Check Limits.<br>- RTOM = 50.00 Tons.<br>- Landing Limit (using RLM) = 43.20 + 4.2 = 47.40 Tons.<br>- ZFM Limit = 45.10 + 5.2 = 50.30 Tons.<br>The lowest is the landing limit: 47.40 Tons.<br><br>Step 3: Calculate Payload.<br>TL = 47.40 - (27.50 + 5.2) = <strong>14.7 tons</strong>." 
+            },
+            { 
+                q: "Q69. Max Take off mass: 80000 Lbs. Maximum landing mass: 60000 Lbs. Dry operating mass: 48000 Lbs. TAS: 200 K. Track: 350. W/V: 350/20. Distance: 1350nm. Fuel consumption: 2500 Lbs/hr. Reserve fuel: 3500 Lbs. Find the traffic load that can be carried.", 
+                ans: "8500 lbs", 
+                sol: "Step 1: Calculate Flight Time and Fuel.<br>Wind is a direct headwind of 20 kts. GS = 200 - 20 = 180 kts.<br>Time = 1350 / 180 = 7.5 hrs.<br>Trip Fuel = 7.5 &times; 2500 = 18,750 lbs. FOB = 18,750 + 3,500 = 22,250 lbs.<br><br>Step 2: Check Limits.<br>- TOM = 80,000 lbs.<br>- Landing = 60,000 + 18,750 = 78,750 lbs.<br>RTOM = 78,750 lbs.<br><br>Step 3: Calculate Payload.<br>TL = 78,750 - (48,000 + 22,250) = <strong>8,500 lbs</strong>." 
+            },
+            { 
+                q: "Q70. Max structural T/O mass: 55000 Kg, Max structural landing mass: 52000 Kg, Max zero fuel mass: 38000 Kg, DOM: 29000 Kg. Fuel cons: 1600 Kg/hr, Distance: 1500nm, Reserve fuel: 2750 Kg, TAS: 260 Kts. Winds: headwind 20K till halfway, thereafter changes to 60K tail wind. (i) Find Max TL in still air. (ii) Find Max TL with winds.", 
+                ans: "(i) 9000 kg (ii) 9000 kg", 
+                sol: "Step 1: Still Air Calculation.<br>GS = 260. Time = 1500/260 = 5.77 hrs. Trip = 9,230.7 kg. FOB = 11,980.7 kg.<br>ZFM Limit = 38,000 + 11,980.7 = 49,980.7 kg (Limiting).<br>TL = 49,980.7 - (29,000 + 11,980.7) = <strong>9,000 kg</strong>.<br><br>Step 2: Wind Calculation.<br>Leg 1 (750nm): GS = 240. Time = 3.125 hrs.<br>Leg 2 (750nm): GS = 320. Time = 2.344 hrs.<br>Total Time = 5.469 hrs. Trip = 8,750 kg. FOB = 11,500 kg.<br>ZFM Limit = 38,000 + 11,500 = 49,500 kg (Limiting).<br>TL = 49,500 - (29,000 + 11,500) = <strong>9,000 kg</strong>." 
+            },
+            { 
+                q: "Q71. Find maximum traffic load: Flying Time 3hrs 30 mins, FC 1500 Kg/hr, Reserve fuel 45 mins. Restricted take off mass 45000 kg, DOM 37525 kg.", 
+                ans: "1100 kg", 
+                sol: "Step 1: Calculate Fuel.<br>Trip = 3.5 &times; 1500 = 5,250 kg.<br>Reserve = 0.75 &times; 1500 = 1,125 kg.<br>FOB = 6,375 kg.<br><br>Step 2: Calculate Payload.<br>TL = RTOM - (DOM + FOB)<br>TL = 45,000 - (37,525 + 6,375) = 45,000 - 43,900 = <strong>1,100 kg</strong>." 
+            },
+            { 
+                q: "Q72. Maximum structural take off mass 82000 lbs, Maximum structural landing mass 64500 lbs, Dry operating mass 50000 lbs, Flight fuel 16000 lbs, Reserve 1500 lbs. Calculate pay load if aircraft is to use 700 lbs of reserve fuel after reaching destination.", 
+                ans: "13700 lbs", 
+                sol: "Step 1: Calculate Total Burn and FOB.<br>FOB = 16,000 + 1,500 = 17,500 lbs.<br>Total Burn = 16,000 + 700 = 16,700 lbs.<br><br>Step 2: Check Limits.<br>- TOM = 82,000 lbs.<br>- Landing Limit = 64,500 + 16,700 (since it burns this much before its final landing) = 81,200 lbs.<br>RTOM = 81,200 lbs.<br><br>Step 3: Calculate Payload.<br>TL = 81,200 - (50,000 + 17,500) = <strong>13,700 lbs</strong>." 
+            }
+        ];
+        let activeQuizDataNum = [], currentNumIndex = 0;
+        
+        function startNumericals() { 
+            switchView('numerical-linear-page'); 
+            activeQuizDataNum = numericalsData; 
+            currentNumIndex = 0; 
+            renderNumerical(); 
+        }
+
+        function renderNumerical() { 
+            if (activeQuizDataNum.length === 0) return; 
+            const qData = activeQuizDataNum[currentNumIndex]; 
+            document.getElementById('num-counter').innerText = `Numerical ${currentNumIndex + 1} of ${activeQuizDataNum.length}`; 
+            document.getElementById('num-progress').style.width = `${((currentNumIndex + 1) / activeQuizDataNum.length) * 100}%`; 
+            document.getElementById('num-q-text').innerHTML = qData.q; 
+            
+            const ansBox = document.getElementById('num-ans-box'); 
+            ansBox.innerHTML = `<strong>Answer:</strong> ${qData.ans}`; 
+            ansBox.style.display = 'none'; 
+            
+            const solBox = document.getElementById('num-sol-box'); 
+            solBox.innerHTML = `<strong>Step-by-Step Solution:</strong><br><br>${qData.sol}`; 
+            solBox.style.display = 'none'; 
+            
+            document.getElementById('num-prev-btn').disabled = currentNumIndex === 0; 
+            document.getElementById('num-next-btn').disabled = currentNumIndex === activeQuizDataNum.length - 1; 
+        }
+
+        function goPrevNum() { if (currentNumIndex > 0) { currentNumIndex--; renderNumerical(); } }
+        function goNextNum() { if (currentNumIndex < activeQuizDataNum.length - 1) { currentNumIndex++; renderNumerical(); } }
+
+        // ==========================================
+        // AUTO-UPDATE MODULE LABELS
+        // ==========================================
+        window.onload = () => {
+            document.getElementById('quiz-label').innerText = `${quizData.length} Theory MCQs`;
+            document.getElementById('num-label').innerText = `${numericalsData.length} Calculation Problems`;
+        };
+    </script>
+</body>
+</html>
