@@ -4577,8 +4577,8 @@
                 return;
             }
             
-            // Randomize question sequence every time Practice starts
-            activeData = shuffleArray(sourceData);
+            // Keep exact topic-wise question & option sequence in Practice mode
+            activeData = sourceData;
             
             switchView('practice-page');
             currentPracIndex = 0;
