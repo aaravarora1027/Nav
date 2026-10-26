@@ -11518,8 +11518,22 @@
                 return;
             }
             
-            // Keep exact topic-wise question & option sequence in Practice mode
-            activeData = sourceData;
+            // Keep topic-wise question sequence in Practice mode, but scramble options every time
+            const labels = ["a) ", "b) ", "c) ", "d) "];
+            activeData = sourceData.map(q => {
+                let mappedOpts = q.options.map((opt, idx) => ({
+                    rawText: opt.replace(/^[a-dA-D][\)\.]\s*/, ""),
+                    isCorrect: (idx === q.correct)
+                }));
+                mappedOpts = shuffleArray(mappedOpts);
+                const newOptions = mappedOpts.map((item, idx) => (labels[idx] || "") + item.rawText);
+                const newCorrect = mappedOpts.findIndex(item => item.isCorrect);
+                return {
+                    ...q,
+                    options: newOptions,
+                    correct: newCorrect
+                };
+            });
             
             switchView('practice-page');
             currentPracIndex = 0;
@@ -11626,8 +11640,8 @@
             }
             
             showConfirmModal(`Start 3-Hour Exam for ${testTitle}?\nTimer will begin immediately.`, () => {
-                // Keep topic-wise question sequence; scramble options only
-                activeData = [...sourceData];
+                // Scramble question order AND scramble options in Exam (Test) mode
+                activeData = shuffleArray(sourceData);
 
                 switchView('exam-page');
                 currentExamIndex = 0;
